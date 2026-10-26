@@ -2,7 +2,7 @@
 
 [English](README.md) | [简体中文](README.zh_hans.md)
 
-星光框架的**插件管理者**：把插件包发现出来、按依赖图装载、各自关进一个可回收的 ALC、驱动它的生命周期，并在任何一环失败时只让它自己倒下。
+星光框架的**插件管理器**：把插件包发现出来、按依赖图装载、各自关进一个可回收的 ALC、驱动它的生命周期，并在任何一环失败时只让它自己倒下。
 
 插件契约在另一个仓与另一个包：[`Hosihikari.Plugin.Abstractions`](https://www.nuget.org/packages/Hosihikari.Plugin.Abstractions)。
 
@@ -10,7 +10,7 @@
 
 | | |
 |---|---|
-| `src/` | 插件管理者：发现、依赖图、程序集型加载器、生命周期、失败隔离 |
+| `src/` | 插件管理器：发现、依赖图、程序集型加载器、生命周期、失败隔离 |
 | `tools/Pack/` | 打包工具：装配插件包，并在打包期拦下几条报错点离病因很远的规则 |
 | `test/Foo`、`test/Bar` | 两个测试插件 —— 它们也是打包工具的头两个用户 |
 | `host/` | 断言宿主：普通 .NET 控制台，**不碰 BDS、Shim、任何载体** |
@@ -70,7 +70,7 @@ foreach (var info in manager.Plugins)
 ## 作为 lip 包
 
 打 `v*` 标签会构建 `hosihikari-core-<版本>.zip`，发布为
-`github.com/HosihikariFramework/PluginManager`。包把插件管理者装进 `plugins/hosihikari/`；
+`github.com/HosihikariFramework/PluginManager`。包把插件管理器装进 `plugins/hosihikari/`；
 原生 Shim 包用 lip 依赖声明兼容的 Core 版本。原生侧与托管侧在启动时核对
 `HostingContractVersion`。
 
@@ -79,7 +79,7 @@ foreach (var info in manager.Plugins)
 ## 不在这里的
 
 - **Shim** —— 把 CLR 托管进 BDS 进程的那层原生代码，是独立的仓。
-- **进程外桥** —— RpcLoader 是官方加载器，独立成仓，插件在子进程中运行；插件管理者只认 `IPluginLoader` 契约，不认识子进程的内部。
+- **进程外桥** —— RpcLoader 是官方加载器，独立成仓，插件在子进程中运行；插件管理器只认 `IPluginLoader` 契约，不认识子进程的内部。
 - **任何 BDS 专有能力** —— 世界、实体、命令、游戏事件都不在能力面内。
 
 ## 许可
