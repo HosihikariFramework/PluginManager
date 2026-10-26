@@ -1,7 +1,7 @@
 namespace Hosihikari;
 
 /// <summary>
-/// 管理者的只读插件状态快照。它不交出插件句柄，也不改变状态（ADR-0041）。
+/// 管理器的只读插件状态快照。它不交出插件句柄，也不改变状态（ADR-0041）。
 /// </summary>
 /// <param name="Name">插件名，等于包目录名。</param>
 /// <param name="Version">插件版本；清单没写时为 <see langword="null"/>。</param>

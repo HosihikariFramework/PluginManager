@@ -4,7 +4,7 @@ namespace Hosihikari.Testing;
 
 /// <summary>
 /// 临时目录 + 真实 <see cref="PluginManager"/> 的集成测试宿主。它负责准备 plugins/data/config
-/// 三个根，并把管理者报告与“已移除”回调收集起来；插件包与加载器由测试自己放进去。
+/// 三个根，并把管理器报告与“已移除”回调收集起来；插件包与加载器由测试自己放进去。
 /// </summary>
 public sealed class PluginManagerHarness : IDisposable
 {

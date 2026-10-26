@@ -1,6 +1,6 @@
 namespace Hosihikari;
 
-/// <summary>插件管理者的可选配置。现有构造函数保持原样，新配置经重载传入。</summary>
+/// <summary>插件管理器的可选配置。现有构造函数保持原样，新配置经重载传入。</summary>
 public sealed class PluginManagerOptions
 {
     /// <summary>

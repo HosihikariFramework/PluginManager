@@ -140,7 +140,7 @@ using (var harness = new PluginManagerHarness())
         escaped = true;
     }
 
-    checks.Add(("管理者辅助拒绝越界的包名", escaped, escaped ? "已拒绝" : "（没有拒绝）"));
+    checks.Add(("管理器辅助拒绝越界的包名", escaped, escaped ? "已拒绝" : "（没有拒绝）"));
 
     harness.Manager.RegisterLoader(new ProbeLoader());
     harness.CreatePackage(
@@ -158,7 +158,7 @@ using (var harness = new PluginManagerHarness())
     var enabled = harness.Manager.Enable("HarnessProbe");
     var unloaded = harness.Manager.Unload("HarnessProbe");
     checks.Add((
-        "真实管理者辅助加载、启用并卸载",
+        "真实管理器辅助加载、启用并卸载",
         loaded && enabled && unloaded.Released,
         $"loaded={loaded} enabled={enabled} unloaded={unloaded.Released} {unloaded.Error}"));
 }
