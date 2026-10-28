@@ -53,8 +53,10 @@ jobs:
         working-directory: PluginManager
         run: |
           set -euo pipefail
-          jq -e 'all(.variants[]; (.label // "") | test("^[a-z0-9_]*$"))' tooth.json > /dev/null
+          jq -e '.formatVersion == 4' manifest.json > /dev/null
+          jq -e 'all(.artifacts[]; (.variant // "") | test("^[a-z0-9_]+(/[a-z0-9_]+)?$"))' manifest.json > /dev/null
           bash ./pack.sh 0.0.0-check
+          unzip -l artifacts/hosihikari-core-0.0.0-check.zip | grep -q 'manifest.json'
           unzip -l artifacts/hosihikari-core-0.0.0-check.zip | grep -q 'Hosihikari.PluginManager.dll'
           unzip -l artifacts/hosihikari-core-0.0.0-check.zip | grep -q 'Hosihikari.PluginManager.runtimeconfig.json'
           unzip -l artifacts/hosihikari-core-0.0.0-check.zip | grep -q 'NuGet.Versioning.dll'
