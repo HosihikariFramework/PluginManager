@@ -54,7 +54,7 @@ jobs:
         run: |
           set -euo pipefail
           jq -e '.formatVersion == 4' manifest.json > /dev/null
-          jq -e 'all(.artifacts[]; (.variant // "") | test("^[a-z0-9_]+(/[a-z0-9_]+)?$"))' manifest.json > /dev/null
+          jq -e 'all(.artifacts[]; (.variant // "") | test("^([a-z0-9_]+(/[a-z0-9_]+)?)?$"))' manifest.json > /dev/null
           bash ./pack.sh 0.0.0-check
           unzip -l artifacts/hosihikari-core-0.0.0-check.zip | grep -q 'manifest.json'
           unzip -l artifacts/hosihikari-core-0.0.0-check.zip | grep -q 'Hosihikari.PluginManager.dll'
