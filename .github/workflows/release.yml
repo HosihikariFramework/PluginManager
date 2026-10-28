@@ -33,23 +33,20 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
-      - name: 校验 tooth 版本
-        shell: bash
-        working-directory: PluginManager
-        run: |
-          set -euo pipefail
-          tag="${GITHUB_REF_NAME#v}"
-          tooth=$(jq -r .version tooth.json)
-          if [ "$tooth" != "$tag" ]; then
-            echo "tooth.json 是 $tooth，标签版本是 $tag" >&2
-            exit 1
-          fi
-          echo "version=$tag" >> "$GITHUB_OUTPUT"
+      - name: 版本
         id: version
+        shell: bash
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
 
       - name: 打包
         working-directory: PluginManager
         run: bash ./pack.sh "${{ steps.version.outputs.version }}"
+
+      - name: 检查附件形状
+        working-directory: PluginManager
+        run: |
+          set -euo pipefail
+          unzip -l artifacts/hosihikari-core-*.zip | grep -q 'plugins/hosihikari/Hosihikari.PluginManager.dll'
 
       - name: 发 release
         env:
@@ -61,7 +58,7 @@ jobs:
             --repo "${{ github.repository }}" \
             --title "${{ github.ref_name }}" --generate-notes
 
-  # 核心同时以 NuGet 包发布，供 Testing/工具链引用。lip 与 NuGet 共用 v* 标签，
+  # 核心同时以 NuGet 包发布，供 Testing/工具链引用。Release 附件与 NuGet 共用 v* 标签，
   # 但各自校验自己的版本事实源。
   nuget:
     runs-on: ubuntu-latest
