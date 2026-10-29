@@ -44,9 +44,15 @@ jobs:
 
       - name: 检查附件形状
         working-directory: PluginManager
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
         run: |
           set -euo pipefail
-          unzip -l artifacts/hosihikari-core-*.zip | grep -q 'plugins/hosihikari/Hosihikari.PluginManager.dll'
+          zip="artifacts/hosihikari-core-$VERSION.zip"
+          unzip -l "$zip" | grep -q 'plugins/hosihikari/Hosihikari.PluginManager.dll'
+          test "$(unzip -p "$zip" sei.json | jq -r .name)" = hosihikari
+          test "$(unzip -p "$zip" sei.json | jq -r .version)" = "$VERSION"
+          test "$(unzip -p "$zip" sei.json | jq -r .layout)" = root
 
       - name: 发 release
         env:
