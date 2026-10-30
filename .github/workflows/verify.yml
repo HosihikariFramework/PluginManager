@@ -53,8 +53,10 @@ jobs:
         working-directory: PluginManager
         run: |
           set -euo pipefail
-          jq -e 'all(.variants[]; (.label // "") | test("^[a-z0-9_]*$"))' tooth.json > /dev/null
           bash ./pack.sh 0.0.0-check
-          unzip -l artifacts/hosihikari-core-0.0.0-check.zip | grep -q 'Hosihikari.PluginManager.dll'
-          unzip -l artifacts/hosihikari-core-0.0.0-check.zip | grep -q 'Hosihikari.PluginManager.runtimeconfig.json'
-          unzip -l artifacts/hosihikari-core-0.0.0-check.zip | grep -q 'NuGet.Versioning.dll'
+          unzip -l artifacts/hosihikari-core-0.0.0-check.zip | grep -q 'plugins/hosihikari/Hosihikari.PluginManager.dll'
+          unzip -l artifacts/hosihikari-core-0.0.0-check.zip | grep -q 'plugins/hosihikari/Hosihikari.PluginManager.runtimeconfig.json'
+          unzip -l artifacts/hosihikari-core-0.0.0-check.zip | grep -q 'plugins/hosihikari/NuGet.Versioning.dll'
+          test "$(unzip -p artifacts/hosihikari-core-0.0.0-check.zip sei.json | jq -r .name)" = hosihikari
+          test "$(unzip -p artifacts/hosihikari-core-0.0.0-check.zip sei.json | jq -r .version)" = 0.0.0-check
+          test "$(unzip -p artifacts/hosihikari-core-0.0.0-check.zip sei.json | jq -r .layout)" = root

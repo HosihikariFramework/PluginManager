@@ -11,7 +11,7 @@
     <!-- 日志出口要用函数指针调回父级。 -->
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <PackageId>Hosihikari.PluginManager</PackageId>
-    <Version>1.1.0</Version>
+    <Version>1.2.0</Version>
     <Authors>HosihikariFramework</Authors>
     <Description>Managed plugin manager for the Hosihikari Framework.</Description>
     <PackageLicenseExpression>LGPL-3.0-or-later</PackageLicenseExpression>

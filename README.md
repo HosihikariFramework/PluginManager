@@ -77,12 +77,13 @@ foreach (var info in manager.Plugins)
 }
 ```
 
-## As a lip package
+## As a release archive
 
-A `v*` tag builds `hosihikari-core-<version>.zip` and publishes it as
-`github.com/HosihikariFramework/PluginManager`. The package installs the managed core under
-`plugins/hosihikari/`; the native Shim package declares a compatible Core version as a lip
-dependency. The native and managed sides check `HostingContractVersion` at startup.
+A `v*` tag builds `hosihikari-core-<version>.zip` and attaches it to the GitHub release. The
+archive extracts at the server root and places the managed core under `plugins/hosihikari/`.
+Install the native Shim variant for the carrier alongside it; the HostingShim release notes list
+the compatible core line, and the native and managed sides check `HostingContractVersion` at
+startup.
 
 For a source deployment, `bash ./pack.sh <version>` builds the same archive locally.
 

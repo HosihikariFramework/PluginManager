@@ -67,12 +67,11 @@ foreach (var info in manager.Plugins)
 }
 ```
 
-## 作为 lip 包
+## 作为 Release 附件
 
-打 `v*` 标签会构建 `hosihikari-core-<版本>.zip`，发布为
-`github.com/HosihikariFramework/PluginManager`。包把插件管理器装进 `plugins/hosihikari/`；
-原生 Shim 包用 lip 依赖声明兼容的 Core 版本。原生侧与托管侧在启动时核对
-`HostingContractVersion`。
+打 `v*` 标签会构建 `hosihikari-core-<版本>.zip` 并附到 GitHub Release。归档在服务端根目录解压，
+把插件管理器放进 `plugins/hosihikari/`。同时安装对应载体的原生 Shim 变体；兼容的核心版本线写在
+HostingShim 的发布说明里，原生侧与托管侧在启动时核对 `HostingContractVersion`。
 
 源码部署时，`bash ./pack.sh <版本>` 可以在本地构建同一份归档。
 

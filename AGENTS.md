@@ -31,8 +31,9 @@ do the same when changing the contract or native probing.
 - Public names follow ADR-0040. 1.x changes are additive (ADR-0041); do not add a Reload verb or
   cascade unload.
 - Unload timeout is a failed unload and leaves the slot `Detached` (ADR-0042).
-- On release, keep the core `tooth.json`, `src/Hosihikari.PluginManager.csproj` version, and core
-  dependency ranges in sync. `Hosihikari.Plugin.Build` and `Hosihikari.Testing` are versioned
+- On release, keep the `hosihikari-core-<version>.zip` name, `src/Hosihikari.PluginManager.csproj`
+  version, and core dependency ranges in sync. The archive extracts at the server root and writes
+  `plugins/hosihikari/`. `Hosihikari.Plugin.Build` and `Hosihikari.Testing` are versioned
   independently.
 - Do not commit `artifacts/`, `bin/`, or `obj/`.
 
