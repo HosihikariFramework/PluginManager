@@ -64,6 +64,64 @@ jobs:
             --repo "${{ github.repository }}" \
             --title "${{ github.ref_name }}" --generate-notes
 
+      # 发布后把这一版作为 sei 提交给官方索引。索引仓在另一个仓库，
+      # GITHUB_TOKEN 出不去，所以用 SEI_SUBMISSION_TOKEN；没配就跳过，不让发版失败。
+      - name: 提交 SeiIndex
+        env:
+          GH_TOKEN: ${{ secrets.SEI_SUBMISSION_TOKEN }}
+          VERSION: ${{ steps.version.outputs.version }}
+          NAME: hosihikari
+          INDEX_REPO: Hosihikari/SeiIndex
+        run: |
+          set -euo pipefail
+          if [ -z "${GH_TOKEN:-}" ]; then
+            echo "::notice::SEI_SUBMISSION_TOKEN 未配置，跳过 SeiIndex 提交"
+            exit 0
+          fi
+
+          asset="hosihikari-core-$VERSION.zip"
+          file="PluginManager/artifacts/$asset"
+          url="https://github.com/$GITHUB_REPOSITORY/releases/download/v$VERSION/$asset"
+          sha=$(sha256sum "$file" | cut -d' ' -f1)
+          size=$(wc -c < "$file")
+          title="[sei] $NAME $VERSION"
+
+          # 重跑工作流时不再开第二个 issue。
+          existing=$(gh issue list --repo "$INDEX_REPO" --state all --limit 200 \
+            --json title --jq '.[].title' | grep -Fxc "$title" || true)
+          if [ "$existing" != "0" ]; then
+            echo "::notice::SeiIndex already has an issue titled '$title'"
+            exit 0
+          fi
+
+          body=$(cat <<EOF
+          ### Sei name
+
+          $NAME
+
+          ### Version entry (JSON)
+
+          \`\`\`json
+          {
+            "version": "$VERSION",
+            "dependencies": [],
+            "artifacts": [
+              {
+                "layout": "root",
+                "source": {
+                  "url": "$url",
+                  "sha256": "$sha",
+                  "size": $size
+                }
+              }
+            ]
+          }
+          \`\`\`
+          EOF
+          )
+
+          gh issue create --repo "$INDEX_REPO" --title "$title" --body "$body"
+
   # 核心同时以 NuGet 包发布，供 Testing/工具链引用。Release 附件与 NuGet 共用 v* 标签，
   # 但各自校验自己的版本事实源。
   nuget:
