@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="ReadManifest" xml:space="preserve">
+    <value>No se pudo leer el manifiesto: {0}</value>
+  </data>
+  <data name="MissingName" xml:space="preserve">
+    <value>Falta name en el manifiesto</value>
+  </data>
+  <data name="InvalidName" xml:space="preserve">
+    <value>El nombre del manifiesto debe ser un nombre de directorio único: {0}</value>
+  </data>
+  <data name="Overlap" xml:space="preserve">
+    <value>La salida del paquete no debe solaparse con la salida de compilación: {0} / {1}</value>
+  </data>
+  <data name="ApiMismatch" xml:space="preserve">
+    <value>api_version del manifiesto es {0}; el contrato actual es {1}</value>
+  </data>
+  <data name="ManifestVersionMismatch" xml:space="preserve">
+    <value>manifest_version del manifiesto es {0}; la versión actual es {1}</value>
+  </data>
+  <data name="TypeMismatch" xml:space="preserve">
+    <value>El tipo del manifiesto debe ser {0}; se recibió {1}</value>
+  </data>
+  <data name="SharedLayer" xml:space="preserve">
+    <value>La salida de compilación contiene ensamblados de la capa compartida ({0}); referéncialos con ExcludeAssets=&quot;runtime&quot;, o el paquete llevará una segunda identidad de tipo</value>
+  </data>
+  <data name="EntryOutside" xml:space="preserve">
+    <value>La entrada del manifiesto debe ser una ruta relativa dentro del paquete (recibido {0})</value>
+  </data>
+  <data name="EntryMissing" xml:space="preserve">
+    <value>La entrada del manifiesto {0} no está en la salida de compilación</value>
+  </data>
+  <data name="WriteFailed" xml:space="preserve">
+    <value>No se pudo escribir el directorio del paquete: {0}</value>
+  </data>
+  <data name="IncludeOutside" xml:space="preserve">
+    <value>#:include sale del paquete: {0}</value>
+  </data>
+  <data name="IncludeMissing" xml:space="preserve">
+    <value>#:include apunta a un archivo inexistente: {0}</value>
+  </data>
+  <data name="IncludeNotCs" xml:space="preserve">
+    <value>#:include solo admite .cs: {0}</value>
+  </data>
+  <data name="SourceReadFailed" xml:space="preserve">
+    <value>No se puede leer el origen {0}: {1}</value>
+  </data>
+  <data name="PackageMissingId" xml:space="preserve">
+    <value>{0}: falta el id del paquete en #:package</value>
+  </data>
+  <data name="IncludeMissingPath" xml:space="preserve">
+    <value>{0}: falta una ruta en #:include</value>
+  </data>
+  <data name="IncludeDirectoryMissing" xml:space="preserve">
+    <value>{0}: el directorio de #:include no existe: {1}</value>
+  </data>
+  <data name="IncludeNoMatch" xml:space="preserve">
+    <value>{0}: #:include no coincidió con ningún archivo: {1}</value>
+  </data>
+  <data name="RestoreFailed" xml:space="preserve">
+    <value>No se pudieron restaurar los paquetes de terceros ({0}): {1}</value>
+  </data>
+  <data name="EntryCount" xml:space="preserve">
+    <value>{0} declara {1} puntos de entrada; se requiere exactamente uno [assembly: EntryPoint&lt;T&gt;]</value>
+  </data>
+  <data name="EntryReadFailed" xml:space="preserve">
+    <value>No se pueden leer las declaraciones de entrada de {0}: {1}</value>
+  </data>
+  <data name="Undeclared" xml:space="preserve">
+    <value>no declarado</value>
+  </data>
+  <data name="Usage" xml:space="preserve">
+    <value>Uso:</value>
+  </data>
+  <data name="UsagePackLoader" xml:space="preserve">
+    <value>  Hosihikari.Plugin.Pack pack-loader &lt;directorio de compilación&gt; &lt;ruta del manifiesto&gt; &lt;raíz de salida&gt;</value>
+  </data>
+  <data name="UsagePackPlugin" xml:space="preserve">
+    <value>  Hosihikari.Plugin.Pack pack-plugin   &lt;directorio de compilación&gt; &lt;ruta del manifiesto&gt; &lt;raíz de salida&gt;</value>
+  </data>
+  <data name="UsagePackAssembly" xml:space="preserve">
+    <value>  Hosihikari.Plugin.Pack pack-plugin-from-assembly &lt;ensamblado de entrada&gt; &lt;ruta del manifiesto&gt; &lt;raíz de salida&gt;</value>
+  </data>
+  <data name="UsageShared" xml:space="preserve">
+    <value>  Hosihikari.Plugin.Pack &lt;directorio de compilación&gt; &lt;ruta del manifiesto&gt; &lt;raíz de salida&gt; [--shared &lt;nombre del archivo de ensamblado&gt;]...</value>
+  </data>
+  <data name="UnrecognizedArgument" xml:space="preserve">
+    <value>Argumento no reconocido: {0}</value>
+  </data>
+  <data name="SharedRequired" xml:space="preserve">
+    <value>Se requiere al menos un --shared: una lista incompleta de la capa compartida deja pasar copias, y ese fallo es silencioso.</value>
+  </data>
+  <data name="Packed" xml:space="preserve">
+    <value>Paquete creado: {0}</value>
+  </data>
+  <data name="PackingFailed" xml:space="preserve">
+    <value>Error al empaquetar:</value>
+  </data>
+  <data name="EntryAssemblyDirectory" xml:space="preserve">
+    <value>No se pudo obtener el directorio desde la ruta del ensamblado de entrada: {0}</value>
+  </data>
+</root>

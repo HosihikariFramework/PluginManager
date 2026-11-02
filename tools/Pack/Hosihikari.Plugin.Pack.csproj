@@ -6,6 +6,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <AssemblyName>Hosihikari.Plugin.Pack</AssemblyName>
+    <NeutralLanguage>en</NeutralLanguage>
     <!-- 同一个打包器既是核心仓里的构建工具，也作为 dotnet 工具分发给插件作者。 -->
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>hosihikari-pack</ToolCommandName>

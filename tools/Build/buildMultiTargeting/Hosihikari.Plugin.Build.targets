@@ -5,7 +5,7 @@
     在这里导入的接缝。给出可读要求，内层由普通 targets 里的完整目标接管。
   -->
   <Target Name="PackPlugin">
-    <Error Text="PackPlugin 需要单个目标框架；请用 dotnet build -t:PackPlugin -f &lt;tfm&gt; 指定。" />
+    <Error Text="PackPlugin requires a single target framework; pass -f &lt;tfm&gt; to dotnet build -t:PackPlugin." />
   </Target>
 
 </Project>

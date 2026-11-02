@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="ReadManifest" xml:space="preserve">
+    <value>Impossible de lire le manifeste : {0}</value>
+  </data>
+  <data name="MissingName" xml:space="preserve">
+    <value>Le manifeste n&#x27;a pas de champ name</value>
+  </data>
+  <data name="InvalidName" xml:space="preserve">
+    <value>Le nom du manifeste doit être un nom de répertoire unique : {0}</value>
+  </data>
+  <data name="Overlap" xml:space="preserve">
+    <value>La sortie du paquet ne doit pas chevaucher la sortie de build : {0} / {1}</value>
+  </data>
+  <data name="ApiMismatch" xml:space="preserve">
+    <value>api_version du manifeste est {0} ; le contrat actuel est {1}</value>
+  </data>
+  <data name="ManifestVersionMismatch" xml:space="preserve">
+    <value>manifest_version du manifeste est {0} ; la version actuelle est {1}</value>
+  </data>
+  <data name="TypeMismatch" xml:space="preserve">
+    <value>Le type du manifeste doit être {0} ; reçu {1}</value>
+  </data>
+  <data name="SharedLayer" xml:space="preserve">
+    <value>La sortie de build contient des assemblys de la couche partagée ({0}) — référencez-les avec ExcludeAssets=&quot;runtime&quot;, sinon le paquet porte une seconde identité de type</value>
+  </data>
+  <data name="EntryOutside" xml:space="preserve">
+    <value>L&#x27;entrée du manifeste doit être un chemin relatif à l&#x27;intérieur du paquet (reçu {0})</value>
+  </data>
+  <data name="EntryMissing" xml:space="preserve">
+    <value>L&#x27;entrée de manifeste {0} n&#x27;est pas dans la sortie de build</value>
+  </data>
+  <data name="WriteFailed" xml:space="preserve">
+    <value>Impossible d&#x27;écrire le répertoire du paquet : {0}</value>
+  </data>
+  <data name="IncludeOutside" xml:space="preserve">
+    <value>#:include sort du paquet : {0}</value>
+  </data>
+  <data name="IncludeMissing" xml:space="preserve">
+    <value>#:include pointe vers un fichier absent : {0}</value>
+  </data>
+  <data name="IncludeNotCs" xml:space="preserve">
+    <value>#:include ne prend en charge que les .cs : {0}</value>
+  </data>
+  <data name="SourceReadFailed" xml:space="preserve">
+    <value>Impossible de lire la source {0} : {1}</value>
+  </data>
+  <data name="PackageMissingId" xml:space="preserve">
+    <value>{0} : #:package n&#x27;a pas d&#x27;identifiant de paquet</value>
+  </data>
+  <data name="IncludeMissingPath" xml:space="preserve">
+    <value>{0} : #:include n&#x27;a pas de chemin</value>
+  </data>
+  <data name="IncludeDirectoryMissing" xml:space="preserve">
+    <value>{0} : le répertoire #:include n&#x27;existe pas : {1}</value>
+  </data>
+  <data name="IncludeNoMatch" xml:space="preserve">
+    <value>{0} : #:include ne correspond à aucun fichier : {1}</value>
+  </data>
+  <data name="RestoreFailed" xml:space="preserve">
+    <value>Impossible de restaurer les paquets tiers ({0}) : {1}</value>
+  </data>
+  <data name="EntryCount" xml:space="preserve">
+    <value>{0} déclare {1} points d&#x27;entrée — exactement un [assembly: EntryPoint&lt;T&gt;] est requis</value>
+  </data>
+  <data name="EntryReadFailed" xml:space="preserve">
+    <value>Impossible de lire les déclarations d&#x27;entrée de {0} : {1}</value>
+  </data>
+  <data name="Undeclared" xml:space="preserve">
+    <value>non déclaré</value>
+  </data>
+  <data name="Usage" xml:space="preserve">
+    <value>Utilisation :</value>
+  </data>
+  <data name="UsagePackLoader" xml:space="preserve">
+    <value>  Hosihikari.Plugin.Pack pack-loader &lt;répertoire de sortie de build&gt; &lt;chemin du manifeste&gt; &lt;racine de sortie&gt;</value>
+  </data>
+  <data name="UsagePackPlugin" xml:space="preserve">
+    <value>  Hosihikari.Plugin.Pack pack-plugin   &lt;répertoire de sortie de build&gt; &lt;chemin du manifeste&gt; &lt;racine de sortie&gt;</value>
+  </data>
+  <data name="UsagePackAssembly" xml:space="preserve">
+    <value>  Hosihikari.Plugin.Pack pack-plugin-from-assembly &lt;assembly d&#x27;entrée&gt; &lt;chemin du manifeste&gt; &lt;racine de sortie&gt;</value>
+  </data>
+  <data name="UsageShared" xml:space="preserve">
+    <value>  Hosihikari.Plugin.Pack &lt;répertoire de sortie de build&gt; &lt;chemin du manifeste&gt; &lt;racine de sortie&gt; [--shared &lt;nom du fichier d&#x27;assembly&gt;]...</value>
+  </data>
+  <data name="UnrecognizedArgument" xml:space="preserve">
+    <value>Argument non reconnu : {0}</value>
+  </data>
+  <data name="SharedRequired" xml:space="preserve">
+    <value>Au moins un --shared est requis : une liste de couche partagée incomplète laisse passer des copies, et cet échec est silencieux.</value>
+  </data>
+  <data name="Packed" xml:space="preserve">
+    <value>Paquet créé : {0}</value>
+  </data>
+  <data name="PackingFailed" xml:space="preserve">
+    <value>Échec du packaging :</value>
+  </data>
+  <data name="EntryAssemblyDirectory" xml:space="preserve">
+    <value>Impossible d&#x27;obtenir le répertoire depuis le chemin de l&#x27;assembly d&#x27;entrée : {0}</value>
+  </data>
+</root>

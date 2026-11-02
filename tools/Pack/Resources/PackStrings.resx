@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="ReadManifest" xml:space="preserve">
+    <value>Cannot read manifest: {0}</value>
+  </data>
+  <data name="MissingName" xml:space="preserve">
+    <value>Manifest is missing name</value>
+  </data>
+  <data name="InvalidName" xml:space="preserve">
+    <value>Manifest name must be a single directory name: {0}</value>
+  </data>
+  <data name="Overlap" xml:space="preserve">
+    <value>Pack output must not overlap the build output: {0} / {1}</value>
+  </data>
+  <data name="ApiMismatch" xml:space="preserve">
+    <value>Manifest api_version is {0}; the current contract is {1}</value>
+  </data>
+  <data name="ManifestVersionMismatch" xml:space="preserve">
+    <value>Manifest manifest_version is {0}; the current version is {1}</value>
+  </data>
+  <data name="TypeMismatch" xml:space="preserve">
+    <value>Manifest type must be {0}; got {1}</value>
+  </data>
+  <data name="SharedLayer" xml:space="preserve">
+    <value>Build output contains shared-layer assemblies ({0}) - reference them with ExcludeAssets=&quot;runtime&quot;, or the package carries a second type identity</value>
+  </data>
+  <data name="EntryOutside" xml:space="preserve">
+    <value>Manifest entry must be a relative path inside the package (got {0})</value>
+  </data>
+  <data name="EntryMissing" xml:space="preserve">
+    <value>Manifest entry {0} is not in the build output</value>
+  </data>
+  <data name="WriteFailed" xml:space="preserve">
+    <value>Failed to write the package directory: {0}</value>
+  </data>
+  <data name="IncludeOutside" xml:space="preserve">
+    <value>#:include escapes the package: {0}</value>
+  </data>
+  <data name="IncludeMissing" xml:space="preserve">
+    <value>#:include points to a missing file: {0}</value>
+  </data>
+  <data name="IncludeNotCs" xml:space="preserve">
+    <value>#:include only supports .cs: {0}</value>
+  </data>
+  <data name="SourceReadFailed" xml:space="preserve">
+    <value>Cannot read source {0}: {1}</value>
+  </data>
+  <data name="PackageMissingId" xml:space="preserve">
+    <value>{0}: #:package is missing a package id</value>
+  </data>
+  <data name="IncludeMissingPath" xml:space="preserve">
+    <value>{0}: #:include is missing a path</value>
+  </data>
+  <data name="IncludeDirectoryMissing" xml:space="preserve">
+    <value>{0}: #:include directory does not exist: {1}</value>
+  </data>
+  <data name="IncludeNoMatch" xml:space="preserve">
+    <value>{0}: #:include matched no files: {1}</value>
+  </data>
+  <data name="RestoreFailed" xml:space="preserve">
+    <value>Failed to restore third-party packages ({0}): {1}</value>
+  </data>
+  <data name="EntryCount" xml:space="preserve">
+    <value>{0} declares {1} entry points - exactly one [assembly: EntryPoint&lt;T&gt;] is required</value>
+  </data>
+  <data name="EntryReadFailed" xml:space="preserve">
+    <value>Cannot read entry declarations from {0}: {1}</value>
+  </data>
+  <data name="Undeclared" xml:space="preserve">
+    <value>undeclared</value>
+  </data>
+  <data name="Usage" xml:space="preserve">
+    <value>Usage:</value>
+  </data>
+  <data name="UsagePackLoader" xml:space="preserve">
+    <value>  Hosihikari.Plugin.Pack pack-loader &lt;build output directory&gt; &lt;manifest path&gt; &lt;output root&gt;</value>
+  </data>
+  <data name="UsagePackPlugin" xml:space="preserve">
+    <value>  Hosihikari.Plugin.Pack pack-plugin   &lt;build output directory&gt; &lt;manifest path&gt; &lt;output root&gt;</value>
+  </data>
+  <data name="UsagePackAssembly" xml:space="preserve">
+    <value>  Hosihikari.Plugin.Pack pack-plugin-from-assembly &lt;entry assembly&gt; &lt;manifest path&gt; &lt;output root&gt;</value>
+  </data>
+  <data name="UsageShared" xml:space="preserve">
+    <value>  Hosihikari.Plugin.Pack &lt;build output directory&gt; &lt;manifest path&gt; &lt;output root&gt; [--shared &lt;assembly file name&gt;]...</value>
+  </data>
+  <data name="UnrecognizedArgument" xml:space="preserve">
+    <value>Unrecognized argument: {0}</value>
+  </data>
+  <data name="SharedRequired" xml:space="preserve">
+    <value>At least one --shared is required: an incomplete shared-layer list lets copies slip through, and that failure is silent.</value>
+  </data>
+  <data name="Packed" xml:space="preserve">
+    <value>Packed: {0}</value>
+  </data>
+  <data name="PackingFailed" xml:space="preserve">
+    <value>Packing failed:</value>
+  </data>
+  <data name="EntryAssemblyDirectory" xml:space="preserve">
+    <value>Cannot get the directory from the entry assembly path: {0}</value>
+  </data>
+</root>

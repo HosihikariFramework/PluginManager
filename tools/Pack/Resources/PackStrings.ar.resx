@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="ReadManifest" xml:space="preserve">
+    <value>تعذّرت قراءة البيان: {0}</value>
+  </data>
+  <data name="MissingName" xml:space="preserve">
+    <value>البيان يفتقد name</value>
+  </data>
+  <data name="InvalidName" xml:space="preserve">
+    <value>يجب أن يكون اسم البيان اسم دليل واحدًا: {0}</value>
+  </data>
+  <data name="Overlap" xml:space="preserve">
+    <value>يجب ألا يتداخل ناتج التغليف مع ناتج البناء: {0} / {1}</value>
+  </data>
+  <data name="ApiMismatch" xml:space="preserve">
+    <value>قيمة api_version في البيان هي {0}؛ العقد الحالي {1}</value>
+  </data>
+  <data name="ManifestVersionMismatch" xml:space="preserve">
+    <value>قيمة manifest_version في البيان هي {0}؛ الإصدار الحالي {1}</value>
+  </data>
+  <data name="TypeMismatch" xml:space="preserve">
+    <value>يجب أن يكون type في البيان {0}؛ والفعلي {1}</value>
+  </data>
+  <data name="SharedLayer" xml:space="preserve">
+    <value>يحتوي ناتج البناء على تجميعات من الطبقة المشتركة ({0}) — أشر إليها باستخدام ExcludeAssets=&quot;runtime&quot;، وإلا فستحمل الحزمة هوية نوع ثانية</value>
+  </data>
+  <data name="EntryOutside" xml:space="preserve">
+    <value>يجب أن يكون entry في البيان مسارًا نسبيًا داخل الحزمة (الفعلي {0})</value>
+  </data>
+  <data name="EntryMissing" xml:space="preserve">
+    <value>entry في البيان {0} ليس في ناتج البناء</value>
+  </data>
+  <data name="WriteFailed" xml:space="preserve">
+    <value>فشل كتابة دليل الحزمة: {0}</value>
+  </data>
+  <data name="IncludeOutside" xml:space="preserve">
+    <value>#:include يخرج خارج الحزمة: {0}</value>
+  </data>
+  <data name="IncludeMissing" xml:space="preserve">
+    <value>#:include يشير إلى ملف مفقود: {0}</value>
+  </data>
+  <data name="IncludeNotCs" xml:space="preserve">
+    <value>#:include يدعم فقط .cs: {0}</value>
+  </data>
+  <data name="SourceReadFailed" xml:space="preserve">
+    <value>تعذّرت قراءة المصدر {0}: {1}</value>
+  </data>
+  <data name="PackageMissingId" xml:space="preserve">
+    <value>{0}: #:package يفتقد معرّف الحزمة</value>
+  </data>
+  <data name="IncludeMissingPath" xml:space="preserve">
+    <value>{0}: #:include يفتقد مسارًا</value>
+  </data>
+  <data name="IncludeDirectoryMissing" xml:space="preserve">
+    <value>{0}: دليل #:include غير موجود: {1}</value>
+  </data>
+  <data name="IncludeNoMatch" xml:space="preserve">
+    <value>{0}: #:include لم يطابق أي ملفات: {1}</value>
+  </data>
+  <data name="RestoreFailed" xml:space="preserve">
+    <value>فشل استعادة حزم الجهات الخارجية ({0}): {1}</value>
+  </data>
+  <data name="EntryCount" xml:space="preserve">
+    <value>{0} يعلن {1} نقاط دخول — مطلوب [assembly: EntryPoint&lt;T&gt;] واحد بالضبط</value>
+  </data>
+  <data name="EntryReadFailed" xml:space="preserve">
+    <value>تعذّرت قراءة إعلانات الدخول من {0}: {1}</value>
+  </data>
+  <data name="Undeclared" xml:space="preserve">
+    <value>غير معلن</value>
+  </data>
+  <data name="Usage" xml:space="preserve">
+    <value>الاستخدام:</value>
+  </data>
+  <data name="UsagePackLoader" xml:space="preserve">
+    <value>  Hosihikari.Plugin.Pack pack-loader &lt;دليل ناتج البناء&gt; &lt;مسار البيان&gt; &lt;الجذر الناتج&gt;</value>
+  </data>
+  <data name="UsagePackPlugin" xml:space="preserve">
+    <value>  Hosihikari.Plugin.Pack pack-plugin   &lt;دليل ناتج البناء&gt; &lt;مسار البيان&gt; &lt;الجذر الناتج&gt;</value>
+  </data>
+  <data name="UsagePackAssembly" xml:space="preserve">
+    <value>  Hosihikari.Plugin.Pack pack-plugin-from-assembly &lt;تجميع الدخول&gt; &lt;مسار البيان&gt; &lt;الجذر الناتج&gt;</value>
+  </data>
+  <data name="UsageShared" xml:space="preserve">
+    <value>  Hosihikari.Plugin.Pack &lt;دليل ناتج البناء&gt; &lt;مسار البيان&gt; &lt;الجذر الناتج&gt; [--shared &lt;اسم ملف التجميع&gt;]...</value>
+  </data>
+  <data name="UnrecognizedArgument" xml:space="preserve">
+    <value>وسيط غير معروف: {0}</value>
+  </data>
+  <data name="SharedRequired" xml:space="preserve">
+    <value>مطلوب --shared واحد على الأقل: قائمة الطبقة المشتركة الناقصة تسمح بمرور النسخ، وهذا الفشل صامت.</value>
+  </data>
+  <data name="Packed" xml:space="preserve">
+    <value>تم التغليف: {0}</value>
+  </data>
+  <data name="PackingFailed" xml:space="preserve">
+    <value>فشل التغليف:</value>
+  </data>
+  <data name="EntryAssemblyDirectory" xml:space="preserve">
+    <value>تعذّر الحصول على الدليل من مسار تجميع الدخول: {0}</value>
+  </data>
+</root>

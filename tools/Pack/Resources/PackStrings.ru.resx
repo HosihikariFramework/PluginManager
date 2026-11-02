@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="ReadManifest" xml:space="preserve">
+    <value>Не удалось прочитать манифест: {0}</value>
+  </data>
+  <data name="MissingName" xml:space="preserve">
+    <value>В манифесте отсутствует name</value>
+  </data>
+  <data name="InvalidName" xml:space="preserve">
+    <value>Имя в манифесте должно быть именем одного каталога: {0}</value>
+  </data>
+  <data name="Overlap" xml:space="preserve">
+    <value>Выходной каталог пакета не должен пересекаться с каталогом сборки: {0} / {1}</value>
+  </data>
+  <data name="ApiMismatch" xml:space="preserve">
+    <value>api_version в манифесте — {0}; текущий контракт — {1}</value>
+  </data>
+  <data name="ManifestVersionMismatch" xml:space="preserve">
+    <value>manifest_version в манифесте — {0}; текущая версия — {1}</value>
+  </data>
+  <data name="TypeMismatch" xml:space="preserve">
+    <value>type в манифесте должен быть {0}; получено {1}</value>
+  </data>
+  <data name="SharedLayer" xml:space="preserve">
+    <value>Выходные данные сборки содержат сборки общего слоя ({0}) — ссылайтесь на них с ExcludeAssets=&quot;runtime&quot;, иначе пакет будет нести вторую идентичность типа</value>
+  </data>
+  <data name="EntryOutside" xml:space="preserve">
+    <value>entry в манифесте должен быть относительным путём внутри пакета (получено {0})</value>
+  </data>
+  <data name="EntryMissing" xml:space="preserve">
+    <value>entry из манифеста {0} отсутствует в выходных данных сборки</value>
+  </data>
+  <data name="WriteFailed" xml:space="preserve">
+    <value>Не удалось записать каталог пакета: {0}</value>
+  </data>
+  <data name="IncludeOutside" xml:space="preserve">
+    <value>#:include выходит за пределы пакета: {0}</value>
+  </data>
+  <data name="IncludeMissing" xml:space="preserve">
+    <value>#:include указывает на отсутствующий файл: {0}</value>
+  </data>
+  <data name="IncludeNotCs" xml:space="preserve">
+    <value>#:include поддерживает только .cs: {0}</value>
+  </data>
+  <data name="SourceReadFailed" xml:space="preserve">
+    <value>Не удалось прочитать исходник {0}: {1}</value>
+  </data>
+  <data name="PackageMissingId" xml:space="preserve">
+    <value>{0}: в #:package отсутствует идентификатор пакета</value>
+  </data>
+  <data name="IncludeMissingPath" xml:space="preserve">
+    <value>{0}: в #:include отсутствует путь</value>
+  </data>
+  <data name="IncludeDirectoryMissing" xml:space="preserve">
+    <value>{0}: каталог #:include не существует: {1}</value>
+  </data>
+  <data name="IncludeNoMatch" xml:space="preserve">
+    <value>{0}: #:include не нашёл файлов: {1}</value>
+  </data>
+  <data name="RestoreFailed" xml:space="preserve">
+    <value>Не удалось восстановить сторонние пакеты ({0}): {1}</value>
+  </data>
+  <data name="EntryCount" xml:space="preserve">
+    <value>{0} объявляет {1} точек входа — требуется ровно один [assembly: EntryPoint&lt;T&gt;]</value>
+  </data>
+  <data name="EntryReadFailed" xml:space="preserve">
+    <value>Не удалось прочитать объявления входа из {0}: {1}</value>
+  </data>
+  <data name="Undeclared" xml:space="preserve">
+    <value>не объявлено</value>
+  </data>
+  <data name="Usage" xml:space="preserve">
+    <value>Использование:</value>
+  </data>
+  <data name="UsagePackLoader" xml:space="preserve">
+    <value>  Hosihikari.Plugin.Pack pack-loader &lt;каталог сборки&gt; &lt;путь к манифесту&gt; &lt;корень вывода&gt;</value>
+  </data>
+  <data name="UsagePackPlugin" xml:space="preserve">
+    <value>  Hosihikari.Plugin.Pack pack-plugin   &lt;каталог сборки&gt; &lt;путь к манифесту&gt; &lt;корень вывода&gt;</value>
+  </data>
+  <data name="UsagePackAssembly" xml:space="preserve">
+    <value>  Hosihikari.Plugin.Pack pack-plugin-from-assembly &lt;входная сборка&gt; &lt;путь к манифесту&gt; &lt;корень вывода&gt;</value>
+  </data>
+  <data name="UsageShared" xml:space="preserve">
+    <value>  Hosihikari.Plugin.Pack &lt;каталог сборки&gt; &lt;путь к манифесту&gt; &lt;корень вывода&gt; [--shared &lt;имя файла сборки&gt;]...</value>
+  </data>
+  <data name="UnrecognizedArgument" xml:space="preserve">
+    <value>Неизвестный аргумент: {0}</value>
+  </data>
+  <data name="SharedRequired" xml:space="preserve">
+    <value>Требуется хотя бы один --shared: неполный список общего слоя пропускает копии, и этот сбой незаметен.</value>
+  </data>
+  <data name="Packed" xml:space="preserve">
+    <value>Пакет создан: {0}</value>
+  </data>
+  <data name="PackingFailed" xml:space="preserve">
+    <value>Ошибка упаковки:</value>
+  </data>
+  <data name="EntryAssemblyDirectory" xml:space="preserve">
+    <value>Не удалось получить каталог из пути входной сборки: {0}</value>
+  </data>
+</root>
