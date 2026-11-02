@@ -6,7 +6,22 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <AssemblyName>Hosihikari.Plugin.Pack</AssemblyName>
+    <!-- 同一个打包器既是核心仓里的构建工具，也作为 dotnet 工具分发给插件作者。 -->
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>hosihikari-pack</ToolCommandName>
+    <Version>1.0.0</Version>
+    <Authors>HosihikariFramework</Authors>
+    <Description>Command-line packer for Hosihikari plugin packages.</Description>
+    <PackageLicenseExpression>LGPL-3.0-or-later</PackageLicenseExpression>
+    <RepositoryUrl>https://github.com/HosihikariFramework/PluginManager</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>hosihikari;minecraft;bedrock;plugin;packaging;tool</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="/" />
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="../../src/Hosihikari.PluginManager.csproj" />

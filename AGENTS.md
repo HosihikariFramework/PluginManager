@@ -35,8 +35,10 @@ do the same when changing the contract or native probing.
   (neutral English) and `CoreStrings.zh-Hans.resx`; exception messages stay as written (ADR-0048).
 - On release, keep the `hosihikari-core-<version>.zip` name, `src/Hosihikari.PluginManager.csproj`
   version, and core dependency ranges in sync. The archive extracts at the server root and writes
-  `plugins/hosihikari/`. `Hosihikari.Plugin.Build` and `Hosihikari.Testing` are versioned
-  independently.
+  `plugins/hosihikari/`. `Hosihikari.Plugin.Build`, `Hosihikari.Plugin.Pack`, and
+  `Hosihikari.Testing` are versioned independently. The packer is also the
+  `Hosihikari.Plugin.Pack` dotnet tool (`hosihikari-pack`); keep `dotnet pack` working and publish
+  it with the framework release (ADR-0049).
 - Do not commit `artifacts/`, `bin/`, or `obj/`.
 
 ## Context

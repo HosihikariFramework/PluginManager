@@ -43,6 +43,22 @@ jobs:
         working-directory: PluginManager
         run: bash tools/Build/smoke.sh
 
+      # 打包器同时作为 dotnet 工具分发；确认它能打成工具并装得起来。
+      - name: 打包器工具冒烟
+        working-directory: PluginManager
+        run: |
+          set -euo pipefail
+          out="$RUNNER_TEMP/hosihikari-pack-tool"
+          dotnet pack tools/Pack/Hosihikari.Plugin.Pack.csproj -c Release -o "$out" --nologo
+          cat > "$out/NuGet.config" <<EOF
+          <?xml version="1.0" encoding="utf-8"?>
+          <configuration><packageSources><clear /><add key="local" value="$out" /></packageSources></configuration>
+          EOF
+          dotnet tool install --tool-path "$out/bin" --configfile "$out/NuGet.config" \
+            Hosihikari.Plugin.Pack --version 1.0.0
+          # 用法信息的退出码是 2；能打印出来就说明工具可运行。
+          "$out/bin/hosihikari-pack" --help || test $? -eq 2
+
       # 作者测试包：内存上下文、手动调度与生命周期宿主。
       - name: Testing 包冒烟
         working-directory: PluginManager
