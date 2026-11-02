@@ -1,0 +1,241 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="Native_StopChildrenFailed" xml:space="preserve">
+    <value>Не удалось освободить дочерние плагины перед перезагрузкой</value>
+  </data>
+  <data name="Native_DeliverEmpty" xml:space="preserve">
+    <value>Родитель передал пустой аргумент</value>
+  </data>
+  <data name="Native_NotStarted" xml:space="preserve">
+    <value>Ядро не запущено; {0} {1} проигнорировано</value>
+  </data>
+  <data name="Native_UnloadIncomplete" xml:space="preserve">
+    <value>Выгрузка {0} не завершилась: {1}</value>
+  </data>
+  <data name="Native_DeliverThrew" xml:space="preserve">
+    <value>{0} вызвало исключение; эта доставка отменена</value>
+  </data>
+  <data name="Verb_Load" xml:space="preserve">
+    <value>Загрузить</value>
+  </data>
+  <data name="Verb_Unload" xml:space="preserve">
+    <value>Выгрузить</value>
+  </data>
+  <data name="Verb_Enable" xml:space="preserve">
+    <value>Включить</value>
+  </data>
+  <data name="Verb_Disable" xml:space="preserve">
+    <value>Отключить</value>
+  </data>
+  <data name="Native_RemovalNotifyFailed" xml:space="preserve">
+    <value>Не удалось уведомить носитель об удалении {0}</value>
+  </data>
+  <data name="Native_ReuseCore" xml:space="preserve">
+    <value>Повторное использование существующего ядра: загрузчики остаются, новый загрузчик заново передаёт дочерние плагины</value>
+  </data>
+  <data name="Native_Versions" xml:space="preserve">
+    <value>Ядро {0}; контракт хостинга {1}; API плагинов {2}</value>
+  </data>
+  <data name="Common_Unknown" xml:space="preserve">
+    <value>неизвестно</value>
+  </data>
+  <data name="Native_LoadProblem" xml:space="preserve">
+    <value>Проблема загрузки: {0}</value>
+  </data>
+  <data name="Native_Loaded" xml:space="preserve">
+    <value>Загружено {0} плагинов: [{1}]</value>
+  </data>
+  <data name="Native_Ready" xml:space="preserve">
+    <value>Готово; ожидание передачи плагинов родителем</value>
+  </data>
+  <data name="Native_StartFailed" xml:space="preserve">
+    <value>Ошибка запуска</value>
+  </data>
+  <data name="Manager_LoaderDuplicate" xml:space="preserve">
+    <value>{0}: {1} уже обрабатывает этот тип; {2} отклонён — имена типов загрузчиков должны быть уникальными</value>
+  </data>
+  <data name="Manager_DependenciesNotLoaded" xml:space="preserve">
+    <value>{0}: зависимости не загружены: {1}; пропущено</value>
+  </data>
+  <data name="Manager_AlreadyRegistered" xml:space="preserve">
+    <value>{0}: уже зарегистрирован ({1})</value>
+  </data>
+  <data name="Manager_LoaderReused" xml:space="preserve">
+    <value>{0}: загрузчик уже загружен, повторное использование</value>
+  </data>
+  <data name="Manager_NotPresent" xml:space="preserve">
+    <value>{0}: отсутствует; {1} проигнорировано</value>
+  </data>
+  <data name="Manager_AlreadyEnabled" xml:space="preserve">
+    <value>{0}: уже включён; повторный запрос проигнорирован</value>
+  </data>
+  <data name="Manager_EnableRefused" xml:space="preserve">
+    <value>{0}: включение отклонено — {1}</value>
+  </data>
+  <data name="Manager_DisableRefused" xml:space="preserve">
+    <value>{0}: отключение отклонено — {1}</value>
+  </data>
+  <data name="Manager_EnableThrew" xml:space="preserve">
+    <value>{0}: хук включения вызвал исключение — {1}</value>
+  </data>
+  <data name="Manager_DisableThrew" xml:space="preserve">
+    <value>{0}: хук отключения вызвал исключение — {1}</value>
+  </data>
+  <data name="Manager_EnableFault" xml:space="preserve">
+    <value>хук включения вызвал исключение</value>
+  </data>
+  <data name="Manager_DisableFault" xml:space="preserve">
+    <value>хук отключения вызвал исключение</value>
+  </data>
+  <data name="Manager_DependencyNotLoaded" xml:space="preserve">
+    <value>зависимость не загружена: {0}</value>
+  </data>
+  <data name="Manager_NotLoaded" xml:space="preserve">
+    <value>{0} не загружен</value>
+  </data>
+  <data name="Manager_LoaderPinned" xml:space="preserve">
+    <value>{0}: регистрацию загрузчика нельзя отменить; для замены загрузчика требуется перезапуск сервера</value>
+  </data>
+  <data name="Manager_HasDependents" xml:space="preserve">
+    <value>от него всё ещё зависят: {0}</value>
+  </data>
+  <data name="Manager_DisableRefusedByPlugin" xml:space="preserve">
+    <value>{0} отказался отключаться: {1}</value>
+  </data>
+  <data name="Manager_StateAnomaly" xml:space="preserve">
+    <value>{0} находится в неожиданном состоянии ({1})</value>
+  </data>
+  <data name="Manager_UnloadTimeout" xml:space="preserve">
+    <value>{0}: истекло время проверки освобождения ({1})</value>
+  </data>
+  <data name="Manager_UnloadVerifyThrew" xml:space="preserve">
+    <value>{0}: проверка освобождения вызвала исключение — {1}</value>
+  </data>
+  <data name="Manager_UnloadNotRegistered" xml:space="preserve">
+    <value>{0} больше не зарегистрирован; проверка освобождения не удалась</value>
+  </data>
+  <data name="Manager_UnloadTimeoutRetry" xml:space="preserve">
+    <value>{0}: истекло время проверки освобождения ({1}); выгрузите снова для повторной проверки</value>
+  </data>
+  <data name="Manager_UnloadVerifyFailedRetry" xml:space="preserve">
+    <value>{0} освобождён, но проверка освобождения не удалась; выгрузите снова для повторной проверки</value>
+  </data>
+  <data name="Manager_Fault" xml:space="preserve">
+    <value>{0}: сбой — {1}</value>
+  </data>
+  <data name="Manager_FaultUnloadIncomplete" xml:space="preserve">
+    <value>{0}: аварийная выгрузка не завершилась — {1}</value>
+  </data>
+  <data name="Common_NoReason" xml:space="preserve">
+    <value>причина не указана</value>
+  </data>
+  <data name="Manager_UnloadHookThrew" xml:space="preserve">
+    <value>{0}: хук выгрузки вызвал исключение — {1}</value>
+  </data>
+  <data name="Manager_ReleaseHandleThrew" xml:space="preserve">
+    <value>{0}: освобождение дескриптора вызвало исключение — {1}</value>
+  </data>
+  <data name="Manager_NoLoader" xml:space="preserve">
+    <value>{0}: ни один загрузчик не обрабатывает loader={1}</value>
+  </data>
+  <data name="Manager_DiagnosticsThrew" xml:space="preserve">
+    <value>{0}: диагностика загрузчика вызвала исключение — {1}</value>
+  </data>
+  <data name="Manager_LoadFailed" xml:space="preserve">
+    <value>{0}: ошибка загрузки</value>
+  </data>
+  <data name="Manager_EnableRefusedStaysLoaded" xml:space="preserve">
+    <value>{0}: включение отклонено — {1} (остаётся зарегистрированным, отключён)</value>
+  </data>
+  <data name="Manager_LoadThrewRolledBack" xml:space="preserve">
+    <value>{0}: загрузка вызвала исключение; откат выполнен — {1}</value>
+  </data>
+  <data name="Manager_LoadRollbackThrew" xml:space="preserve">
+    <value>{0}: откат загрузки вызвал исключение — {1}</value>
+  </data>
+  <data name="Manifest_MissingFile" xml:space="preserve">
+    <value>{0}: {1} отсутствует в каталоге</value>
+  </data>
+  <data name="Manifest_Empty" xml:space="preserve">
+    <value>{0}: манифест разобран как пустой</value>
+  </data>
+  <data name="Manifest_NameMismatch" xml:space="preserve">
+    <value>{0}: имя в манифесте должно совпадать с именем каталога</value>
+  </data>
+  <data name="Manifest_MissingEntry" xml:space="preserve">
+    <value>{0}: в манифесте отсутствует entry</value>
+  </data>
+  <data name="Manifest_LegacyField" xml:space="preserve">
+    <value>{0}: манифест использует старое поле extraInfo.{1}; переименуйте его в extraInfo.{2} (ADR-0040)</value>
+  </data>
+  <data name="Manifest_LegacyFieldBody" xml:space="preserve">
+    <value>манифест использует старое поле extraInfo.{0}; переименуйте его в extraInfo.{1} (ADR-0040)</value>
+  </data>
+  <data name="Manifest_EntryOutside" xml:space="preserve">
+    <value>{0}: entry должен быть относительным путём внутри пакета (получено {1})</value>
+  </data>
+  <data name="Manifest_ParentMismatch" xml:space="preserve">
+    <value>{0}: тип в манифесте должен быть {1}, получено {2}</value>
+  </data>
+  <data name="Common_Undeclared" xml:space="preserve">
+    <value>не объявлено</value>
+  </data>
+  <data name="Manifest_ApiMismatch" xml:space="preserve">
+    <value>{0}: несовпадение api_version (манифест {1}, платформа {2})</value>
+  </data>
+  <data name="Manifest_ManifestVersionMismatch" xml:space="preserve">
+    <value>{0}: несовпадение manifest_version (манифест {1}, платформа {2})</value>
+  </data>
+  <data name="Manifest_DependencyName" xml:space="preserve">
+    <value>{0}: зависимости должны иметь непустое имя</value>
+  </data>
+  <data name="Manifest_SelfDependency" xml:space="preserve">
+    <value>{0}: зависимость не может зависеть от самой себя</value>
+  </data>
+  <data name="Manifest_InvalidJson" xml:space="preserve">
+    <value>{0}: манифест не является допустимым JSON — {1}</value>
+  </data>
+  <data name="Manifest_ReadFailed" xml:space="preserve">
+    <value>{0}: не удалось прочитать манифест — {1}</value>
+  </data>
+  <data name="Graph_Unresolved" xml:space="preserve">
+    <value>{0}: зависимости не разрешены; удалён</value>
+  </data>
+  <data name="Graph_Cycle" xml:space="preserve">
+    <value>{0}: цикл зависимостей</value>
+  </data>
+  <data name="Graph_MissingDependency" xml:space="preserve">
+    <value>{0}: зависимость {1} не существует</value>
+  </data>
+  <data name="Version_Invalid" xml:space="preserve">
+    <value>{0}: версия в манифесте не является допустимым SemVer: {1}</value>
+  </data>
+  <data name="Version_InvalidRange" xml:space="preserve">
+    <value>{0}: у зависимости {1} недопустимый диапазон SemVer: {2}</value>
+  </data>
+  <data name="Version_ConstraintInvalid" xml:space="preserve">
+    <value>у зависимости {0} недопустимое ограничение версии: {1}</value>
+  </data>
+  <data name="Version_NoVersion" xml:space="preserve">
+    <value>у зависимости {0} нет сравнимой версии; невозможно удовлетворить {1}</value>
+  </data>
+  <data name="Version_NotSatisfied" xml:space="preserve">
+    <value>зависимость {0} версии {1} не удовлетворяет {2}</value>
+  </data>
+  <data name="Assembly_EntryMissing" xml:space="preserve">
+    <value>{0}: entry {1} отсутствует в пакете</value>
+  </data>
+  <data name="Assembly_EntryCount" xml:space="preserve">
+    <value>{0}: входная сборка объявляет {1} точек входа — требуется ровно один [assembly: EntryPoint&lt;T&gt;]</value>
+  </data>
+  <data name="Event_HandlerThrew" xml:space="preserve">
+    <value>Обработчик события {0} вызвал исключение</value>
+  </data>
+  <data name="Event_ScheduledThrew" xml:space="preserve">
+    <value>Запланированная задача вызвала исключение</value>
+  </data>
+</root>

@@ -52,7 +52,7 @@ internal sealed class EventBus(ILogger logger) : IEventBus
             catch (Exception ex)
             {
                 // 隔离到这一个 handler，继续分发给其余 —— ADR-0009 在事件总线上的落地（ADR-0014）。
-                logger.LogError(ex, "事件 {Event} 的一个 handler 抛出", typeof(TEvent).Name);
+                logger.LogError(ex, "{Message}", CoreText.Get("Event_HandlerThrew", typeof(TEvent).Name));
             }
         }
     }
@@ -92,7 +92,7 @@ internal sealed class Scheduler(ILogger logger) : IScheduler
         catch (Exception ex)
         {
             // 定时器里的抛出没有调用方可回传，只能落进可见通道（ADR-0009）。
-            logger.LogError(ex, "调度任务抛出");
+            logger.LogError(ex, "{Message}", CoreText.Get("Event_ScheduledThrew"));
         }
     }
 

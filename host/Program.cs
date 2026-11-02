@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Runtime.Loader;
 using Hosihikari;
@@ -22,6 +23,10 @@ if (args.Length == 2 && args[0] == "--pack-output-regression")
 {
     return RegressionChecks.PackOutputChild(args[1]);
 }
+
+// 断言引用操作员文本；把 UI 文化钉在 zh-Hans，让资源在每台 runner 与后台线程上解析一致。
+CultureInfo.DefaultThreadCurrentUICulture = CultureInfo.GetCultureInfo("zh-Hans");
+CultureInfo.CurrentUICulture = CultureInfo.GetCultureInfo("zh-Hans");
 
 // 载体中立检查（ADR-0015）：普通 .NET 控制台主机驱动核心，不碰 BDS、Shim、任何载体。
 var repoRoot = RepoRoot();
@@ -757,6 +762,32 @@ Console.WriteLine();
 Console.WriteLine($"[诊断] 全部卸载后残留 collectible ALC = {CollectibleContextCount()}");
 
 Console.WriteLine();
+var languages = new (string Culture, string Token)[]
+{
+    ("en", "Loaded"),
+    ("zh-Hans", "已加载"),
+    ("ar", "تم تحميل"),
+    ("fr", "Chargé"),
+    ("ru", "Загружено"),
+    ("es", "Cargados"),
+};
+var missingLanguages = languages
+    .Where(language =>
+    {
+        CultureInfo.CurrentUICulture = CultureInfo.GetCultureInfo(language.Culture);
+        return !CoreText.Get("Native_Loaded", 0, "").Contains(language.Token);
+    })
+    .Select(language => language.Culture)
+    .ToArray();
+CultureInfo.CurrentUICulture = CultureInfo.GetCultureInfo("zh-Hans");
+checks.Add((
+    "A52 操作员文本跟随 UI 文化",
+    missingLanguages.Length == 0,
+    missingLanguages.Length == 0
+        ? $"6 种语言"
+        : $"缺少 {string.Join(", ", missingLanguages)}"
+));
+
 checks.AddRange(RegressionChecks.Run(Path.Combine(stage, "regressions")));
 Console.WriteLine("=== 断言 ===");
 foreach (var (name, passed, detail) in checks)

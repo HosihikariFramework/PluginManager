@@ -156,8 +156,11 @@ public sealed class PluginManager
         var existing = _loaders.FirstOrDefault(registered => registered.Id == loader.Id);
         if (existing is not null)
         {
-            problem = $"{loader.Id}: 已经有 {existing.GetType().Name} 处理这个种类，"
-                      + $"{loader.GetType().Name} 被拒 —— 插件种类名必须唯一";
+            problem = CoreText.Get(
+                "Manager_LoaderDuplicate",
+                loader.Id,
+                existing.GetType().Name,
+                loader.GetType().Name);
             return false;
         }
 
@@ -248,7 +251,10 @@ public sealed class PluginManager
                         .ToArray();
                     if (missing.Length > 0)
                     {
-                        reports.Add($"{package.Manifest.Name}: 依赖未加载：{string.Join(", ", missing)}，已跳过");
+                        reports.Add(CoreText.Get(
+                            "Manager_DependenciesNotLoaded",
+                            package.Manifest.Name,
+                            string.Join(", ", missing)));
                         continue;
                     }
 
@@ -292,7 +298,10 @@ public sealed class PluginManager
                     }
                     else
                     {
-                        reports.Add($"{package.Manifest.Name}: 已经在册（{slot.State}）");
+                        reports.Add(CoreText.Get(
+                            "Manager_AlreadyRegistered",
+                            package.Manifest.Name,
+                            slot.State));
                         result = false;
                     }
                 }
@@ -316,7 +325,7 @@ public sealed class PluginManager
         if (reusedLoader is not null)
         {
             _loggerFactory.CreateLogger("Hosihikari")
-                .LogInformation("{Name}: 加载器已加载，复用", reusedLoader);
+                .LogInformation("{Message}", CoreText.Get("Manager_LoaderReused", reusedLoader));
         }
 
         return result;
@@ -370,6 +379,8 @@ public sealed class PluginManager
         return result;
     }
 
+    private static string VerbText(bool enable) => CoreText.Get(enable ? "Verb_Enable" : "Verb_Disable");
+
     private bool DriveHook(
         string name,
         bool enable,
@@ -383,13 +394,13 @@ public sealed class PluginManager
         // 已放下、待回收的不算在场 —— 它已经不在跑了，钩子无处可调。
         if (!_slots.TryGetValue(name, out var slot) || slot.State != PluginState.Loaded)
         {
-            (reports ??= []).Add($"{name}: 不在场，{(enable ? "启用" : "停用")}落空");
+            (reports ??= []).Add(CoreText.Get("Manager_NotPresent", name, VerbText(enable)));
             return false;
         }
 
         if (enable && slot.Enabled)
         {
-            (reports ??= []).Add($"{name}: 已经启用，忽略重复请求");
+            (reports ??= []).Add(CoreText.Get("Manager_AlreadyEnabled", name));
             return true;
         }
 
@@ -410,7 +421,10 @@ public sealed class PluginManager
                     scope.Open();
                 }
 
-                (reports ??= []).Add($"{name}: {(enable ? "启用" : "停用")}被拒绝 —— {result.Reason ?? "未给原因"}");
+                (reports ??= []).Add(CoreText.Get(
+                    enable ? "Manager_EnableRefused" : "Manager_DisableRefused",
+                    name,
+                    result.Reason ?? CoreText.Get("Common_NoReason")));
                 return false;
             }
 
@@ -424,9 +438,12 @@ public sealed class PluginManager
         }
         catch (Exception ex)
         {
-            (reports ??= []).Add($"{name}: {(enable ? "启用" : "停用")}钩子抛出 —— {ex.Demystify()}");
+            (reports ??= []).Add(CoreText.Get(
+                enable ? "Manager_EnableThrew" : "Manager_DisableThrew",
+                name,
+                ex.Demystify()));
             faulted = slot;
-            fault = $"{(enable ? "启用" : "停用")}钩子抛出";
+            fault = CoreText.Get(enable ? "Manager_EnableFault" : "Manager_DisableFault");
             return false;
         }
     }
@@ -458,7 +475,7 @@ public sealed class PluginManager
 
             if (!_slots.TryGetValue(dependency.Name, out var slot) || slot.State != PluginState.Loaded)
             {
-                return $"依赖未加载：{dependency.Name}";
+                return CoreText.Get("Manager_DependencyNotLoaded", dependency.Name);
             }
 
             if (!DependencyVersion.Satisfies(slot.Manifest, dependency, out var problem))
@@ -522,13 +539,13 @@ public sealed class PluginManager
             if (!_slots.TryGetValue(name, out slot!)
                 || (expectedInstanceId is { } expected && slot.Id != expected))
             {
-                return UnloadResult.Failed($"{name} 未加载");
+                return UnloadResult.Failed(CoreText.Get("Manager_NotLoaded", name));
             }
 
             // 加载器的登记不能撤销：它的类型住在自己的 ALC 里，放掉实例会让路由指向死代码。
             if (slot.IsLoader)
             {
-                return UnloadResult.Failed($"{name}: 加载器登记不能撤销；更换加载器需要重启服务端");
+                return UnloadResult.Failed(CoreText.Get("Manager_LoaderPinned", name));
             }
 
             if (slot.State == PluginState.Loaded)
@@ -540,19 +557,22 @@ public sealed class PluginManager
                     .ToArray();
                 if (dependents.Length > 0)
                 {
-                    return UnloadResult.Failed($"仍有依赖者：{string.Join(", ", dependents)}");
+                    return UnloadResult.Failed(
+                        CoreText.Get("Manager_HasDependents", string.Join(", ", dependents)));
                 }
 
                 var refusal = Detach(slot, ref reports);
                 if (refusal is not null)
                 {
-                    return UnloadResult.Failed($"{name} 拒绝停用：{refusal}");
+                    return UnloadResult.Failed(
+                        CoreText.Get("Manager_DisableRefusedByPlugin", name, refusal));
                 }
             }
 
             if (slot.State != PluginState.Detached)
             {
-                return UnloadResult.Failed($"{name} 状态异常（{slot.State}）");
+                return UnloadResult.Failed(
+                    CoreText.Get("Manager_StateAnomaly", name, slot.State));
             }
 
             if (slot.Verification is null)
@@ -576,13 +596,15 @@ public sealed class PluginManager
         }
         catch (TimeoutException)
         {
-            (reports ??= []).Add($"{name}: 回收验证超时（{_unloadVerificationTimeout}）");
+            (reports ??= []).Add(
+                CoreText.Get("Manager_UnloadTimeout", name, _unloadVerificationTimeout));
             released = false;
             timedOut = true;
         }
         catch (Exception ex)
         {
-            (reports ??= []).Add($"{name}: 回收验证抛出 —— {ex.Demystify()}");
+            (reports ??= []).Add(
+                CoreText.Get("Manager_UnloadVerifyThrew", name, ex.Demystify()));
             released = false;
         }
 
@@ -593,7 +615,7 @@ public sealed class PluginManager
                 // 已由并发的卸载成功移除；这一次也如实算成功。
                 return released
                     ? UnloadResult.Ok()
-                    : UnloadResult.Failed($"{name} 已不在册，回收验证未通过");
+                    : UnloadResult.Failed(CoreText.Get("Manager_UnloadNotRegistered", name));
             }
 
             // 超时保留进行中的任务，下一次卸载继续等它；其它失败清空任务，下一次重新验证。
@@ -611,11 +633,11 @@ public sealed class PluginManager
             if (timedOut)
             {
                 return UnloadResult.Failed(
-                    $"{name}: 回收验证超时（{_unloadVerificationTimeout}） —— 再卸载一次会重新验证");
+                    CoreText.Get("Manager_UnloadTimeoutRetry", name, _unloadVerificationTimeout));
             }
 
             // 说"回收"而不是"ALC"：释放句柄长什么样是 Loader 自己的事（ADR-0010）。
-            return UnloadResult.Failed($"{name} 已经放下，但回收验证没通过 —— 再卸载一次会重新验证");
+            return UnloadResult.Failed(CoreText.Get("Manager_UnloadVerifyFailedRetry", name));
         }
     }
 
@@ -650,7 +672,7 @@ public sealed class PluginManager
                 && current.State == PluginState.Loaded)
             {
                 present = true;
-                (reports ??= []).Add($"{name}: 故障 —— {reason}");
+                (reports ??= []).Add(CoreText.Get("Manager_Fault", name, reason));
             }
             else if (_loading.TryGetValue(instanceId, out var loadingName) && loadingName == name)
             {
@@ -663,7 +685,7 @@ public sealed class PluginManager
         // 验证在 _gate 外等待；expectedInstanceId 防止期间的同名重载被误卸（A45）。
         var result = present
             ? UnloadCore(name, instanceId, ref reports)
-            : UnloadResult.Failed($"{name} 未加载");
+            : UnloadResult.Failed(CoreText.Get("Manager_NotLoaded", name));
 
         // 报告与摘账都在锁外：它们会回到父级，而父级的锁可能正被等 _gate 的线程握着。
         ReportAll(reports);
@@ -678,7 +700,10 @@ public sealed class PluginManager
         }
         else
         {
-            _reportFault($"{name}: 故障卸载没完成 —— {result.Error}");
+            _reportFault(CoreText.Get(
+                "Manager_FaultUnloadIncomplete",
+                name,
+                result.Error ?? CoreText.Get("Common_Unknown")));
         }
     }
 
@@ -706,12 +731,13 @@ public sealed class PluginManager
                     scope.Open();
                 }
 
-                return result.Reason ?? "未给原因";
+                return result.Reason ?? CoreText.Get("Common_NoReason");
             }
         }
         catch (Exception ex)
         {
-            (reports ??= []).Add($"{slot.Manifest.Name}: 停用钩子抛出 —— {ex.Demystify()}");
+            (reports ??= []).Add(
+                CoreText.Get("Manager_DisableThrew", slot.Manifest.Name, ex.Demystify()));
         }
 
         try
@@ -720,7 +746,8 @@ public sealed class PluginManager
         }
         catch (Exception ex)
         {
-            (reports ??= []).Add($"{slot.Manifest.Name}: 卸载钩子抛出 —— {ex.Demystify()}");
+            (reports ??= []).Add(
+                CoreText.Get("Manager_UnloadHookThrew", slot.Manifest.Name, ex.Demystify()));
         }
 
         // 作者没退订的订阅、没释放的定时器，在这里一并收回 —— 否则它们把 ALC 钉在共享服务上。
@@ -733,7 +760,8 @@ public sealed class PluginManager
         catch (Exception ex)
         {
             // 放下失败仍要继续验回收：句柄可能已经放掉一部分，状态机照实记录。
-            (reports ??= []).Add($"{slot.Manifest.Name}: 放下句柄抛出 —— {ex.Demystify()}");
+            (reports ??= []).Add(
+                CoreText.Get("Manager_ReleaseHandleThrew", slot.Manifest.Name, ex.Demystify()));
         }
 
         slot.Scope = null;
@@ -776,7 +804,7 @@ public sealed class PluginManager
             var loader = _loaders.FirstOrDefault(candidate => candidate.CanLoad(manifest));
             if (loader is null)
             {
-                reports.Add($"{manifest.Name}: 没有能处理 loader={manifest.Loader} 的加载器");
+                reports.Add(CoreText.Get("Manager_NoLoader", manifest.Name, manifest.Loader));
                 return false;
             }
 
@@ -789,7 +817,8 @@ public sealed class PluginManager
                 }
                 catch (Exception ex)
                 {
-                    reports.Add($"{manifest.Name}: 加载器诊断抛出 —— {ex.Demystify()}");
+                    reports.Add(
+                        CoreText.Get("Manager_DiagnosticsThrew", manifest.Name, ex.Demystify()));
                     return false;
                 }
 
@@ -821,7 +850,7 @@ public sealed class PluginManager
             handle = loader.Load(manifest, package.Directory, context);
             if (handle?.Plugin is null)
             {
-                reports.Add($"{manifest.Name}: 加载失败");
+                reports.Add(CoreText.Get("Manager_LoadFailed", manifest.Name));
                 return false;
             }
 
@@ -829,7 +858,7 @@ public sealed class PluginManager
             handle.Plugin.OnLoad(context);
             if (_pendingFaults.TryGetValue(slot.Id, out var loadFault))
             {
-                reports.Add($"{manifest.Name}: 故障 —— {loadFault}");
+                reports.Add(CoreText.Get("Manager_Fault", manifest.Name, loadFault));
                 return false;
             }
 
@@ -839,7 +868,10 @@ public sealed class PluginManager
                 var result = handle.Plugin.OnEnable();
                 if (!result.Allowed)
                 {
-                    reports.Add($"{manifest.Name}: 启用被拒绝 —— {result.Reason ?? "未给原因"}（留在册、未启用）");
+                    reports.Add(CoreText.Get(
+                        "Manager_EnableRefusedStaysLoaded",
+                        manifest.Name,
+                        result.Reason ?? CoreText.Get("Common_NoReason")));
                 }
                 else
                 {
@@ -851,7 +883,7 @@ public sealed class PluginManager
             // 装载期间同一线程报告的故障会落在这里；实例还没交给表，直接回滚。
             if (_pendingFaults.TryGetValue(slot.Id, out var pendingFault))
             {
-                reports.Add($"{manifest.Name}: 故障 —— {pendingFault}");
+                reports.Add(CoreText.Get("Manager_Fault", manifest.Name, pendingFault));
                 return false;
             }
 
@@ -865,7 +897,8 @@ public sealed class PluginManager
         }
         catch (Exception ex)
         {
-            reports.Add($"{manifest.Name}: 加载抛出，已退回 —— {ex.Demystify()}");
+            reports.Add(
+                CoreText.Get("Manager_LoadThrewRolledBack", manifest.Name, ex.Demystify()));
             return false;
         }
         finally
@@ -908,7 +941,8 @@ public sealed class PluginManager
             }
             catch (Exception ex)
             {
-                reports.Add($"{manifest.Name}: 加载回滚抛出 —— {ex.Demystify()}");
+                reports.Add(
+                    CoreText.Get("Manager_LoadRollbackThrew", manifest.Name, ex.Demystify()));
             }
         }
     }

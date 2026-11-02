@@ -1,0 +1,241 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="Native_StopChildrenFailed" xml:space="preserve">
+    <value>Failed to reclaim child plugins before reload</value>
+  </data>
+  <data name="Native_DeliverEmpty" xml:space="preserve">
+    <value>The parent delivered an empty argument</value>
+  </data>
+  <data name="Native_NotStarted" xml:space="preserve">
+    <value>The core is not started; {0} {1} was ignored</value>
+  </data>
+  <data name="Native_UnloadIncomplete" xml:space="preserve">
+    <value>Unload of {0} did not finish: {1}</value>
+  </data>
+  <data name="Native_DeliverThrew" xml:space="preserve">
+    <value>{0} threw; this delivery is discarded</value>
+  </data>
+  <data name="Verb_Load" xml:space="preserve">
+    <value>Load</value>
+  </data>
+  <data name="Verb_Unload" xml:space="preserve">
+    <value>Unload</value>
+  </data>
+  <data name="Verb_Enable" xml:space="preserve">
+    <value>Enable</value>
+  </data>
+  <data name="Verb_Disable" xml:space="preserve">
+    <value>Disable</value>
+  </data>
+  <data name="Native_RemovalNotifyFailed" xml:space="preserve">
+    <value>Failed to notify the carrier that {0} was removed</value>
+  </data>
+  <data name="Native_ReuseCore" xml:space="preserve">
+    <value>Reusing the existing core: loaders stay, the new loader redelivers child plugins</value>
+  </data>
+  <data name="Native_Versions" xml:space="preserve">
+    <value>Core {0}; hosting contract {1}; plugin API {2}</value>
+  </data>
+  <data name="Common_Unknown" xml:space="preserve">
+    <value>unknown</value>
+  </data>
+  <data name="Native_LoadProblem" xml:space="preserve">
+    <value>Load problem: {0}</value>
+  </data>
+  <data name="Native_Loaded" xml:space="preserve">
+    <value>Loaded {0} plugin(s): [{1}]</value>
+  </data>
+  <data name="Native_Ready" xml:space="preserve">
+    <value>Ready; waiting for the parent to deliver plugins</value>
+  </data>
+  <data name="Native_StartFailed" xml:space="preserve">
+    <value>Startup failed</value>
+  </data>
+  <data name="Manager_LoaderDuplicate" xml:space="preserve">
+    <value>{0}: {1} already handles this kind; {2} was refused - loader kind names must be unique</value>
+  </data>
+  <data name="Manager_DependenciesNotLoaded" xml:space="preserve">
+    <value>{0}: dependencies not loaded: {1}; skipped</value>
+  </data>
+  <data name="Manager_AlreadyRegistered" xml:space="preserve">
+    <value>{0}: already registered ({1})</value>
+  </data>
+  <data name="Manager_LoaderReused" xml:space="preserve">
+    <value>{0}: loader already loaded, reusing</value>
+  </data>
+  <data name="Manager_NotPresent" xml:space="preserve">
+    <value>{0}: not present; {1} was ignored</value>
+  </data>
+  <data name="Manager_AlreadyEnabled" xml:space="preserve">
+    <value>{0}: already enabled; duplicate request ignored</value>
+  </data>
+  <data name="Manager_EnableRefused" xml:space="preserve">
+    <value>{0}: enable refused - {1}</value>
+  </data>
+  <data name="Manager_DisableRefused" xml:space="preserve">
+    <value>{0}: disable refused - {1}</value>
+  </data>
+  <data name="Manager_EnableThrew" xml:space="preserve">
+    <value>{0}: enable hook threw - {1}</value>
+  </data>
+  <data name="Manager_DisableThrew" xml:space="preserve">
+    <value>{0}: disable hook threw - {1}</value>
+  </data>
+  <data name="Manager_EnableFault" xml:space="preserve">
+    <value>enable hook threw</value>
+  </data>
+  <data name="Manager_DisableFault" xml:space="preserve">
+    <value>disable hook threw</value>
+  </data>
+  <data name="Manager_DependencyNotLoaded" xml:space="preserve">
+    <value>dependency not loaded: {0}</value>
+  </data>
+  <data name="Manager_NotLoaded" xml:space="preserve">
+    <value>{0} is not loaded</value>
+  </data>
+  <data name="Manager_LoaderPinned" xml:space="preserve">
+    <value>{0}: loader registration cannot be undone; replacing a loader needs a server restart</value>
+  </data>
+  <data name="Manager_HasDependents" xml:space="preserve">
+    <value>still depended on by: {0}</value>
+  </data>
+  <data name="Manager_DisableRefusedByPlugin" xml:space="preserve">
+    <value>{0} refused to disable: {1}</value>
+  </data>
+  <data name="Manager_StateAnomaly" xml:space="preserve">
+    <value>{0} is in an unexpected state ({1})</value>
+  </data>
+  <data name="Manager_UnloadTimeout" xml:space="preserve">
+    <value>{0}: reclamation verification timed out ({1})</value>
+  </data>
+  <data name="Manager_UnloadVerifyThrew" xml:space="preserve">
+    <value>{0}: reclamation verification threw - {1}</value>
+  </data>
+  <data name="Manager_UnloadNotRegistered" xml:space="preserve">
+    <value>{0} is no longer registered; reclamation verification failed</value>
+  </data>
+  <data name="Manager_UnloadTimeoutRetry" xml:space="preserve">
+    <value>{0}: reclamation verification timed out ({1}); unload again to re-verify</value>
+  </data>
+  <data name="Manager_UnloadVerifyFailedRetry" xml:space="preserve">
+    <value>{0} was released, but reclamation verification failed; unload again to re-verify</value>
+  </data>
+  <data name="Manager_Fault" xml:space="preserve">
+    <value>{0}: fault - {1}</value>
+  </data>
+  <data name="Manager_FaultUnloadIncomplete" xml:space="preserve">
+    <value>{0}: fault unload did not finish - {1}</value>
+  </data>
+  <data name="Common_NoReason" xml:space="preserve">
+    <value>no reason given</value>
+  </data>
+  <data name="Manager_UnloadHookThrew" xml:space="preserve">
+    <value>{0}: unload hook threw - {1}</value>
+  </data>
+  <data name="Manager_ReleaseHandleThrew" xml:space="preserve">
+    <value>{0}: releasing the handle threw - {1}</value>
+  </data>
+  <data name="Manager_NoLoader" xml:space="preserve">
+    <value>{0}: no loader handles loader={1}</value>
+  </data>
+  <data name="Manager_DiagnosticsThrew" xml:space="preserve">
+    <value>{0}: loader diagnostics threw - {1}</value>
+  </data>
+  <data name="Manager_LoadFailed" xml:space="preserve">
+    <value>{0}: load failed</value>
+  </data>
+  <data name="Manager_EnableRefusedStaysLoaded" xml:space="preserve">
+    <value>{0}: enable refused - {1} (stays registered, disabled)</value>
+  </data>
+  <data name="Manager_LoadThrewRolledBack" xml:space="preserve">
+    <value>{0}: load threw; rolled back - {1}</value>
+  </data>
+  <data name="Manager_LoadRollbackThrew" xml:space="preserve">
+    <value>{0}: load rollback threw - {1}</value>
+  </data>
+  <data name="Manifest_MissingFile" xml:space="preserve">
+    <value>{0}: {1} is missing from the directory</value>
+  </data>
+  <data name="Manifest_Empty" xml:space="preserve">
+    <value>{0}: manifest parsed as empty</value>
+  </data>
+  <data name="Manifest_NameMismatch" xml:space="preserve">
+    <value>{0}: manifest name must equal the directory name</value>
+  </data>
+  <data name="Manifest_MissingEntry" xml:space="preserve">
+    <value>{0}: manifest is missing entry</value>
+  </data>
+  <data name="Manifest_LegacyField" xml:space="preserve">
+    <value>{0}: manifest uses the old field extraInfo.{1}; rename it to extraInfo.{2} (ADR-0040)</value>
+  </data>
+  <data name="Manifest_LegacyFieldBody" xml:space="preserve">
+    <value>manifest uses the old field extraInfo.{0}; rename it to extraInfo.{1} (ADR-0040)</value>
+  </data>
+  <data name="Manifest_EntryOutside" xml:space="preserve">
+    <value>{0}: entry must be a relative path inside the package (got {1})</value>
+  </data>
+  <data name="Manifest_ParentMismatch" xml:space="preserve">
+    <value>{0}: manifest type must be {1}, got {2}</value>
+  </data>
+  <data name="Common_Undeclared" xml:space="preserve">
+    <value>undeclared</value>
+  </data>
+  <data name="Manifest_ApiMismatch" xml:space="preserve">
+    <value>{0}: api_version mismatch (manifest {1}, framework {2})</value>
+  </data>
+  <data name="Manifest_ManifestVersionMismatch" xml:space="preserve">
+    <value>{0}: manifest_version mismatch (manifest {1}, framework {2})</value>
+  </data>
+  <data name="Manifest_DependencyName" xml:space="preserve">
+    <value>{0}: dependencies must have a non-empty name</value>
+  </data>
+  <data name="Manifest_SelfDependency" xml:space="preserve">
+    <value>{0}: a dependency cannot depend on itself</value>
+  </data>
+  <data name="Manifest_InvalidJson" xml:space="preserve">
+    <value>{0}: manifest is not valid JSON - {1}</value>
+  </data>
+  <data name="Manifest_ReadFailed" xml:space="preserve">
+    <value>{0}: manifest could not be read - {1}</value>
+  </data>
+  <data name="Graph_Unresolved" xml:space="preserve">
+    <value>{0}: dependencies cannot be resolved; removed</value>
+  </data>
+  <data name="Graph_Cycle" xml:space="preserve">
+    <value>{0}: dependency cycle</value>
+  </data>
+  <data name="Graph_MissingDependency" xml:space="preserve">
+    <value>{0}: dependency {1} does not exist</value>
+  </data>
+  <data name="Version_Invalid" xml:space="preserve">
+    <value>{0}: manifest version is not valid SemVer: {1}</value>
+  </data>
+  <data name="Version_InvalidRange" xml:space="preserve">
+    <value>{0}: dependency {1} has an invalid SemVer range: {2}</value>
+  </data>
+  <data name="Version_ConstraintInvalid" xml:space="preserve">
+    <value>dependency {0} has an invalid version constraint: {1}</value>
+  </data>
+  <data name="Version_NoVersion" xml:space="preserve">
+    <value>dependency {0} has no comparable version; cannot satisfy {1}</value>
+  </data>
+  <data name="Version_NotSatisfied" xml:space="preserve">
+    <value>dependency {0} version {1} does not satisfy {2}</value>
+  </data>
+  <data name="Assembly_EntryMissing" xml:space="preserve">
+    <value>{0}: entry {1} is not in the package</value>
+  </data>
+  <data name="Assembly_EntryCount" xml:space="preserve">
+    <value>{0}: entry assembly declares {1} entry points - exactly one [assembly: EntryPoint&lt;T&gt;] is required</value>
+  </data>
+  <data name="Event_HandlerThrew" xml:space="preserve">
+    <value>A handler for event {0} threw</value>
+  </data>
+  <data name="Event_ScheduledThrew" xml:space="preserve">
+    <value>A scheduled task threw</value>
+  </data>
+</root>

@@ -60,9 +60,9 @@ public static class Packager
             return new PackResult(false, null, problems);
         }
 
-        if (ManifestReader.LegacyExtraInfoMessage(manifest) is { } legacy)
+        if (ManifestReader.LegacyExtraInfoKeys(manifest) is { } legacy)
         {
-            problems.Add(legacy);
+            problems.Add(CoreText.Get("Manifest_LegacyFieldBody", legacy.Old, legacy.New));
         }
 
         if (!DependencyVersion.TryValidateManifest(manifest, out var versionProblem))
