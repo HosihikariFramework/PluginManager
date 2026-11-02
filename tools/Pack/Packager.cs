@@ -42,12 +42,12 @@ public static class Packager
         }
         catch (Exception ex)
         {
-            problems.Add($"清单读不出来：{ex.Message}");
+            problems.Add(PackText.Get("ReadManifest", ex.Message));
         }
 
         if (manifest is null || string.IsNullOrWhiteSpace(manifest.Name))
         {
-            problems.Add("清单缺少 name");
+            problems.Add(PackText.Get("MissingName"));
             return new PackResult(false, null, problems);
         }
 
@@ -56,7 +56,7 @@ public static class Packager
             || manifest.Name.EndsWith('.') || manifest.Name.EndsWith(' ')
             || manifest.Name.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0)
         {
-            problems.Add($"清单 name 必须是单个目录名：{manifest.Name}");
+            problems.Add(PackText.Get("InvalidName", manifest.Name));
             return new PackResult(false, null, problems);
         }
 
@@ -78,27 +78,38 @@ public static class Packager
         var packageRoot = Path.GetFullPath(packageDirectory);
         if (IsSameOrUnder(packageRoot, sourceRoot) || IsSameOrUnder(sourceRoot, packageRoot))
         {
-            problems.Add($"打包输出不能与构建输出相交：{packageRoot} / {sourceRoot}");
+            problems.Add(PackText.Get("Overlap", packageRoot, sourceRoot));
             return new PackResult(false, null, problems);
         }
 
         // 契约主版本（ADR-0012）。
         if (manifest.ApiVersion != PluginContractInfo.CurrentApiVersion)
         {
-            problems.Add($"清单 api_version 是 {manifest.ApiVersion ?? "未声明"}，当前契约是 {PluginContractInfo.CurrentApiVersion}");
+            problems.Add(PackText.Get(
+                "ApiMismatch",
+                manifest.ApiVersion ?? PackText.Get("Undeclared"),
+                PluginContractInfo.CurrentApiVersion));
         }
 
         // 清单 schema 版本（ADR-0012）。
         if (manifest.ManifestVersion != PluginContractInfo.CurrentManifestVersion)
         {
-            problems.Add($"清单 manifest_version 是 {manifest.ManifestVersion ?? "未声明"}，当前是 {PluginContractInfo.CurrentManifestVersion}");
+            problems.Add(PackText.Get(
+                "ManifestVersionMismatch",
+                manifest.ManifestVersion ?? PackText.Get("Undeclared"),
+                PluginContractInfo.CurrentManifestVersion));
         }
 
         // type 是父级的路由键（ADR-0006）。写错的包在父级态下根本到不了我们手里，
         // 而且失败点离病因很远 —— 所以在这里就拦下。
         if (manifest.ParentName != PluginContractInfo.ParentName)
         {
-            problems.Add($"清单 type 必须是 {PluginContractInfo.ParentName}，实际 {(string.IsNullOrWhiteSpace(manifest.ParentName) ? "未声明" : manifest.ParentName)}");
+            problems.Add(PackText.Get(
+                "TypeMismatch",
+                PluginContractInfo.ParentName,
+                string.IsNullOrWhiteSpace(manifest.ParentName)
+                    ? PackText.Get("Undeclared")
+                    : manifest.ParentName));
         }
 
         // 共享层副本（ADR-0004 / 0019）—— 这条是静默失败的那条，所以放在打包期拦。
@@ -111,16 +122,14 @@ public static class Packager
             .ToArray();
         if (offenders.Length > 0)
         {
-            problems.Add(
-                $"构建输出里带了共享层程序集（{string.Join(", ", offenders)}）—— " +
-                "引用它们时要 ExcludeAssets=\"runtime\"，否则插件包里是第二个类型身份");
+            problems.Add(PackText.Get("SharedLayer", string.Join(", ", offenders)));
         }
 
         // 入口必须在包内（ADR-0006）。出界时后面的存在性与入口声明检查都不做 ——
         // 它们会去读包外的文件。
         if (!ManifestReader.IsEntryContained(sourceDirectory, manifest.EntryPath))
         {
-            problems.Add($"清单 entry 必须是包内相对路径（实际 {manifest.EntryPath}）");
+            problems.Add(PackText.Get("EntryOutside", manifest.EntryPath));
         }
         // 入口（ADR-0008）。编译器已经保证它与 IPlugin 和有无参构造是一致的，这里只确认它存在。
         else if (manifest.Loader == "assembly")
@@ -128,7 +137,7 @@ public static class Packager
             var entryPath = Path.Combine(sourceDirectory, manifest.EntryPath);
             if (!File.Exists(entryPath))
             {
-                problems.Add($"清单 entry 指向的 {manifest.EntryPath} 不在构建输出里");
+                problems.Add(PackText.Get("EntryMissing", manifest.EntryPath));
             }
             else if (!DeclaresEntryPoint(entryPath, problems))
             {
@@ -174,7 +183,7 @@ public static class Packager
         }
         catch (Exception ex)
         {
-            problems.Add($"写入包目录失败：{ex.Message}");
+            problems.Add(PackText.Get("WriteFailed", ex.Message));
             return new PackResult(false, null, problems);
         }
         finally
@@ -240,7 +249,7 @@ public static class Packager
             var full = Path.GetFullPath(Path.Combine(root, path));
             if (!full.StartsWith(prefix, comparison))
             {
-                problems.Add($"#:include 出界：{path}");
+                problems.Add(PackText.Get("IncludeOutside", path));
             }
 
             return full;
@@ -256,13 +265,13 @@ public static class Packager
 
             if (!File.Exists(full))
             {
-                problems.Add($"#:include 指向的 {path} 不存在");
+                problems.Add(PackText.Get("IncludeMissing", path));
                 return;
             }
 
             if (!string.Equals(Path.GetExtension(full), ".cs", StringComparison.OrdinalIgnoreCase))
             {
-                problems.Add($"#:include 只支持 .cs：{path}");
+                problems.Add(PackText.Get("IncludeNotCs", path));
                 return;
             }
 
@@ -273,7 +282,7 @@ public static class Packager
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
-                problems.Add($"读不了源码 {path}：{ex.Message}");
+                problems.Add(PackText.Get("SourceReadFailed", path, ex.Message));
                 return;
             }
 
@@ -288,7 +297,7 @@ public static class Packager
                     var version = separator < 0 ? "*" : value[(separator + 1)..];
                     if (id.Length == 0)
                     {
-                        problems.Add($"{path}: #:package 缺少包名");
+                        problems.Add(PackText.Get("PackageMissingId", path));
                         continue;
                     }
 
@@ -304,7 +313,7 @@ public static class Packager
                     var include = trimmed["#:include".Length..].Trim().Trim('"');
                     if (include.Length == 0)
                     {
-                        problems.Add($"{path}: #:include 缺少路径");
+                        problems.Add(PackText.Get("IncludeMissingPath", path));
                     }
                     else
                     {
@@ -314,14 +323,14 @@ public static class Packager
                             var fullBase = Path.Combine(root, baseDirectory);
                             if (!Directory.Exists(fullBase))
                             {
-                                problems.Add($"{path}: #:include 的目录不存在：{include}");
+                                problems.Add(PackText.Get("IncludeDirectoryMissing", path, include));
                                 continue;
                             }
 
                             var matches = ExpandGlob(root, fullBase, include);
                             if (matches.Length == 0)
                             {
-                                problems.Add($"{path}: #:include 没有匹配到文件：{include}");
+                                problems.Add(PackText.Get("IncludeNoMatch", path, include));
                                 continue;
                             }
 
@@ -343,7 +352,7 @@ public static class Packager
         var entryPath = Full(entry);
         if (entryPath.StartsWith(prefix, comparison) && !File.Exists(entryPath))
         {
-            problems.Add($"清单 entry 指向的 {entry} 不在构建输出里");
+            problems.Add(PackText.Get("EntryMissing", entry));
         }
         else
         {
@@ -468,7 +477,10 @@ public static class Packager
             var errorText = errorTask.Result;
             if (process.ExitCode != 0)
             {
-                problems.Add($"还原第三方包失败（{string.Join(", ", references)}）：{errorText.Trim()}");
+                problems.Add(PackText.Get(
+                    "RestoreFailed",
+                    string.Join(", ", references),
+                    errorText.Trim()));
                 return false;
             }
 
@@ -497,7 +509,10 @@ public static class Packager
         }
         catch (Exception ex)
         {
-            problems.Add($"还原第三方包失败（{string.Join(", ", references)}）：{ex.Message}");
+            problems.Add(PackText.Get(
+                "RestoreFailed",
+                string.Join(", ", references),
+                ex.Message));
             return false;
         }
         finally
@@ -539,7 +554,10 @@ public static class Packager
             var declared = inspection.GetCustomAttributesData().Count(IsEntryPoint);
             if (declared != 1)
             {
-                problems.Add($"{Path.GetFileName(entryPath)} 声明了 {declared} 个入口 —— 需要恰好一个 [assembly: EntryPoint<T>]");
+                problems.Add(PackText.Get(
+                    "EntryCount",
+                    Path.GetFileName(entryPath),
+                    declared));
                 return false;
             }
 
@@ -547,7 +565,10 @@ public static class Packager
         }
         catch (Exception ex)
         {
-            problems.Add($"读不了 {Path.GetFileName(entryPath)} 的入口声明：{ex.Message}");
+            problems.Add(PackText.Get(
+                "EntryReadFailed",
+                Path.GetFileName(entryPath),
+                ex.Message));
             return false;
         }
     }

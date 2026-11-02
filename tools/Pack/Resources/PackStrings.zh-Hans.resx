@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="ReadManifest" xml:space="preserve">
+    <value>清单读不出来：{0}</value>
+  </data>
+  <data name="MissingName" xml:space="preserve">
+    <value>清单缺少 name</value>
+  </data>
+  <data name="InvalidName" xml:space="preserve">
+    <value>清单 name 必须是单个目录名：{0}</value>
+  </data>
+  <data name="Overlap" xml:space="preserve">
+    <value>打包输出不能与构建输出相交：{0} / {1}</value>
+  </data>
+  <data name="ApiMismatch" xml:space="preserve">
+    <value>清单 api_version 是 {0}；当前契约是 {1}</value>
+  </data>
+  <data name="ManifestVersionMismatch" xml:space="preserve">
+    <value>清单 manifest_version 是 {0}；当前版本是 {1}</value>
+  </data>
+  <data name="TypeMismatch" xml:space="preserve">
+    <value>清单 type 必须是 {0}；实际 {1}</value>
+  </data>
+  <data name="SharedLayer" xml:space="preserve">
+    <value>构建输出里带了共享层程序集（{0}）—— 引用它们时要 ExcludeAssets=&quot;runtime&quot;，否则插件包里是第二个类型身份</value>
+  </data>
+  <data name="EntryOutside" xml:space="preserve">
+    <value>清单 entry 必须是包内相对路径（实际 {0}）</value>
+  </data>
+  <data name="EntryMissing" xml:space="preserve">
+    <value>清单 entry 指向的 {0} 不在构建输出里</value>
+  </data>
+  <data name="WriteFailed" xml:space="preserve">
+    <value>写入包目录失败：{0}</value>
+  </data>
+  <data name="IncludeOutside" xml:space="preserve">
+    <value>#:include 出界：{0}</value>
+  </data>
+  <data name="IncludeMissing" xml:space="preserve">
+    <value>#:include 指向的文件不存在：{0}</value>
+  </data>
+  <data name="IncludeNotCs" xml:space="preserve">
+    <value>#:include 只支持 .cs：{0}</value>
+  </data>
+  <data name="SourceReadFailed" xml:space="preserve">
+    <value>读不了源码 {0}：{1}</value>
+  </data>
+  <data name="PackageMissingId" xml:space="preserve">
+    <value>{0}: #:package 缺少包名</value>
+  </data>
+  <data name="IncludeMissingPath" xml:space="preserve">
+    <value>{0}: #:include 缺少路径</value>
+  </data>
+  <data name="IncludeDirectoryMissing" xml:space="preserve">
+    <value>{0}: #:include 的目录不存在：{1}</value>
+  </data>
+  <data name="IncludeNoMatch" xml:space="preserve">
+    <value>{0}: #:include 没有匹配到文件：{1}</value>
+  </data>
+  <data name="RestoreFailed" xml:space="preserve">
+    <value>还原第三方包失败（{0}）：{1}</value>
+  </data>
+  <data name="EntryCount" xml:space="preserve">
+    <value>{0} 声明了 {1} 个入口 —— 需要恰好一个 [assembly: EntryPoint&lt;T&gt;]</value>
+  </data>
+  <data name="EntryReadFailed" xml:space="preserve">
+    <value>读不了 {0} 的入口声明：{1}</value>
+  </data>
+  <data name="Undeclared" xml:space="preserve">
+    <value>未声明</value>
+  </data>
+  <data name="Usage" xml:space="preserve">
+    <value>用法：</value>
+  </data>
+  <data name="UsagePackLoader" xml:space="preserve">
+    <value>  Hosihikari.Plugin.Pack pack-loader &lt;构建输出目录&gt; &lt;清单路径&gt; &lt;输出根目录&gt;</value>
+  </data>
+  <data name="UsagePackPlugin" xml:space="preserve">
+    <value>  Hosihikari.Plugin.Pack pack-plugin   &lt;构建输出目录&gt; &lt;清单路径&gt; &lt;输出根目录&gt;</value>
+  </data>
+  <data name="UsagePackAssembly" xml:space="preserve">
+    <value>  Hosihikari.Plugin.Pack pack-plugin-from-assembly &lt;入口程序集&gt; &lt;清单路径&gt; &lt;输出根目录&gt;</value>
+  </data>
+  <data name="UsageShared" xml:space="preserve">
+    <value>  Hosihikari.Plugin.Pack &lt;构建输出目录&gt; &lt;清单路径&gt; &lt;输出根目录&gt; [--shared &lt;程序集文件名&gt;]...</value>
+  </data>
+  <data name="UnrecognizedArgument" xml:space="preserve">
+    <value>无法识别的参数：{0}</value>
+  </data>
+  <data name="SharedRequired" xml:space="preserve">
+    <value>至少要给一个 --shared：共享层清单写不全会让副本漏过这道检查，而它是静默失败的那类问题。</value>
+  </data>
+  <data name="Packed" xml:space="preserve">
+    <value>已打包：{0}</value>
+  </data>
+  <data name="PackingFailed" xml:space="preserve">
+    <value>打包失败：</value>
+  </data>
+  <data name="EntryAssemblyDirectory" xml:space="preserve">
+    <value>无法从入口程序集路径得到目录：{0}</value>
+  </data>
+  <data name="MultiTargetFramework" xml:space="preserve">
+    <value>PackPlugin 需要单个目标框架；请用 dotnet build -t:PackPlugin -f &lt;tfm&gt; 指定。</value>
+  </data>
+</root>

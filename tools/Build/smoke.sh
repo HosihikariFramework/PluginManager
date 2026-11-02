@@ -103,7 +103,7 @@ if output=$(dotnet build "$multi/TestPlugin.csproj" -t:PackPlugin -c Release --n
   echo 'multi-target PackPlugin should fail without -f' >&2
   exit 1
 fi
-if ! printf '%s' "$output" | grep -q '需要单个目标框架'; then
+if ! printf '%s' "$output" | grep -q -- '-f <tfm>'; then
   echo 'multi-target PackPlugin did not explain the required -f' >&2
   printf '%s\n' "$output" >&2
   exit 1
