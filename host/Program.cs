@@ -24,7 +24,8 @@ if (args.Length == 2 && args[0] == "--pack-output-regression")
     return RegressionChecks.PackOutputChild(args[1]);
 }
 
-// 断言引用操作员文本；把 UI 文化钉在 zh-Hans，让资源在每台 runner 上解析一致。
+// 断言引用操作员文本；把 UI 文化钉在 zh-Hans，让资源在每台 runner 与后台线程上解析一致。
+CultureInfo.DefaultThreadCurrentUICulture = CultureInfo.GetCultureInfo("zh-Hans");
 CultureInfo.CurrentUICulture = CultureInfo.GetCultureInfo("zh-Hans");
 
 // 载体中立检查（ADR-0015）：普通 .NET 控制台主机驱动核心，不碰 BDS、Shim、任何载体。
