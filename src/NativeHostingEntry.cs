@@ -298,6 +298,11 @@ public static class NativeHostingEntry
             }
         });
         var logger = s_loggerFactory.CreateLogger("Hosihikari");
+        logger.LogInformation(
+            "核心 {CoreVersion}；入口契约 {ContractVersion}；插件 API {ApiVersion}",
+            typeof(PluginManager).Assembly.GetName().Version?.ToString(3) ?? "未知",
+            HostingContractVersion,
+            PluginContractInfo.CurrentApiVersion);
 
         try
         {
