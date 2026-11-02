@@ -168,6 +168,7 @@ jobs:
         working-directory: PluginManager
         run: |
           dotnet pack tools/Build/Hosihikari.Plugin.Build.csproj -c Release -o out --nologo
+          dotnet pack tools/Pack/Hosihikari.Plugin.Pack.csproj -c Release -o out --nologo
           dotnet pack testing/Hosihikari.Testing/Hosihikari.Testing.csproj -c Release -o out --nologo
 
       # 换来的 key 只有一小时有效期，所以登录紧贴推送。
