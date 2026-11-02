@@ -39,7 +39,7 @@ public sealed class PluginTestHost : IDisposable
             Context.Scope.Open();
         }
 
-        _hooks.Add(result.Allowed ? "enable" : $"enable:refused({result.Reason ?? "未给原因"})");
+        _hooks.Add(result.Allowed ? "enable" : $"enable:refused({result.Reason ?? "no reason given"})");
         return result;
     }
 
@@ -52,7 +52,7 @@ public sealed class PluginTestHost : IDisposable
             Context.Scope.Open();
         }
 
-        _hooks.Add(result.Allowed ? "disable" : $"disable:refused({result.Reason ?? "未给原因"})");
+        _hooks.Add(result.Allowed ? "disable" : $"disable:refused({result.Reason ?? "no reason given"})");
         return result;
     }
 
@@ -77,13 +77,13 @@ public sealed class PluginTestHost : IDisposable
         var enabled = Enable();
         if (!enabled.Allowed)
         {
-            throw new InvalidOperationException($"启用被拒绝：{enabled.Reason ?? "未给原因"}");
+            throw new InvalidOperationException($"Enable refused: {enabled.Reason ?? "no reason given"}");
         }
 
         var disabled = Disable();
         if (!disabled.Allowed)
         {
-            throw new InvalidOperationException($"停用被拒绝：{disabled.Reason ?? "未给原因"}");
+            throw new InvalidOperationException($"Disable refused: {disabled.Reason ?? "no reason given"}");
         }
 
         Unload();

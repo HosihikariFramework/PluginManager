@@ -52,14 +52,14 @@ public sealed class PluginManagerHarness : IDisposable
             || name is "." or ".."
             || name.IndexOfAny([Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar]) >= 0)
         {
-            throw new ArgumentException("测试包名必须是单个目录名", nameof(name));
+            throw new ArgumentException("Test package name must be a single directory name", nameof(name));
         }
 
         var directory = Path.GetFullPath(Path.Combine(PluginsRoot, name));
         var pluginRoot = Path.GetFullPath(PluginsRoot) + Path.DirectorySeparatorChar;
         if (!directory.StartsWith(pluginRoot, StringComparison.Ordinal))
         {
-            throw new ArgumentException("测试包目录越界", nameof(name));
+            throw new ArgumentException("Test package directory is outside the test root", nameof(name));
         }
 
         Directory.CreateDirectory(directory);
@@ -70,7 +70,7 @@ public sealed class PluginManagerHarness : IDisposable
             if (!target.StartsWith(Path.GetFullPath(directory) + Path.DirectorySeparatorChar, StringComparison.Ordinal)
                 && !string.Equals(target, Path.GetFullPath(directory), StringComparison.Ordinal))
             {
-                throw new ArgumentException($"测试包路径越界：{path}", nameof(files));
+                throw new ArgumentException($"Test package path is outside the test root: {path}", nameof(files));
             }
 
             Directory.CreateDirectory(Path.GetDirectoryName(target)!);

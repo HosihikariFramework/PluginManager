@@ -70,8 +70,8 @@ public sealed class PluginManager
         {
             throw new ArgumentOutOfRangeException(
                 nameof(options),
-                "UnloadVerificationTimeout 必须为正且不超过约 49.7 天，"
-                + "或使用 Timeout.InfiniteTimeSpan。");
+                "UnloadVerificationTimeout must be positive and no more than about 49.7 days, "
+                + "or Timeout.InfiniteTimeSpan.");
         }
 
         _pluginsRoot = pluginsRoot;

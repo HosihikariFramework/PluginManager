@@ -19,7 +19,7 @@ public sealed class TestPluginContext : IPluginContext
             || name is "." or ".."
             || name.IndexOfAny([Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar]) >= 0)
         {
-            throw new ArgumentException("测试插件名必须是单个目录名", nameof(name));
+            throw new ArgumentException("Test plugin name must be a single directory name", nameof(name));
         }
 
         Name = name;
