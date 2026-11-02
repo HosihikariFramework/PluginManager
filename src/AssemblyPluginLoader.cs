@@ -49,7 +49,9 @@ public sealed class AssemblyPluginLoader(params Assembly[] sharedSources) : IPlu
         var entryPath = Path.Combine(packageDirectory, manifest.EntryPath);
         if (!File.Exists(entryPath))
         {
-            context.Logger.LogError("{Name}: 入口 {Entry} 不在包里", manifest.Name, manifest.EntryPath);
+            context.Logger.LogError(
+                "{Message}",
+                CoreText.Get("Assembly_EntryMissing", manifest.Name, manifest.EntryPath));
             return null;
         }
 
@@ -66,9 +68,8 @@ public sealed class AssemblyPluginLoader(params Assembly[] sharedSources) : IPlu
         if (declared != 1)
         {
             context.Logger.LogError(
-                "{Name}: 入口程序集声明了 {Count} 个入口 —— 需要恰好一个 [assembly: EntryPoint<T>]",
-                manifest.Name,
-                declared);
+                "{Message}",
+                CoreText.Get("Assembly_EntryCount", manifest.Name, declared));
             loader.Dispose();
             return null;
         }

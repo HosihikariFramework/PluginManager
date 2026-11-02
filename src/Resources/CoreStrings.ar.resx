@@ -1,0 +1,241 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="Native_StopChildrenFailed" xml:space="preserve">
+    <value>فشل استرداد الإضافات الفرعية قبل إعادة التحميل</value>
+  </data>
+  <data name="Native_DeliverEmpty" xml:space="preserve">
+    <value>قدّم الأب وسيطًا فارغًا</value>
+  </data>
+  <data name="Native_NotStarted" xml:space="preserve">
+    <value>النواة غير مشغّلة؛ تم تجاهل {0} {1}</value>
+  </data>
+  <data name="Native_UnloadIncomplete" xml:space="preserve">
+    <value>لم يكتمل إلغاء تحميل {0}: {1}</value>
+  </data>
+  <data name="Native_DeliverThrew" xml:space="preserve">
+    <value>رمى {0} استثناءً؛ تم تجاهل هذه التسليم</value>
+  </data>
+  <data name="Verb_Load" xml:space="preserve">
+    <value>تحميل</value>
+  </data>
+  <data name="Verb_Unload" xml:space="preserve">
+    <value>إلغاء التحميل</value>
+  </data>
+  <data name="Verb_Enable" xml:space="preserve">
+    <value>تفعيل</value>
+  </data>
+  <data name="Verb_Disable" xml:space="preserve">
+    <value>تعطيل</value>
+  </data>
+  <data name="Native_RemovalNotifyFailed" xml:space="preserve">
+    <value>فشل إشعار الحامل بإزالة {0}</value>
+  </data>
+  <data name="Native_ReuseCore" xml:space="preserve">
+    <value>إعادة استخدام النواة الحالية: تبقى المُحمِّلات، ويعيد المُحمِّل الجديد تسليم الإضافات الفرعية</value>
+  </data>
+  <data name="Native_Versions" xml:space="preserve">
+    <value>النواة {0}؛ عقد الاستضافة {1}؛ واجهة برمجة الإضافات {2}</value>
+  </data>
+  <data name="Common_Unknown" xml:space="preserve">
+    <value>غير معروف</value>
+  </data>
+  <data name="Native_LoadProblem" xml:space="preserve">
+    <value>مشكلة تحميل: {0}</value>
+  </data>
+  <data name="Native_Loaded" xml:space="preserve">
+    <value>تم تحميل {0} إضافة: [{1}]</value>
+  </data>
+  <data name="Native_Ready" xml:space="preserve">
+    <value>جاهز؛ في انتظار الأب لتسليم الإضافات</value>
+  </data>
+  <data name="Native_StartFailed" xml:space="preserve">
+    <value>فشل بدء التشغيل</value>
+  </data>
+  <data name="Manager_LoaderDuplicate" xml:space="preserve">
+    <value>{0}: {1} يتعامل بالفعل مع هذا النوع؛ رُفض {2} — يجب أن تكون أسماء أنواع المُحمِّلات فريدة</value>
+  </data>
+  <data name="Manager_DependenciesNotLoaded" xml:space="preserve">
+    <value>{0}: التبعيات غير محمّلة: {1}؛ تم التخطي</value>
+  </data>
+  <data name="Manager_AlreadyRegistered" xml:space="preserve">
+    <value>{0}: مسجّل بالفعل ({1})</value>
+  </data>
+  <data name="Manager_LoaderReused" xml:space="preserve">
+    <value>{0}: المُحمِّل محمّل بالفعل، إعادة استخدام</value>
+  </data>
+  <data name="Manager_NotPresent" xml:space="preserve">
+    <value>{0}: غير موجود؛ تم تجاهل {1}</value>
+  </data>
+  <data name="Manager_AlreadyEnabled" xml:space="preserve">
+    <value>{0}: مفعّل بالفعل؛ تم تجاهل الطلب المكرر</value>
+  </data>
+  <data name="Manager_EnableRefused" xml:space="preserve">
+    <value>{0}: رُفض التفعيل — {1}</value>
+  </data>
+  <data name="Manager_DisableRefused" xml:space="preserve">
+    <value>{0}: رُفض التعطيل — {1}</value>
+  </data>
+  <data name="Manager_EnableThrew" xml:space="preserve">
+    <value>{0}: رمى خطاف التفعيل استثناءً — {1}</value>
+  </data>
+  <data name="Manager_DisableThrew" xml:space="preserve">
+    <value>{0}: رمى خطاف التعطيل استثناءً — {1}</value>
+  </data>
+  <data name="Manager_EnableFault" xml:space="preserve">
+    <value>رمى خطاف التفعيل استثناءً</value>
+  </data>
+  <data name="Manager_DisableFault" xml:space="preserve">
+    <value>رمى خطاف التعطيل استثناءً</value>
+  </data>
+  <data name="Manager_DependencyNotLoaded" xml:space="preserve">
+    <value>التبعية غير محمّلة: {0}</value>
+  </data>
+  <data name="Manager_NotLoaded" xml:space="preserve">
+    <value>{0} غير محمّل</value>
+  </data>
+  <data name="Manager_LoaderPinned" xml:space="preserve">
+    <value>{0}: لا يمكن التراجع عن تسجيل المُحمِّل؛ استبدال المُحمِّل يتطلب إعادة تشغيل الخادم</value>
+  </data>
+  <data name="Manager_HasDependents" xml:space="preserve">
+    <value>لا يزال معتمدًا عليه من: {0}</value>
+  </data>
+  <data name="Manager_DisableRefusedByPlugin" xml:space="preserve">
+    <value>{0} رفض التعطيل: {1}</value>
+  </data>
+  <data name="Manager_StateAnomaly" xml:space="preserve">
+    <value>{0} في حالة غير متوقعة ({1})</value>
+  </data>
+  <data name="Manager_UnloadTimeout" xml:space="preserve">
+    <value>{0}: انتهت مهلة التحقق من الاسترداد ({1})</value>
+  </data>
+  <data name="Manager_UnloadVerifyThrew" xml:space="preserve">
+    <value>{0}: رمى التحقق من الاسترداد استثناءً — {1}</value>
+  </data>
+  <data name="Manager_UnloadNotRegistered" xml:space="preserve">
+    <value>{0} لم يعد مسجّلًا؛ فشل التحقق من الاسترداد</value>
+  </data>
+  <data name="Manager_UnloadTimeoutRetry" xml:space="preserve">
+    <value>{0}: انتهت مهلة التحقق من الاسترداد ({1})؛ أعد إلغاء التحميل للتحقق مجددًا</value>
+  </data>
+  <data name="Manager_UnloadVerifyFailedRetry" xml:space="preserve">
+    <value>{0} أُطلق، لكن فشل التحقق من الاسترداد؛ أعد إلغاء التحميل للتحقق مجددًا</value>
+  </data>
+  <data name="Manager_Fault" xml:space="preserve">
+    <value>{0}: عطل — {1}</value>
+  </data>
+  <data name="Manager_FaultUnloadIncomplete" xml:space="preserve">
+    <value>{0}: لم يكتمل إلغاء التحميل بسبب العطل — {1}</value>
+  </data>
+  <data name="Common_NoReason" xml:space="preserve">
+    <value>دون سبب</value>
+  </data>
+  <data name="Manager_UnloadHookThrew" xml:space="preserve">
+    <value>{0}: رمى خطاف إلغاء التحميل استثناءً — {1}</value>
+  </data>
+  <data name="Manager_ReleaseHandleThrew" xml:space="preserve">
+    <value>{0}: رمى تحرير المقبض استثناءً — {1}</value>
+  </data>
+  <data name="Manager_NoLoader" xml:space="preserve">
+    <value>{0}: لا يوجد مُحمِّل يعالج loader={1}</value>
+  </data>
+  <data name="Manager_DiagnosticsThrew" xml:space="preserve">
+    <value>{0}: رمى تشخيص المُحمِّل استثناءً — {1}</value>
+  </data>
+  <data name="Manager_LoadFailed" xml:space="preserve">
+    <value>{0}: فشل التحميل</value>
+  </data>
+  <data name="Manager_EnableRefusedStaysLoaded" xml:space="preserve">
+    <value>{0}: رُفض التفعيل — {1} (يبقى مسجّلًا وغير مفعّل)</value>
+  </data>
+  <data name="Manager_LoadThrewRolledBack" xml:space="preserve">
+    <value>{0}: رمى التحميل استثناءً؛ تم التراجع — {1}</value>
+  </data>
+  <data name="Manager_LoadRollbackThrew" xml:space="preserve">
+    <value>{0}: رمى التراجع عن التحميل استثناءً — {1}</value>
+  </data>
+  <data name="Manifest_MissingFile" xml:space="preserve">
+    <value>{0}: {1} غير موجود في الدليل</value>
+  </data>
+  <data name="Manifest_Empty" xml:space="preserve">
+    <value>{0}: حُلّل البيان فارغًا</value>
+  </data>
+  <data name="Manifest_NameMismatch" xml:space="preserve">
+    <value>{0}: يجب أن يساوي اسم البيان اسم الدليل</value>
+  </data>
+  <data name="Manifest_MissingEntry" xml:space="preserve">
+    <value>{0}: البيان يفتقد entry</value>
+  </data>
+  <data name="Manifest_LegacyField" xml:space="preserve">
+    <value>{0}: البيان يستخدم الحقل القديم extraInfo.{1}؛ أعِد تسميته إلى extraInfo.{2} (ADR-0040)</value>
+  </data>
+  <data name="Manifest_LegacyFieldBody" xml:space="preserve">
+    <value>البيان يستخدم الحقل القديم extraInfo.{0}؛ أعِد تسميته إلى extraInfo.{1} (ADR-0040)</value>
+  </data>
+  <data name="Manifest_EntryOutside" xml:space="preserve">
+    <value>{0}: يجب أن يكون entry مسارًا نسبيًا داخل الحزمة (الفعلي {1})</value>
+  </data>
+  <data name="Manifest_ParentMismatch" xml:space="preserve">
+    <value>{0}: يجب أن يكون نوع البيان {1}، والفعلي {2}</value>
+  </data>
+  <data name="Common_Undeclared" xml:space="preserve">
+    <value>غير معلن</value>
+  </data>
+  <data name="Manifest_ApiMismatch" xml:space="preserve">
+    <value>{0}: عدم تطابق api_version (البيان {1}، الإطار {2})</value>
+  </data>
+  <data name="Manifest_ManifestVersionMismatch" xml:space="preserve">
+    <value>{0}: عدم تطابق manifest_version (البيان {1}، الإطار {2})</value>
+  </data>
+  <data name="Manifest_DependencyName" xml:space="preserve">
+    <value>{0}: يجب أن تحتوي التبعيات على اسم غير فارغ</value>
+  </data>
+  <data name="Manifest_SelfDependency" xml:space="preserve">
+    <value>{0}: لا يمكن للتبعية أن تعتمد على نفسها</value>
+  </data>
+  <data name="Manifest_InvalidJson" xml:space="preserve">
+    <value>{0}: البيان ليس JSON صالحًا — {1}</value>
+  </data>
+  <data name="Manifest_ReadFailed" xml:space="preserve">
+    <value>{0}: تعذّرت قراءة البيان — {1}</value>
+  </data>
+  <data name="Graph_Unresolved" xml:space="preserve">
+    <value>{0}: تعذّر حل التبعيات؛ أُزيل</value>
+  </data>
+  <data name="Graph_Cycle" xml:space="preserve">
+    <value>{0}: حلقة تبعيات</value>
+  </data>
+  <data name="Graph_MissingDependency" xml:space="preserve">
+    <value>{0}: التبعية {1} غير موجودة</value>
+  </data>
+  <data name="Version_Invalid" xml:space="preserve">
+    <value>{0}: إصدار البيان ليس SemVer صالحًا: {1}</value>
+  </data>
+  <data name="Version_InvalidRange" xml:space="preserve">
+    <value>{0}: التبعية {1} لديها نطاق SemVer غير صالح: {2}</value>
+  </data>
+  <data name="Version_ConstraintInvalid" xml:space="preserve">
+    <value>التبعية {0} لديها قيد إصدار غير صالح: {1}</value>
+  </data>
+  <data name="Version_NoVersion" xml:space="preserve">
+    <value>التبعية {0} ليس لديها إصدار قابل للمقارنة؛ لا يمكن تلبية {1}</value>
+  </data>
+  <data name="Version_NotSatisfied" xml:space="preserve">
+    <value>التبعية {0} الإصدار {1} لا يلبي {2}</value>
+  </data>
+  <data name="Assembly_EntryMissing" xml:space="preserve">
+    <value>{0}: entry {1} ليس في الحزمة</value>
+  </data>
+  <data name="Assembly_EntryCount" xml:space="preserve">
+    <value>{0}: تجميع الدخول يعلن {1} نقاط دخول — مطلوب [assembly: EntryPoint&lt;T&gt;] واحد بالضبط</value>
+  </data>
+  <data name="Event_HandlerThrew" xml:space="preserve">
+    <value>رمى أحد معالجات الحدث {0} استثناءً</value>
+  </data>
+  <data name="Event_ScheduledThrew" xml:space="preserve">
+    <value>رمت مهمة مجدولة استثناءً</value>
+  </data>
+</root>

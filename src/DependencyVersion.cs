@@ -14,7 +14,7 @@ internal static class DependencyVersion
         if (!string.IsNullOrWhiteSpace(manifest.Version)
             && !NuGetVersion.TryParse(manifest.Version, out _))
         {
-            problem = $"{manifest.Name}: 清单 version 不是合法 SemVer：{manifest.Version}";
+            problem = CoreText.Get("Version_Invalid", manifest.Name, manifest.Version);
             return false;
         }
 
@@ -22,14 +22,18 @@ internal static class DependencyVersion
         {
             if (dependency is null || string.IsNullOrWhiteSpace(dependency.Name))
             {
-                problem = $"{manifest.Name}: dependencies 里必须有非空的 name";
+                problem = CoreText.Get("Manifest_DependencyName", manifest.Name);
                 return false;
             }
 
             if (!string.IsNullOrWhiteSpace(dependency.VersionRange)
                 && !VersionRange.TryParse(dependency.VersionRange, out _))
             {
-                problem = $"{manifest.Name}: 依赖 {dependency.Name} 的版本约束不是合法 SemVer 范围：{dependency.VersionRange}";
+                problem = CoreText.Get(
+                    "Version_InvalidRange",
+                    manifest.Name,
+                    dependency.Name,
+                    dependency.VersionRange);
                 return false;
             }
         }
@@ -49,14 +53,14 @@ internal static class DependencyVersion
 
         if (!VersionRange.TryParse(dependency.VersionRange, out var range))
         {
-            problem = $"依赖 {dependency.Name} 的版本约束无效：{dependency.VersionRange}";
+            problem = CoreText.Get("Version_ConstraintInvalid", dependency.Name, dependency.VersionRange);
             return false;
         }
 
         if (string.IsNullOrWhiteSpace(target.Version)
             || !NuGetVersion.TryParse(target.Version, out var version))
         {
-            problem = $"依赖 {dependency.Name} 没有可比较的 version，无法满足 {dependency.VersionRange}";
+            problem = CoreText.Get("Version_NoVersion", dependency.Name, dependency.VersionRange);
             return false;
         }
 
@@ -65,7 +69,7 @@ internal static class DependencyVersion
         if (!range.Satisfies(version)
             || (range.Float is { } floatRange && !floatRange.Satisfies(version)))
         {
-            problem = $"依赖 {dependency.Name} 的版本 {version} 不满足 {dependency.VersionRange}";
+            problem = CoreText.Get("Version_NotSatisfied", dependency.Name, version, dependency.VersionRange);
             return false;
         }
 

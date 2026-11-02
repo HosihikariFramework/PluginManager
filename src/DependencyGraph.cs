@@ -14,7 +14,7 @@ internal static class DependencyGraph
         {
             if (!Visit(package, byName, state, order, report))
             {
-                report($"{package.Manifest.Name}: 依赖无法解析，已剔除");
+                report(CoreText.Get("Graph_Unresolved", package.Manifest.Name));
             }
         }
 
@@ -36,7 +36,7 @@ internal static class DependencyGraph
                 return true;
             }
 
-            report($"{name}: 依赖成环");
+            report(CoreText.Get("Graph_Cycle", name));
             return false;
         }
 
@@ -52,7 +52,7 @@ internal static class DependencyGraph
 
             if (!byName.TryGetValue(dependency.Name, out var target))
             {
-                report($"{name}: 依赖 {dependency.Name} 不存在");
+                report(CoreText.Get("Graph_MissingDependency", name, dependency.Name));
                 return false;
             }
 

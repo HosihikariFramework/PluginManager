@@ -43,7 +43,7 @@ internal static class ManifestReader
         var manifestPath = Path.Combine(directory, FileName);
         if (!File.Exists(manifestPath))
         {
-            report($"{folderName}: 目录里没有 {FileName}");
+            report(CoreText.Get("Manifest_MissingFile", folderName, FileName));
             return null;
         }
 
@@ -52,27 +52,27 @@ internal static class ManifestReader
             var manifest = JsonSerializer.Deserialize<PluginManifest>(File.ReadAllText(manifestPath), Options);
             if (manifest is null)
             {
-                report($"{folderName}: 清单解析为空");
+                report(CoreText.Get("Manifest_Empty", folderName));
                 return null;
             }
 
             // LeviLamina 也要求这两条，我们跟着校验，好让三个拓扑同一个包同一种失败（ADR-0006）。
             if (string.IsNullOrWhiteSpace(manifest.Name) || manifest.Name != folderName)
             {
-                report($"{folderName}: 清单 name 必须等于目录名");
+                report(CoreText.Get("Manifest_NameMismatch", folderName));
                 return null;
             }
 
             if (string.IsNullOrWhiteSpace(manifest.EntryPath))
             {
-                report($"{folderName}: 清单缺少 entry");
+                report(CoreText.Get("Manifest_MissingEntry", folderName));
                 return null;
             }
 
             // ADR-0040 硬切旧字段：写旧键的包在载入前就给出改名提示，别让它落到加载器选型或版本比较上。
-            if (LegacyExtraInfoMessage(manifest) is { } legacy)
+            if (LegacyExtraInfoKeys(manifest) is { } legacy)
             {
-                report($"{folderName}: {legacy}");
+                report(CoreText.Get("Manifest_LegacyField", folderName, legacy.Old, legacy.New));
                 return null;
             }
 
@@ -80,7 +80,7 @@ internal static class ManifestReader
             // "一个目录就是一个包"随之不成立。
             if (!IsEntryContained(directory, manifest.EntryPath))
             {
-                report($"{folderName}: entry 必须是包内相对路径（实际 {manifest.EntryPath}）");
+                report(CoreText.Get("Manifest_EntryOutside", folderName, manifest.EntryPath));
                 return null;
             }
 
@@ -88,21 +88,35 @@ internal static class ManifestReader
             // 否则同一个包换一个拓扑才失败，而那是最难查的一类（ADR-0012）。
             if (manifest.ParentName != PluginContractInfo.ParentName)
             {
-                var actual = string.IsNullOrWhiteSpace(manifest.ParentName) ? "未声明" : manifest.ParentName;
-                report($"{folderName}: 清单 type 必须是 {PluginContractInfo.ParentName}，实际 {actual}");
+                var actual = string.IsNullOrWhiteSpace(manifest.ParentName)
+                    ? CoreText.Get("Common_Undeclared")
+                    : manifest.ParentName;
+                report(CoreText.Get(
+                    "Manifest_ParentMismatch",
+                    folderName,
+                    PluginContractInfo.ParentName,
+                    actual));
                 return null;
             }
 
             if (manifest.ApiVersion != PluginContractInfo.CurrentApiVersion)
             {
-                report($"{folderName}: api_version 不匹配（清单 {manifest.ApiVersion ?? "未声明"}，框架 {PluginContractInfo.CurrentApiVersion}）");
+                report(CoreText.Get(
+                    "Manifest_ApiMismatch",
+                    folderName,
+                    manifest.ApiVersion ?? CoreText.Get("Common_Undeclared"),
+                    PluginContractInfo.CurrentApiVersion));
                 return null;
             }
 
             // 清单 schema 版本（ADR-0012）：解析器只认这一个版本。
             if (manifest.ManifestVersion != PluginContractInfo.CurrentManifestVersion)
             {
-                report($"{folderName}: manifest_version 不匹配（清单 {manifest.ManifestVersion ?? "未声明"}，框架 {PluginContractInfo.CurrentManifestVersion}）");
+                report(CoreText.Get(
+                    "Manifest_ManifestVersionMismatch",
+                    folderName,
+                    manifest.ManifestVersion ?? CoreText.Get("Common_Undeclared"),
+                    PluginContractInfo.CurrentManifestVersion));
                 return null;
             }
 
@@ -111,7 +125,7 @@ internal static class ManifestReader
             if (manifest.Dependencies.Any(dependency =>
                     dependency is null || string.IsNullOrWhiteSpace(dependency.Name)))
             {
-                report($"{folderName}: dependencies 里必须有非空的 name");
+                report(CoreText.Get("Manifest_DependencyName", folderName));
                 return null;
             }
 
@@ -119,7 +133,7 @@ internal static class ManifestReader
             if (manifest.Dependencies.Any(dependency =>
                     string.Equals(dependency.Name, manifest.Name, StringComparison.Ordinal)))
             {
-                report($"{folderName}: dependencies 不能依赖自身");
+                report(CoreText.Get("Manifest_SelfDependency", folderName));
                 return null;
             }
 
@@ -133,18 +147,18 @@ internal static class ManifestReader
         }
         catch (JsonException ex)
         {
-            report($"{folderName}: 清单不是合法 JSON —— {ex.Message}");
+            report(CoreText.Get("Manifest_InvalidJson", folderName, ex.Message));
             return null;
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            report($"{folderName}: 清单读不出来 —— {ex.Message}");
+            report(CoreText.Get("Manifest_ReadFailed", folderName, ex.Message));
             return null;
         }
     }
 
     /// <summary>ADR-0040 改过名的 extraInfo 键；旧键不再读取，只给一条明确的迁移提示。</summary>
-    internal static string? LegacyExtraInfoMessage(PluginManifest manifest)
+    internal static (string Old, string New)? LegacyExtraInfoKeys(PluginManifest manifest)
     {
         (string Old, string New)[] renamed =
         [
@@ -157,7 +171,7 @@ internal static class ManifestReader
         {
             if (manifest.ExtraInfo.ContainsKey(oldKey))
             {
-                return $"清单使用了旧字段 extraInfo.{oldKey}，已改名为 extraInfo.{newKey}（ADR-0040）";
+                return (oldKey, newKey);
             }
         }
 

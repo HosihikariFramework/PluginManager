@@ -128,7 +128,7 @@ public static class NativeHostingEntry
         }
         catch (Exception ex)
         {
-            logger?.LogError(ex, "重载前回收子插件失败");
+            logger?.LogError(ex, "{Message}", CoreText.Get("Native_StopChildrenFailed"));
             return 1;
         }
         finally
@@ -194,13 +194,13 @@ public static class NativeHostingEntry
             var text = arg == IntPtr.Zero ? null : Marshal.PtrToStringUTF8(arg);
             if (string.IsNullOrEmpty(text))
             {
-                logger?.LogError("父级交来的参数是空的");
+                logger?.LogError("{Message}", CoreText.Get("Native_DeliverEmpty"));
                 return 1;
             }
 
             if (s_host is null)
             {
-                logger?.LogError("核心还没起来，{Action} {Name} 落空", action, text);
+                logger?.LogError("{Message}", CoreText.Get("Native_NotStarted", action, text));
                 return 1;
             }
 
@@ -217,7 +217,12 @@ public static class NativeHostingEntry
                     var result = s_host.Unload(text);
                     if (!result.Released)
                     {
-                        logger?.LogError("卸载 {Name} 没完成：{Reason}", text, result.Error);
+                        logger?.LogError(
+                            "{Message}",
+                            CoreText.Get(
+                                "Native_UnloadIncomplete",
+                                text,
+                                result.Error ?? CoreText.Get("Common_Unknown")));
                     }
 
                     return result.Released ? 0 : 1;
@@ -225,17 +230,17 @@ public static class NativeHostingEntry
         }
         catch (Exception ex)
         {
-            logger?.LogError(ex, "{Action} 时抛出，本次交付作废", action);
+            logger?.LogError(ex, "{Message}", CoreText.Get("Native_DeliverThrew", action));
             return 1;
         }
     }
 
     private static string ActionName(Verb verb) => verb switch
     {
-        Verb.Load => "装载",
-        Verb.Unload => "卸载",
-        Verb.Enable => "启用",
-        _ => "停用",
+        Verb.Load => CoreText.Get("Verb_Load"),
+        Verb.Unload => CoreText.Get("Verb_Unload"),
+        Verb.Enable => CoreText.Get("Verb_Enable"),
+        _ => CoreText.Get("Verb_Disable"),
     };
 
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
@@ -269,7 +274,7 @@ public static class NativeHostingEntry
             catch (Exception ex)
             {
                 s_loggerFactory?.CreateLogger("Hosihikari")
-                    .LogError(ex, "通知载体移除 {Name} 失败", name);
+                    .LogError(ex, "{Message}", CoreText.Get("Native_RemovalNotifyFailed", name));
             }
         }
     }
@@ -280,7 +285,7 @@ public static class NativeHostingEntry
         {
             // Endstone reload：Loader 与旧 host 留着，靠原生回调槽换到新模块。
             s_loggerFactory?.CreateLogger("Hosihikari")
-                .LogInformation("复用已有核心：Loader 保持，子插件由新 loader 重新交付");
+                .LogInformation("{Message}", CoreText.Get("Native_ReuseCore"));
             return 0;
         }
 
@@ -302,10 +307,12 @@ public static class NativeHostingEntry
         try
         {
             logger.LogInformation(
-                "核心 {CoreVersion}；入口契约 {ContractVersion}；插件 API {ApiVersion}",
-                typeof(PluginManager).Assembly.GetName().Version?.ToString(3) ?? "未知",
-                HostingContractVersion,
-                PluginContractInfo.CurrentApiVersion);
+                "{Message}",
+                CoreText.Get(
+                    "Native_Versions",
+                    typeof(PluginManager).Assembly.GetName().Version?.ToString(3) ?? CoreText.Get("Common_Unknown"),
+                    HostingContractVersion,
+                    PluginContractInfo.CurrentApiVersion));
 
             // 服务端根就是进程的工作目录；配置与数据都相对它找（ADR-0018）。
             var root = Directory.GetCurrentDirectory();
@@ -319,7 +326,7 @@ public static class NativeHostingEntry
                 Path.Combine(root, "plugins"),
                 Path.Combine(root, "data", "hosihikari"),
                 Path.Combine(root, "config", "hosihikari"),
-                entry => logger.LogError("加载问题：{Entry}", entry),
+                entry => logger.LogError("{Message}", CoreText.Get("Native_LoadProblem", entry)),
                 services,
                 ForwardRemoval);
             s_host.RegisterLoader(new AssemblyPluginLoader());
@@ -328,20 +335,22 @@ public static class NativeHostingEntry
             {
                 s_host.LoadAll();
                 logger.LogInformation(
-                    "已加载 {Count} 个插件：[{Names}]",
-                    s_host.LoadedNames.Count,
-                    string.Join(", ", s_host.LoadedNames));
+                    "{Message}",
+                    CoreText.Get(
+                        "Native_Loaded",
+                        s_host.LoadedNames.Count,
+                        string.Join(", ", s_host.LoadedNames)));
             }
             else
             {
-                logger.LogInformation("已就绪，等待父级交付插件");
+                logger.LogInformation("{Message}", CoreText.Get("Native_Ready"));
             }
 
             return 0;
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "启动失败");
+            logger.LogError(ex, "{Message}", CoreText.Get("Native_StartFailed"));
             return 1;
         }
     }

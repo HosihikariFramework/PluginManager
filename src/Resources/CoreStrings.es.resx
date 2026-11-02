@@ -1,0 +1,241 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="Native_StopChildrenFailed" xml:space="preserve">
+    <value>No se pudieron recuperar los plugins hijos antes de recargar</value>
+  </data>
+  <data name="Native_DeliverEmpty" xml:space="preserve">
+    <value>El padre entregó un argumento vacío</value>
+  </data>
+  <data name="Native_NotStarted" xml:space="preserve">
+    <value>El núcleo no está iniciado; se ignoró {0} {1}</value>
+  </data>
+  <data name="Native_UnloadIncomplete" xml:space="preserve">
+    <value>La descarga de {0} no terminó: {1}</value>
+  </data>
+  <data name="Native_DeliverThrew" xml:space="preserve">
+    <value>{0} lanzó una excepción; se descarta esta entrega</value>
+  </data>
+  <data name="Verb_Load" xml:space="preserve">
+    <value>Cargar</value>
+  </data>
+  <data name="Verb_Unload" xml:space="preserve">
+    <value>Descargar</value>
+  </data>
+  <data name="Verb_Enable" xml:space="preserve">
+    <value>Activar</value>
+  </data>
+  <data name="Verb_Disable" xml:space="preserve">
+    <value>Desactivar</value>
+  </data>
+  <data name="Native_RemovalNotifyFailed" xml:space="preserve">
+    <value>No se pudo notificar al portador que se eliminó {0}</value>
+  </data>
+  <data name="Native_ReuseCore" xml:space="preserve">
+    <value>Se reutiliza el núcleo existente: los cargadores permanecen y el nuevo cargador vuelve a entregar los plugins hijos</value>
+  </data>
+  <data name="Native_Versions" xml:space="preserve">
+    <value>Núcleo {0}; contrato de alojamiento {1}; API de plugins {2}</value>
+  </data>
+  <data name="Common_Unknown" xml:space="preserve">
+    <value>desconocido</value>
+  </data>
+  <data name="Native_LoadProblem" xml:space="preserve">
+    <value>Problema de carga: {0}</value>
+  </data>
+  <data name="Native_Loaded" xml:space="preserve">
+    <value>Cargados {0} plugin(s): [{1}]</value>
+  </data>
+  <data name="Native_Ready" xml:space="preserve">
+    <value>Listo; esperando que el padre entregue los plugins</value>
+  </data>
+  <data name="Native_StartFailed" xml:space="preserve">
+    <value>Error al iniciar</value>
+  </data>
+  <data name="Manager_LoaderDuplicate" xml:space="preserve">
+    <value>{0}: {1} ya gestiona este tipo; se rechazó {2}: los nombres de tipo de cargador deben ser únicos</value>
+  </data>
+  <data name="Manager_DependenciesNotLoaded" xml:space="preserve">
+    <value>{0}: dependencias no cargadas: {1}; omitido</value>
+  </data>
+  <data name="Manager_AlreadyRegistered" xml:space="preserve">
+    <value>{0}: ya registrado ({1})</value>
+  </data>
+  <data name="Manager_LoaderReused" xml:space="preserve">
+    <value>{0}: cargador ya cargado, se reutiliza</value>
+  </data>
+  <data name="Manager_NotPresent" xml:space="preserve">
+    <value>{0}: no está presente; se ignoró {1}</value>
+  </data>
+  <data name="Manager_AlreadyEnabled" xml:space="preserve">
+    <value>{0}: ya está activado; se ignoró la solicitud duplicada</value>
+  </data>
+  <data name="Manager_EnableRefused" xml:space="preserve">
+    <value>{0}: activación rechazada — {1}</value>
+  </data>
+  <data name="Manager_DisableRefused" xml:space="preserve">
+    <value>{0}: desactivación rechazada — {1}</value>
+  </data>
+  <data name="Manager_EnableThrew" xml:space="preserve">
+    <value>{0}: el hook de activación lanzó una excepción — {1}</value>
+  </data>
+  <data name="Manager_DisableThrew" xml:space="preserve">
+    <value>{0}: el hook de desactivación lanzó una excepción — {1}</value>
+  </data>
+  <data name="Manager_EnableFault" xml:space="preserve">
+    <value>el hook de activación lanzó una excepción</value>
+  </data>
+  <data name="Manager_DisableFault" xml:space="preserve">
+    <value>el hook de desactivación lanzó una excepción</value>
+  </data>
+  <data name="Manager_DependencyNotLoaded" xml:space="preserve">
+    <value>dependencia no cargada: {0}</value>
+  </data>
+  <data name="Manager_NotLoaded" xml:space="preserve">
+    <value>{0} no está cargado</value>
+  </data>
+  <data name="Manager_LoaderPinned" xml:space="preserve">
+    <value>{0}: el registro del cargador no se puede deshacer; reemplazar un cargador requiere reiniciar el servidor</value>
+  </data>
+  <data name="Manager_HasDependents" xml:space="preserve">
+    <value>todavía depende de él: {0}</value>
+  </data>
+  <data name="Manager_DisableRefusedByPlugin" xml:space="preserve">
+    <value>{0} rechazó desactivarse: {1}</value>
+  </data>
+  <data name="Manager_StateAnomaly" xml:space="preserve">
+    <value>{0} está en un estado inesperado ({1})</value>
+  </data>
+  <data name="Manager_UnloadTimeout" xml:space="preserve">
+    <value>{0}: se agotó el tiempo de verificación de recuperación ({1})</value>
+  </data>
+  <data name="Manager_UnloadVerifyThrew" xml:space="preserve">
+    <value>{0}: la verificación de recuperación lanzó una excepción — {1}</value>
+  </data>
+  <data name="Manager_UnloadNotRegistered" xml:space="preserve">
+    <value>{0} ya no está registrado; falló la verificación de recuperación</value>
+  </data>
+  <data name="Manager_UnloadTimeoutRetry" xml:space="preserve">
+    <value>{0}: se agotó el tiempo de verificación de recuperación ({1}); vuelve a descargar para verificar de nuevo</value>
+  </data>
+  <data name="Manager_UnloadVerifyFailedRetry" xml:space="preserve">
+    <value>{0} se liberó, pero falló la verificación de recuperación; vuelve a descargar para verificar de nuevo</value>
+  </data>
+  <data name="Manager_Fault" xml:space="preserve">
+    <value>{0}: fallo — {1}</value>
+  </data>
+  <data name="Manager_FaultUnloadIncomplete" xml:space="preserve">
+    <value>{0}: la descarga por fallo no terminó — {1}</value>
+  </data>
+  <data name="Common_NoReason" xml:space="preserve">
+    <value>no se indicó motivo</value>
+  </data>
+  <data name="Manager_UnloadHookThrew" xml:space="preserve">
+    <value>{0}: el hook de descarga lanzó una excepción — {1}</value>
+  </data>
+  <data name="Manager_ReleaseHandleThrew" xml:space="preserve">
+    <value>{0}: la liberación del identificador lanzó una excepción — {1}</value>
+  </data>
+  <data name="Manager_NoLoader" xml:space="preserve">
+    <value>{0}: ningún cargador gestiona loader={1}</value>
+  </data>
+  <data name="Manager_DiagnosticsThrew" xml:space="preserve">
+    <value>{0}: el diagnóstico del cargador lanzó una excepción — {1}</value>
+  </data>
+  <data name="Manager_LoadFailed" xml:space="preserve">
+    <value>{0}: error de carga</value>
+  </data>
+  <data name="Manager_EnableRefusedStaysLoaded" xml:space="preserve">
+    <value>{0}: activación rechazada — {1} (permanece registrado, desactivado)</value>
+  </data>
+  <data name="Manager_LoadThrewRolledBack" xml:space="preserve">
+    <value>{0}: la carga lanzó una excepción; se revirtió — {1}</value>
+  </data>
+  <data name="Manager_LoadRollbackThrew" xml:space="preserve">
+    <value>{0}: la reversión de la carga lanzó una excepción — {1}</value>
+  </data>
+  <data name="Manifest_MissingFile" xml:space="preserve">
+    <value>{0}: falta {1} en el directorio</value>
+  </data>
+  <data name="Manifest_Empty" xml:space="preserve">
+    <value>{0}: el manifiesto se analizó como vacío</value>
+  </data>
+  <data name="Manifest_NameMismatch" xml:space="preserve">
+    <value>{0}: el nombre del manifiesto debe coincidir con el nombre del directorio</value>
+  </data>
+  <data name="Manifest_MissingEntry" xml:space="preserve">
+    <value>{0}: falta entry en el manifiesto</value>
+  </data>
+  <data name="Manifest_LegacyField" xml:space="preserve">
+    <value>{0}: el manifiesto usa el campo antiguo extraInfo.{1}; cámbialo a extraInfo.{2} (ADR-0040)</value>
+  </data>
+  <data name="Manifest_LegacyFieldBody" xml:space="preserve">
+    <value>el manifiesto usa el campo antiguo extraInfo.{0}; cámbialo a extraInfo.{1} (ADR-0040)</value>
+  </data>
+  <data name="Manifest_EntryOutside" xml:space="preserve">
+    <value>{0}: entry debe ser una ruta relativa dentro del paquete (recibido {1})</value>
+  </data>
+  <data name="Manifest_ParentMismatch" xml:space="preserve">
+    <value>{0}: el tipo del manifiesto debe ser {1}, recibido {2}</value>
+  </data>
+  <data name="Common_Undeclared" xml:space="preserve">
+    <value>no declarado</value>
+  </data>
+  <data name="Manifest_ApiMismatch" xml:space="preserve">
+    <value>{0}: api_version no coincide (manifiesto {1}, marco {2})</value>
+  </data>
+  <data name="Manifest_ManifestVersionMismatch" xml:space="preserve">
+    <value>{0}: manifest_version no coincide (manifiesto {1}, marco {2})</value>
+  </data>
+  <data name="Manifest_DependencyName" xml:space="preserve">
+    <value>{0}: las dependencias deben tener un nombre no vacío</value>
+  </data>
+  <data name="Manifest_SelfDependency" xml:space="preserve">
+    <value>{0}: una dependencia no puede depender de sí misma</value>
+  </data>
+  <data name="Manifest_InvalidJson" xml:space="preserve">
+    <value>{0}: el manifiesto no es JSON válido — {1}</value>
+  </data>
+  <data name="Manifest_ReadFailed" xml:space="preserve">
+    <value>{0}: no se pudo leer el manifiesto — {1}</value>
+  </data>
+  <data name="Graph_Unresolved" xml:space="preserve">
+    <value>{0}: no se pueden resolver las dependencias; eliminado</value>
+  </data>
+  <data name="Graph_Cycle" xml:space="preserve">
+    <value>{0}: ciclo de dependencias</value>
+  </data>
+  <data name="Graph_MissingDependency" xml:space="preserve">
+    <value>{0}: la dependencia {1} no existe</value>
+  </data>
+  <data name="Version_Invalid" xml:space="preserve">
+    <value>{0}: la versión del manifiesto no es SemVer válido: {1}</value>
+  </data>
+  <data name="Version_InvalidRange" xml:space="preserve">
+    <value>{0}: la dependencia {1} tiene un rango SemVer no válido: {2}</value>
+  </data>
+  <data name="Version_ConstraintInvalid" xml:space="preserve">
+    <value>la dependencia {0} tiene una restricción de versión no válida: {1}</value>
+  </data>
+  <data name="Version_NoVersion" xml:space="preserve">
+    <value>la dependencia {0} no tiene una versión comparable; no se puede satisfacer {1}</value>
+  </data>
+  <data name="Version_NotSatisfied" xml:space="preserve">
+    <value>la dependencia {0} versión {1} no satisface {2}</value>
+  </data>
+  <data name="Assembly_EntryMissing" xml:space="preserve">
+    <value>{0}: entry {1} no está en el paquete</value>
+  </data>
+  <data name="Assembly_EntryCount" xml:space="preserve">
+    <value>{0}: el ensamblado de entrada declara {1} puntos de entrada; se requiere exactamente uno [assembly: EntryPoint&lt;T&gt;]</value>
+  </data>
+  <data name="Event_HandlerThrew" xml:space="preserve">
+    <value>Un controlador del evento {0} lanzó una excepción</value>
+  </data>
+  <data name="Event_ScheduledThrew" xml:space="preserve">
+    <value>Una tarea programada lanzó una excepción</value>
+  </data>
+</root>

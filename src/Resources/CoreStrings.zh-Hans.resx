@@ -1,0 +1,241 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="Native_StopChildrenFailed" xml:space="preserve">
+    <value>重载前回收子插件失败</value>
+  </data>
+  <data name="Native_DeliverEmpty" xml:space="preserve">
+    <value>父级交来的参数是空的</value>
+  </data>
+  <data name="Native_NotStarted" xml:space="preserve">
+    <value>核心还没起来，{0} {1} 落空</value>
+  </data>
+  <data name="Native_UnloadIncomplete" xml:space="preserve">
+    <value>卸载 {0} 没完成：{1}</value>
+  </data>
+  <data name="Native_DeliverThrew" xml:space="preserve">
+    <value>{0} 时抛出，本次交付作废</value>
+  </data>
+  <data name="Verb_Load" xml:space="preserve">
+    <value>装载</value>
+  </data>
+  <data name="Verb_Unload" xml:space="preserve">
+    <value>卸载</value>
+  </data>
+  <data name="Verb_Enable" xml:space="preserve">
+    <value>启用</value>
+  </data>
+  <data name="Verb_Disable" xml:space="preserve">
+    <value>停用</value>
+  </data>
+  <data name="Native_RemovalNotifyFailed" xml:space="preserve">
+    <value>通知载体移除 {0} 失败</value>
+  </data>
+  <data name="Native_ReuseCore" xml:space="preserve">
+    <value>复用已有核心：Loader 保持，子插件由新 loader 重新交付</value>
+  </data>
+  <data name="Native_Versions" xml:space="preserve">
+    <value>核心 {0}；入口契约 {1}；插件 API {2}</value>
+  </data>
+  <data name="Common_Unknown" xml:space="preserve">
+    <value>未知</value>
+  </data>
+  <data name="Native_LoadProblem" xml:space="preserve">
+    <value>加载问题：{0}</value>
+  </data>
+  <data name="Native_Loaded" xml:space="preserve">
+    <value>已加载 {0} 个插件：[{1}]</value>
+  </data>
+  <data name="Native_Ready" xml:space="preserve">
+    <value>已就绪，等待父级交付插件</value>
+  </data>
+  <data name="Native_StartFailed" xml:space="preserve">
+    <value>启动失败</value>
+  </data>
+  <data name="Manager_LoaderDuplicate" xml:space="preserve">
+    <value>{0}: 已经有 {1} 处理这个种类，{2} 被拒 —— 插件种类名必须唯一</value>
+  </data>
+  <data name="Manager_DependenciesNotLoaded" xml:space="preserve">
+    <value>{0}: 依赖未加载：{1}，已跳过</value>
+  </data>
+  <data name="Manager_AlreadyRegistered" xml:space="preserve">
+    <value>{0}: 已经在册（{1}）</value>
+  </data>
+  <data name="Manager_LoaderReused" xml:space="preserve">
+    <value>{0}: 加载器已加载，复用</value>
+  </data>
+  <data name="Manager_NotPresent" xml:space="preserve">
+    <value>{0}: 不在场，{1}落空</value>
+  </data>
+  <data name="Manager_AlreadyEnabled" xml:space="preserve">
+    <value>{0}: 已经启用，忽略重复请求</value>
+  </data>
+  <data name="Manager_EnableRefused" xml:space="preserve">
+    <value>{0}: 启用被拒绝 —— {1}</value>
+  </data>
+  <data name="Manager_DisableRefused" xml:space="preserve">
+    <value>{0}: 停用被拒绝 —— {1}</value>
+  </data>
+  <data name="Manager_EnableThrew" xml:space="preserve">
+    <value>{0}: 启用钩子抛出 —— {1}</value>
+  </data>
+  <data name="Manager_DisableThrew" xml:space="preserve">
+    <value>{0}: 停用钩子抛出 —— {1}</value>
+  </data>
+  <data name="Manager_EnableFault" xml:space="preserve">
+    <value>启用钩子抛出</value>
+  </data>
+  <data name="Manager_DisableFault" xml:space="preserve">
+    <value>停用钩子抛出</value>
+  </data>
+  <data name="Manager_DependencyNotLoaded" xml:space="preserve">
+    <value>依赖未加载：{0}</value>
+  </data>
+  <data name="Manager_NotLoaded" xml:space="preserve">
+    <value>{0} 未加载</value>
+  </data>
+  <data name="Manager_LoaderPinned" xml:space="preserve">
+    <value>{0}: 加载器登记不能撤销；更换加载器需要重启服务端</value>
+  </data>
+  <data name="Manager_HasDependents" xml:space="preserve">
+    <value>仍有依赖者：{0}</value>
+  </data>
+  <data name="Manager_DisableRefusedByPlugin" xml:space="preserve">
+    <value>{0} 拒绝停用：{1}</value>
+  </data>
+  <data name="Manager_StateAnomaly" xml:space="preserve">
+    <value>{0} 状态异常（{1}）</value>
+  </data>
+  <data name="Manager_UnloadTimeout" xml:space="preserve">
+    <value>{0}: 回收验证超时（{1}）</value>
+  </data>
+  <data name="Manager_UnloadVerifyThrew" xml:space="preserve">
+    <value>{0}: 回收验证抛出 —— {1}</value>
+  </data>
+  <data name="Manager_UnloadNotRegistered" xml:space="preserve">
+    <value>{0} 已不在册，回收验证未通过</value>
+  </data>
+  <data name="Manager_UnloadTimeoutRetry" xml:space="preserve">
+    <value>{0}: 回收验证超时（{1}） —— 再卸载一次会重新验证</value>
+  </data>
+  <data name="Manager_UnloadVerifyFailedRetry" xml:space="preserve">
+    <value>{0} 已经放下，但回收验证没通过 —— 再卸载一次会重新验证</value>
+  </data>
+  <data name="Manager_Fault" xml:space="preserve">
+    <value>{0}: 故障 —— {1}</value>
+  </data>
+  <data name="Manager_FaultUnloadIncomplete" xml:space="preserve">
+    <value>{0}: 故障卸载没完成 —— {1}</value>
+  </data>
+  <data name="Common_NoReason" xml:space="preserve">
+    <value>未给原因</value>
+  </data>
+  <data name="Manager_UnloadHookThrew" xml:space="preserve">
+    <value>{0}: 卸载钩子抛出 —— {1}</value>
+  </data>
+  <data name="Manager_ReleaseHandleThrew" xml:space="preserve">
+    <value>{0}: 放下句柄抛出 —— {1}</value>
+  </data>
+  <data name="Manager_NoLoader" xml:space="preserve">
+    <value>{0}: 没有能处理 loader={1} 的加载器</value>
+  </data>
+  <data name="Manager_DiagnosticsThrew" xml:space="preserve">
+    <value>{0}: 加载器诊断抛出 —— {1}</value>
+  </data>
+  <data name="Manager_LoadFailed" xml:space="preserve">
+    <value>{0}: 加载失败</value>
+  </data>
+  <data name="Manager_EnableRefusedStaysLoaded" xml:space="preserve">
+    <value>{0}: 启用被拒绝 —— {1}（留在册、未启用）</value>
+  </data>
+  <data name="Manager_LoadThrewRolledBack" xml:space="preserve">
+    <value>{0}: 加载抛出，已退回 —— {1}</value>
+  </data>
+  <data name="Manager_LoadRollbackThrew" xml:space="preserve">
+    <value>{0}: 加载回滚抛出 —— {1}</value>
+  </data>
+  <data name="Manifest_MissingFile" xml:space="preserve">
+    <value>{0}: 目录里没有 {1}</value>
+  </data>
+  <data name="Manifest_Empty" xml:space="preserve">
+    <value>{0}: 清单解析为空</value>
+  </data>
+  <data name="Manifest_NameMismatch" xml:space="preserve">
+    <value>{0}: 清单 name 必须等于目录名</value>
+  </data>
+  <data name="Manifest_MissingEntry" xml:space="preserve">
+    <value>{0}: 清单缺少 entry</value>
+  </data>
+  <data name="Manifest_LegacyField" xml:space="preserve">
+    <value>{0}: 清单使用了旧字段 extraInfo.{1}，已改名为 extraInfo.{2}（ADR-0040）</value>
+  </data>
+  <data name="Manifest_LegacyFieldBody" xml:space="preserve">
+    <value>清单使用了旧字段 extraInfo.{0}，已改名为 extraInfo.{1}（ADR-0040）</value>
+  </data>
+  <data name="Manifest_EntryOutside" xml:space="preserve">
+    <value>{0}: entry 必须是包内相对路径（实际 {1}）</value>
+  </data>
+  <data name="Manifest_ParentMismatch" xml:space="preserve">
+    <value>{0}: 清单 type 必须是 {1}，实际 {2}</value>
+  </data>
+  <data name="Common_Undeclared" xml:space="preserve">
+    <value>未声明</value>
+  </data>
+  <data name="Manifest_ApiMismatch" xml:space="preserve">
+    <value>{0}: api_version 不匹配（清单 {1}，框架 {2}）</value>
+  </data>
+  <data name="Manifest_ManifestVersionMismatch" xml:space="preserve">
+    <value>{0}: manifest_version 不匹配（清单 {1}，框架 {2}）</value>
+  </data>
+  <data name="Manifest_DependencyName" xml:space="preserve">
+    <value>{0}: dependencies 里必须有非空的 name</value>
+  </data>
+  <data name="Manifest_SelfDependency" xml:space="preserve">
+    <value>{0}: dependencies 不能依赖自身</value>
+  </data>
+  <data name="Manifest_InvalidJson" xml:space="preserve">
+    <value>{0}: 清单不是合法 JSON —— {1}</value>
+  </data>
+  <data name="Manifest_ReadFailed" xml:space="preserve">
+    <value>{0}: 清单读不出来 —— {1}</value>
+  </data>
+  <data name="Graph_Unresolved" xml:space="preserve">
+    <value>{0}: 依赖无法解析，已剔除</value>
+  </data>
+  <data name="Graph_Cycle" xml:space="preserve">
+    <value>{0}: 依赖成环</value>
+  </data>
+  <data name="Graph_MissingDependency" xml:space="preserve">
+    <value>{0}: 依赖 {1} 不存在</value>
+  </data>
+  <data name="Version_Invalid" xml:space="preserve">
+    <value>{0}: 清单 version 不是合法 SemVer：{1}</value>
+  </data>
+  <data name="Version_InvalidRange" xml:space="preserve">
+    <value>{0}: 依赖 {1} 的版本约束不是合法 SemVer 范围：{2}</value>
+  </data>
+  <data name="Version_ConstraintInvalid" xml:space="preserve">
+    <value>依赖 {0} 的版本约束无效：{1}</value>
+  </data>
+  <data name="Version_NoVersion" xml:space="preserve">
+    <value>依赖 {0} 没有可比较的 version，无法满足 {1}</value>
+  </data>
+  <data name="Version_NotSatisfied" xml:space="preserve">
+    <value>依赖 {0} 的版本 {1} 不满足 {2}</value>
+  </data>
+  <data name="Assembly_EntryMissing" xml:space="preserve">
+    <value>{0}: 入口 {1} 不在包里</value>
+  </data>
+  <data name="Assembly_EntryCount" xml:space="preserve">
+    <value>{0}: 入口程序集声明了 {1} 个入口 —— 需要恰好一个 [assembly: EntryPoint&lt;T&gt;]</value>
+  </data>
+  <data name="Event_HandlerThrew" xml:space="preserve">
+    <value>事件 {0} 的一个 handler 抛出</value>
+  </data>
+  <data name="Event_ScheduledThrew" xml:space="preserve">
+    <value>调度任务抛出</value>
+  </data>
+</root>

@@ -8,6 +8,8 @@
     <AssemblyName>Hosihikari.PluginManager</AssemblyName>
     <!-- 被原生宿主加载的类库要这个：没有它就不产出 runtimeconfig.json / deps.json，宿主无从初始化运行时。 -->
     <EnableDynamicLoading>true</EnableDynamicLoading>
+    <!-- 操作员文本按 UI 文化取资源；中性资源是英文。 -->
+    <NeutralLanguage>en</NeutralLanguage>
     <!-- 日志出口要用函数指针调回父级。 -->
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <PackageId>Hosihikari.PluginManager</PackageId>
@@ -37,6 +39,7 @@
     <PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.13" />
     <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="10.0.13" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.13" />
+    <PackageReference Include="Microsoft.Extensions.Localization" Version="10.0.13" />
     <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.13" />
     <!-- 兜底的落地端：原生宿主接不上 .NET 的 logger factory，没有它插件的日志会写进虚空。 -->
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="10.0.13" />
