@@ -7,6 +7,13 @@ using Hosihikari.Internal.Pack;
 //   Hosihikari.Plugin.Pack pack-plugin   <构建输出目录> <清单路径> <输出根目录>
 //   Hosihikari.Plugin.Pack pack-plugin-from-assembly <入口程序集> <清单路径> <输出根目录>
 //   Hosihikari.Plugin.Pack <构建输出目录> <清单路径> <输出根目录> [--shared <程序集文件名>]...
+// MSBuild 目标没有自己的资源机制；用打包器按当前 UI 文化打印 target 的错误。
+if (args.Length == 2 && args[0] == "message")
+{
+    Console.WriteLine(PackText.Get(args[1]));
+    return 1;
+}
+
 // pack-loader / pack-plugin 都用核心的共享层清单剔除共享层副本（ADR-0036）；
 // 两个名字只是说明调用方，规则只有一份。显式清单那条留给自定义共享层的载体。
 if (args.Length == 4 && (args[0] == "pack-loader" || args[0] == "pack-plugin"))

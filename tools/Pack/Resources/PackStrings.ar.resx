@@ -103,4 +103,7 @@
   <data name="EntryAssemblyDirectory" xml:space="preserve">
     <value>تعذّر الحصول على الدليل من مسار تجميع الدخول: {0}</value>
   </data>
+  <data name="MultiTargetFramework" xml:space="preserve">
+    <value>يتطلب PackPlugin إطار هدف واحدًا؛ مرّر -f &lt;tfm&gt; إلى dotnet build -t:PackPlugin.</value>
+  </data>
 </root>

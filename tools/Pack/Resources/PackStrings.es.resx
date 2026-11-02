@@ -103,4 +103,7 @@
   <data name="EntryAssemblyDirectory" xml:space="preserve">
     <value>No se pudo obtener el directorio desde la ruta del ensamblado de entrada: {0}</value>
   </data>
+  <data name="MultiTargetFramework" xml:space="preserve">
+    <value>PackPlugin requiere un único framework de destino; pasa -f &lt;tfm&gt; a dotnet build -t:PackPlugin.</value>
+  </data>
 </root>

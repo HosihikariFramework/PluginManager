@@ -6,10 +6,12 @@
     <HosihikariPackToolPath>$(MSBuildThisFileDirectory)../tools/net10.0/Hosihikari.Plugin.Pack.dll</HosihikariPackToolPath>
   </PropertyGroup>
 
-  <!-- 多目标项目的外层没有具体的 TargetPath；先要求调用方选一个 TFM。 -->
-  <Target Name="_ValidatePackPlugin">
-    <Error Condition="'$(TargetFramework)' == '' and '$(TargetFrameworks)' != ''"
-           Text="PackPlugin requires a single target framework; pass -f &lt;tfm&gt; to dotnet build -t:PackPlugin." />
+  <!-- 多目标项目的外层没有具体的 TargetPath；先要求调用方选一个 TFM。
+       错误文本由打包器按当前 UI 文化打印。 -->
+  <Target Name="_ValidatePackPlugin" Condition="'$(TargetFramework)' == '' and '$(TargetFrameworks)' != ''">
+    <Error Condition="!Exists('$(HosihikariPackToolPath)')"
+           Text="Hosihikari packer not found: $(HosihikariPackToolPath)" />
+    <Exec Command="dotnet &quot;$(HosihikariPackToolPath)&quot; message MultiTargetFramework" />
   </Target>
 
   <!-- 显式目标：普通 build 不产出 dist（ADR-0043）。 -->

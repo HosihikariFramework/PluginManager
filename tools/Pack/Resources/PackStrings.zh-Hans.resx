@@ -103,4 +103,7 @@
   <data name="EntryAssemblyDirectory" xml:space="preserve">
     <value>无法从入口程序集路径得到目录：{0}</value>
   </data>
+  <data name="MultiTargetFramework" xml:space="preserve">
+    <value>PackPlugin 需要单个目标框架；请用 dotnet build -t:PackPlugin -f &lt;tfm&gt; 指定。</value>
+  </data>
 </root>

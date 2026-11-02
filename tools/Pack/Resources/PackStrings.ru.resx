@@ -103,4 +103,7 @@
   <data name="EntryAssemblyDirectory" xml:space="preserve">
     <value>Не удалось получить каталог из пути входной сборки: {0}</value>
   </data>
+  <data name="MultiTargetFramework" xml:space="preserve">
+    <value>PackPlugin требует один целевой фреймворк; передайте -f &lt;tfm&gt; в dotnet build -t:PackPlugin.</value>
+  </data>
 </root>

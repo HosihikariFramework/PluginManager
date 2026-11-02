@@ -103,4 +103,7 @@
   <data name="EntryAssemblyDirectory" xml:space="preserve">
     <value>Cannot get the directory from the entry assembly path: {0}</value>
   </data>
+  <data name="MultiTargetFramework" xml:space="preserve">
+    <value>PackPlugin requires a single target framework; pass -f &lt;tfm&gt; to dotnet build -t:PackPlugin.</value>
+  </data>
 </root>
