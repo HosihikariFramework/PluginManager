@@ -56,7 +56,8 @@ jobs:
           EOF
           dotnet tool install --tool-path "$out/bin" --configfile "$out/NuGet.config" \
             Hosihikari.Plugin.Pack --version 1.0.0
-          "$out/bin/hosihikari-pack" --help
+          # 用法信息的退出码是 2；能打印出来就说明工具可运行。
+          "$out/bin/hosihikari-pack" --help || test $? -eq 2
 
       # 作者测试包：内存上下文、手动调度与生命周期宿主。
       - name: Testing 包冒烟

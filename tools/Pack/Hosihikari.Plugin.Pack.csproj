@@ -16,7 +16,12 @@
     <RepositoryUrl>https://github.com/HosihikariFramework/PluginManager</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageTags>hosihikari;minecraft;bedrock;plugin;packaging;tool</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="/" />
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="../../src/Hosihikari.PluginManager.csproj" />
