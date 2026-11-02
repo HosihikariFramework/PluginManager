@@ -301,6 +301,12 @@ public static class NativeHostingEntry
 
         try
         {
+            logger.LogInformation(
+                "核心 {CoreVersion}；入口契约 {ContractVersion}；插件 API {ApiVersion}",
+                typeof(PluginManager).Assembly.GetName().Version?.ToString(3) ?? "未知",
+                HostingContractVersion,
+                PluginContractInfo.CurrentApiVersion);
+
             // 服务端根就是进程的工作目录；配置与数据都相对它找（ADR-0018）。
             var root = Directory.GetCurrentDirectory();
             // 宿主从 services 里取 ILoggerFactory；不传的话插件拿到的是 NullLogger ——

@@ -34,6 +34,8 @@
     <ProjectReference Include="../../src/Hosihikari.PluginManager.csproj" />
   </ItemGroup>
 
+  <!-- Standalone builds use the manager line the harness was validated against. PluginManager
+       1.2.0 changed distribution and version metadata only; bump this pin with a Testing release. -->
   <ItemGroup Condition="!Exists('../../src/Hosihikari.PluginManager.csproj')">
     <PackageReference Include="Hosihikari.PluginManager" Version="[1.1.0]" />
   </ItemGroup>
