@@ -52,7 +52,8 @@ jobs:
           unzip -l "$zip" | grep -q 'plugins/hosihikari/Hosihikari.PluginManager.dll'
           test "$(unzip -p "$zip" sei.json | jq -r .name)" = hosihikari
           test "$(unzip -p "$zip" sei.json | jq -r .version)" = "$VERSION"
-          test "$(unzip -p "$zip" sei.json | jq -r .layout)" = root
+          test "$(unzip -p "$zip" sei.json | jq -r .schemaVersion)" = 2
+          test "$(unzip -p "$zip" sei.json | jq -r .artifact.layout)" = root
 
       - name: 发 release
         env:
@@ -105,8 +106,15 @@ jobs:
           {
             "version": "$VERSION",
             "dependencies": [],
+            "prerequisites": [],
+            "optionalPeers": [],
+            "conflicts": [],
             "artifacts": [
               {
+                "dependencies": [],
+                "prerequisites": [],
+                "optionalPeers": [],
+                "conflicts": [],
                 "layout": "root",
                 "source": {
                   "url": "$url",
