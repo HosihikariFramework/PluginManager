@@ -23,7 +23,7 @@ bash ./pack.sh 0.0.0-check
 ```
 
 `-c Release` is required: a Debug build keeps local references alive and makes unload verification
-fail. CI places `PluginAbstractions` and `Hosihikari.McMaster.NETCore.Plugins` beside this checkout;
+fail. CI places `PluginAbstractions` and `DotNetCorePlugins` beside this checkout;
 do the same when changing the contract or native probing.
 
 ## Invariants

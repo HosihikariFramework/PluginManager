@@ -32,10 +32,10 @@
     <PackageReference Include="Ben.Demystifier" Version="0.4.1" />
     <PackageReference Include="Hocon.Extensions.Configuration" Version="2.0.4" />
     <!-- 本机库的 RID 优先解析需要 fork；并列 checkout 时直接编，否则走 fork 的包。 -->
-    <ProjectReference Include="../../McMaster.NETCore.Plugins/src/Plugins/McMaster.NETCore.Plugins.csproj"
-                      Condition="Exists('../../McMaster.NETCore.Plugins/src/Plugins/McMaster.NETCore.Plugins.csproj')" />
+    <ProjectReference Include="../../DotNetCorePlugins/src/Plugins/McMaster.NETCore.Plugins.csproj"
+                      Condition="Exists('../../DotNetCorePlugins/src/Plugins/McMaster.NETCore.Plugins.csproj')" />
     <PackageReference Include="Hosihikari.McMaster.NETCore.Plugins" Version="2.1.0-hosihikari.2"
-                      Condition="!Exists('../../McMaster.NETCore.Plugins/src/Plugins/McMaster.NETCore.Plugins.csproj')" />
+                      Condition="!Exists('../../DotNetCorePlugins/src/Plugins/McMaster.NETCore.Plugins.csproj')" />
     <PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.13" />
     <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="10.0.13" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.13" />
