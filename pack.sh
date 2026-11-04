@@ -21,7 +21,7 @@ if compgen -G "$publish/*.pdb" > /dev/null; then
     cp "$publish"/*.pdb "$package/"
 fi
 
-# 操作员文本的资源在文化子目录（zh-Hans/）里，跟着核心一起发布。
+# 操作员文本的资源在文化子目录（zh/）里，跟着核心一起发布。
 for culture in "$publish"/*/; do
     [ -d "$culture" ] || continue
     cp -R "$culture" "$package/"

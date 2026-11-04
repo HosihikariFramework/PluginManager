@@ -765,7 +765,9 @@ Console.WriteLine();
 var languages = new (string Culture, string Token)[]
 {
     ("en", "Loaded"),
+    ("zh", "已加载"),
     ("zh-Hans", "已加载"),
+    ("zh-TW", "已加载"),
     ("ar", "تم تحميل"),
     ("fr", "Chargé"),
     ("ru", "Загружено"),
@@ -784,7 +786,7 @@ checks.Add((
     "A52 操作员文本跟随 UI 文化",
     missingLanguages.Length == 0,
     missingLanguages.Length == 0
-        ? $"6 种语言"
+        ? $"6 种语言（繁中回落简中）"
         : $"缺少 {string.Join(", ", missingLanguages)}"
 ));
 
