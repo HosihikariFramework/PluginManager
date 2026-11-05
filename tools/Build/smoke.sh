@@ -73,6 +73,7 @@ cat > "$plugin/manifest.json" <<'EOF'
   "entry": "TestPlugin.dll",
   "type": "hosihikari",
   "version": "1.0.0",
+  "dependencies": [ { "name": "hosihikari" } ],
   "extraInfo": {
     "api_version": "2",
     "manifest_version": "1",

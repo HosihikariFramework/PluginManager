@@ -133,7 +133,16 @@ public static class Packager
             problems.Add(PackText.Get("MissingFrameworkDependency"));
         }
 
-        // 共享层副本（ADR-0004 / 0019）—— 这条是静默失败的那条，所以放在打包期拦。        // 注意它可能是**传递**来的：作者只直接引用契约，而契约又牵进别的共享层程序集时
+        // prepack 先跑（ADR-0031）：它会往包目录里装 node_modules / venv，
+        // 之后共享层扫描与递归复制看到的就是最终产物。
+        Prepack(manifest, sourceDirectory, problems);
+        if (problems.Count > 0)
+        {
+            return new PackResult(false, null, problems);
+        }
+
+        // 共享层副本（ADR-0004 / 0019）—— 这条是静默失败的那条，所以放在打包期拦。
+        // 注意它可能是**传递**来的：作者只直接引用契约，而契约又牵进别的共享层程序集时
         // 一样会出现在构建输出里，所以这里对整份输出逐文件比对，不看是谁带进来的。
         var offenders = Directory
             .EnumerateFiles(sourceDirectory, "*.dll", SearchOption.AllDirectories)
@@ -167,9 +176,6 @@ public static class Packager
 
         // file-based app 风格的 #:package 与 extraInfo.packages 一起在打包期还原。
         var packages = ReadPackages(manifest, sourceDirectory, problems);
-
-        // 进程外插件的 prepack 也在打包期跑，装 node_modules / venv 之类（ADR-0031）。
-        Prepack(manifest, sourceDirectory, problems);
 
         if (problems.Count > 0)
         {

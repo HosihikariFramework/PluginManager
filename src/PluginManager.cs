@@ -64,12 +64,15 @@ public sealed class PluginManager
         PluginManagerOptions options)
     {
         ArgumentNullException.ThrowIfNull(options);
-        if (options.UnloadVerificationTimeout <= TimeSpan.Zero
-            || options.UnloadVerificationTimeout > MaxUnloadVerificationTimeout)
+        // InfiniteTimeSpan 是 1.x 已有的取值，继续收（加法承诺）；有限值才走范围校验。
+        if (options.UnloadVerificationTimeout != Timeout.InfiniteTimeSpan
+            && (options.UnloadVerificationTimeout <= TimeSpan.Zero
+                || options.UnloadVerificationTimeout > MaxUnloadVerificationTimeout))
         {
             throw new ArgumentOutOfRangeException(
                 nameof(options),
-                "UnloadVerificationTimeout must be positive and no more than about 49.7 days.");
+                "UnloadVerificationTimeout must be positive and no more than about 49.7 days, "
+                + "or Timeout.InfiniteTimeSpan.");
         }
 
         _pluginsRoot = pluginsRoot;
@@ -593,7 +596,9 @@ public sealed class PluginManager
         var timedOut = false;
         try
         {
-            released = verification.WaitAsync(_unloadVerificationTimeout).GetAwaiter().GetResult();
+            released = _unloadVerificationTimeout == Timeout.InfiniteTimeSpan
+                ? verification.GetAwaiter().GetResult()
+                : verification.WaitAsync(_unloadVerificationTimeout).GetAwaiter().GetResult();
         }
         catch (TimeoutException)
         {
