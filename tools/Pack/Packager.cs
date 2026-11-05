@@ -277,10 +277,10 @@ public static class Packager
         }
         else if (value.ValueKind == JsonValueKind.Array)
         {
+            // 空字符串是合法参数（例如 `cmd /c ""`），只按类型过滤。
             command.AddRange(value.EnumerateArray()
                 .Where(item => item.ValueKind == JsonValueKind.String)
-                .Select(item => item.GetString()!)
-                .Where(item => item.Length > 0));
+                .Select(item => item.GetString()!));
         }
 
         if (command.Count == 0)
