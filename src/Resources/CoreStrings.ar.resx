@@ -238,4 +238,16 @@
   <data name="Event_ScheduledThrew" xml:space="preserve">
     <value>رمت مهمة مجدولة استثناءً</value>
   </data>
+  <data name="Manifest_MissingFrameworkDependency" xml:space="preserve">
+    <value>{0}: يجب أن تتضمن dependencies العنصر {{ "name": "hosihikari" }} حتى يحمّل الأصل الطبقة الوسيطة أولاً</value>
+  </data>
+  <data name="Manifest_UnknownPackageKind" xml:space="preserve">
+    <value>{0}: يجب أن تكون packageKind إحدى plugin أو loader أو carrier؛ القيمة {1}</value>
+  </data>
+  <data name="Manifest_CarrierNotNamed" xml:space="preserve">
+    <value>{0}: packageKind بالقيمة carrier صالحة فقط لحزمة hosihikari</value>
+  </data>
+  <data name="Manager_AlreadyDisabled" xml:space="preserve">
+    <value>{0} معطّلة بالفعل</value>
+  </data>
 </root>

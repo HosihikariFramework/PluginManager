@@ -238,4 +238,16 @@
   <data name="Event_ScheduledThrew" xml:space="preserve">
     <value>Запланированная задача вызвала исключение</value>
   </data>
+  <data name="Manifest_MissingFrameworkDependency" xml:space="preserve">
+    <value>{0}: dependencies должен содержать {{ "name": "hosihikari" }}, чтобы родитель загрузил шим первым</value>
+  </data>
+  <data name="Manifest_UnknownPackageKind" xml:space="preserve">
+    <value>{0}: packageKind должно быть plugin, loader или carrier; получено {1}</value>
+  </data>
+  <data name="Manifest_CarrierNotNamed" xml:space="preserve">
+    <value>{0}: packageKind carrier допустим только для пакета hosihikari</value>
+  </data>
+  <data name="Manager_AlreadyDisabled" xml:space="preserve">
+    <value>{0} уже отключён</value>
+  </data>
 </root>

@@ -7,7 +7,7 @@
     <RootNamespace>Hosihikari.Testing</RootNamespace>
     <AssemblyName>Hosihikari.Testing</AssemblyName>
     <PackageId>Hosihikari.Testing</PackageId>
-    <Version>1.0.0</Version>
+    <Version>1.1.0</Version>
     <Authors>HosihikariFramework</Authors>
     <Description>Test host and in-memory host services for Hosihikari plugins.</Description>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>

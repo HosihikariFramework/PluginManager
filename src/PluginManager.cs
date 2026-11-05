@@ -64,6 +64,7 @@ public sealed class PluginManager
         PluginManagerOptions options)
     {
         ArgumentNullException.ThrowIfNull(options);
+        // InfiniteTimeSpan 是 1.x 已有的取值，继续收（加法承诺）；有限值才走范围校验。
         if (options.UnloadVerificationTimeout != Timeout.InfiniteTimeSpan
             && (options.UnloadVerificationTimeout <= TimeSpan.Zero
                 || options.UnloadVerificationTimeout > MaxUnloadVerificationTimeout))
@@ -392,15 +393,18 @@ public sealed class PluginManager
         faulted = null;
 
         // 已放下、待回收的不算在场 —— 它已经不在跑了，钩子无处可调。
+        // 例外：重载时父级会对已经从表里拿掉的名字再发一次停用，那不算错（ADR-0037）。
         if (!_slots.TryGetValue(name, out var slot) || slot.State != PluginState.Loaded)
         {
             (reports ??= []).Add(CoreText.Get("Manager_NotPresent", name, VerbText(enable)));
-            return false;
+            return !enable;
         }
 
-        if (enable && slot.Enabled)
+        // 两个方向都幂等：已启用再启用、本轮已经停过再停用，都不再调钩子（ADR-0013）。
+        // 从没启用过的插件收到停用仍会调一次 OnDisable —— 父级就是这么驱动新交付的包的。
+        if (enable ? slot.Enabled : slot.Stopped)
         {
-            (reports ??= []).Add(CoreText.Get("Manager_AlreadyEnabled", name));
+            (reports ??= []).Add(CoreText.Get(enable ? "Manager_AlreadyEnabled" : "Manager_AlreadyDisabled", name));
             return true;
         }
 
@@ -429,6 +433,7 @@ public sealed class PluginManager
             }
 
             slot.Enabled = enable;
+            slot.Stopped = !enable;
             if (enable)
             {
                 scope.Open();
@@ -551,7 +556,8 @@ public sealed class PluginManager
             if (slot.State == PluginState.Loaded)
             {
                 var dependents = _slots.Values
-                    .Where(loaded => loaded.State == PluginState.Loaded)
+                    // 待回收的插件已经放下实例，重试时仍要依赖在场，所以也算。
+                    .Where(loaded => loaded.State is PluginState.Loaded or PluginState.Detached)
                     .Where(p => p.Manifest.Dependencies.Any(d => d.Name == name))
                     .Select(p => p.Manifest.Name)
                     .ToArray();
@@ -973,5 +979,8 @@ public sealed class PluginManager
 
         /// <summary>启用状态；重复 Enable/Disable 不能把闸门留在错误的一侧。</summary>
         public bool Enabled { get; set; }
+
+        /// <summary>本轮实例已经停过；再停一次就不再调 OnDisable（ADR-0013）。</summary>
+        public bool Stopped { get; set; }
     }
 }

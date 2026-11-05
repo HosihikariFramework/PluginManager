@@ -151,6 +151,7 @@ using (var harness = new PluginManagerHarness())
           "entry": "HarnessProbe.dll",
           "type": "hosihikari",
           "version": "1.0.0",
+          "dependencies": [ { "name": "hosihikari" } ],
           "extraInfo": { "api_version": "2", "manifest_version": "1", "loader": "probe" }
         }
         """);

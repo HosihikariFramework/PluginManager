@@ -27,7 +27,9 @@ internal static class ManifestReader
         {
             // 不是包目录也属正常：父级自己的插件就住在同一个 plugins/ 下（ADR-0003），
             // 所以这里对没有清单的目录不吭声。
-            if (File.Exists(Path.Combine(directory, FileName)) && Read(directory, report) is { } package)
+            if (File.Exists(Path.Combine(directory, FileName)) && Read(directory, report) is { } package
+                // 载体包就是垫片自己，不是插件（ADR-0006）。
+                && package.Manifest.PackageKind != "carrier")
             {
                 packages.Add(package);
             }
@@ -134,6 +136,30 @@ internal static class ManifestReader
                     string.Equals(dependency.Name, manifest.Name, StringComparison.Ordinal)))
             {
                 report(CoreText.Get("Manifest_SelfDependency", folderName));
+                return null;
+            }
+
+            // 包类型（ADR-0006）：未知取值说明作者写错了键值，早时报出来。
+            var kind = manifest.PackageKind;
+            if (kind is not ("plugin" or "loader" or "carrier"))
+            {
+                report(CoreText.Get("Manifest_UnknownPackageKind", folderName, kind));
+                return null;
+            }
+
+            if (kind == "carrier" && manifest.Name != PluginContractInfo.ParentName)
+            {
+                report(CoreText.Get("Manifest_CarrierNotNamed", folderName));
+                return null;
+            }
+
+            // 对框架的依赖（ADR-0006）：缺了父级会把它排到垫片前面，判成 Unknown mod type。
+            // 载体包就是垫片自己，不依赖自己。
+            if (kind != "carrier"
+                && !manifest.Dependencies.Any(dependency =>
+                    string.Equals(dependency.Name, PluginContractInfo.ParentName, StringComparison.Ordinal)))
+            {
+                report(CoreText.Get("Manifest_MissingFrameworkDependency", folderName));
                 return null;
             }
 

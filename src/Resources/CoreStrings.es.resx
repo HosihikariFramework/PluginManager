@@ -238,4 +238,16 @@
   <data name="Event_ScheduledThrew" xml:space="preserve">
     <value>Una tarea programada lanzó una excepción</value>
   </data>
+  <data name="Manifest_MissingFrameworkDependency" xml:space="preserve">
+    <value>{0}: dependencies debe incluir {{ "name": "hosihikari" }} para que el padre cargue el shim primero</value>
+  </data>
+  <data name="Manifest_UnknownPackageKind" xml:space="preserve">
+    <value>{0}: packageKind debe ser plugin, loader o carrier; se obtuvo {1}</value>
+  </data>
+  <data name="Manifest_CarrierNotNamed" xml:space="preserve">
+    <value>{0}: packageKind carrier solo vale para el paquete hosihikari</value>
+  </data>
+  <data name="Manager_AlreadyDisabled" xml:space="preserve">
+    <value>{0} ya está desactivado</value>
+  </data>
 </root>

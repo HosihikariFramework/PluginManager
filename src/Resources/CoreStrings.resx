@@ -238,4 +238,16 @@
   <data name="Event_ScheduledThrew" xml:space="preserve">
     <value>A scheduled task threw</value>
   </data>
+  <data name="Manifest_MissingFrameworkDependency" xml:space="preserve">
+    <value>{0}: dependencies must include {{ "name": "hosihikari" }} so the parent loads the shim first</value>
+  </data>
+  <data name="Manifest_UnknownPackageKind" xml:space="preserve">
+    <value>{0}: packageKind must be plugin, loader or carrier; got {1}</value>
+  </data>
+  <data name="Manifest_CarrierNotNamed" xml:space="preserve">
+    <value>{0}: packageKind carrier is only valid for the hosihikari package</value>
+  </data>
+  <data name="Manager_AlreadyDisabled" xml:space="preserve">
+    <value>{0} is already disabled</value>
+  </data>
 </root>

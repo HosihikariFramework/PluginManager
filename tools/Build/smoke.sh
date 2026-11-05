@@ -46,7 +46,7 @@ cat > "$plugin/TestPlugin.csproj" <<'EOF'
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Hosihikari.Plugin.Abstractions" Version="[1.0.0]" ExcludeAssets="runtime" />
-    <PackageReference Include="Hosihikari.Plugin.Build" Version="1.0.0" PrivateAssets="all" />
+    <PackageReference Include="Hosihikari.Plugin.Build" Version="1.1.0" PrivateAssets="all" />
   </ItemGroup>
 </Project>
 EOF
@@ -73,6 +73,7 @@ cat > "$plugin/manifest.json" <<'EOF'
   "entry": "TestPlugin.dll",
   "type": "hosihikari",
   "version": "1.0.0",
+  "dependencies": [ { "name": "hosihikari" } ],
   "extraInfo": {
     "api_version": "2",
     "manifest_version": "1",

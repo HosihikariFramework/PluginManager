@@ -106,4 +106,19 @@
   <data name="MultiTargetFramework" xml:space="preserve">
     <value>يتطلب PackPlugin إطار هدف واحدًا؛ مرّر -f &lt;tfm&gt; إلى dotnet build -t:PackPlugin.</value>
   </data>
+  <data name="MissingFrameworkDependency" xml:space="preserve">
+    <value>يجب أن يعتمد كل إضافة على hosihikari حتى يحمّل الأصل الطبقة الوسيطة أولاً؛ أضف {{ "name": "hosihikari" }} إلى dependencies</value>
+  </data>
+  <data name="UnknownPackageKind" xml:space="preserve">
+    <value>يجب أن تكون packageKind في البيان plugin أو loader أو carrier؛ القيمة {0}</value>
+  </data>
+  <data name="CarrierNotNamed" xml:space="preserve">
+    <value>packageKind بالقيمة carrier صالحة فقط للحزمة hosihikari نفسها؛ القيمة {0}</value>
+  </data>
+  <data name="PrepackFailed" xml:space="preserve">
+    <value>فشل extraInfo.prepack ({0}): {1}</value>
+  </data>
+  <data name="PrepackTimeout" xml:space="preserve">
+    <value>لم ينتهِ extraInfo.prepack خلال {0} ثانية</value>
+  </data>
 </root>

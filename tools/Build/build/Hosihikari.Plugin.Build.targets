@@ -1,9 +1,21 @@
 <Project>
 
   <PropertyGroup>
-    <HosihikariPluginManifest Condition="'$(HosihikariPluginManifest)' == ''">$(MSBuildProjectDirectory)/manifest.json</HosihikariPluginManifest>
     <HosihikariPluginOutputRoot Condition="'$(HosihikariPluginOutputRoot)' == ''">$(MSBuildProjectDirectory)/dist</HosihikariPluginOutputRoot>
     <HosihikariPackToolPath>$(MSBuildThisFileDirectory)../tools/net10.0/Hosihikari.Plugin.Pack.dll</HosihikariPackToolPath>
+
+    <!-- 作者显式放的清单优先；没有就按下面的属性生成一份（ADR-0045）。 -->
+    <HosihikariPluginManifest Condition="'$(HosihikariPluginManifest)' == '' and Exists('$(MSBuildProjectDirectory)/manifest.json')">$(MSBuildProjectDirectory)/manifest.json</HosihikariPluginManifest>
+    <HosihikariGeneratedManifest>$(IntermediateOutputPath)hosihikari/manifest.json</HosihikariGeneratedManifest>
+    <HosihikariPluginManifest Condition="'$(HosihikariPluginManifest)' == ''">$(HosihikariGeneratedManifest)</HosihikariPluginManifest>
+
+    <HosihikariPluginName Condition="'$(HosihikariPluginName)' == ''">$(AssemblyName)</HosihikariPluginName>
+    <HosihikariPluginVersion Condition="'$(HosihikariPluginVersion)' == ''">$(Version)</HosihikariPluginVersion>
+    <HosihikariPluginEntry Condition="'$(HosihikariPluginEntry)' == ''">$(TargetFileName)</HosihikariPluginEntry>
+    <HosihikariPluginLoader Condition="'$(HosihikariPluginLoader)' == ''">assembly</HosihikariPluginLoader>
+    <HosihikariPluginPackageKind Condition="'$(HosihikariPluginPackageKind)' == ''">plugin</HosihikariPluginPackageKind>
+    <HosihikariPluginApiVersion Condition="'$(HosihikariPluginApiVersion)' == ''">2</HosihikariPluginApiVersion>
+    <HosihikariPluginManifestVersion Condition="'$(HosihikariPluginManifestVersion)' == ''">1</HosihikariPluginManifestVersion>
   </PropertyGroup>
 
   <!-- 多目标项目的外层没有具体的 TargetPath；先要求调用方选一个 TFM。
@@ -14,8 +26,41 @@
     <Exec Command="dotnet &quot;$(HosihikariPackToolPath)&quot; message MultiTargetFramework" />
   </Target>
 
+  <!-- 没有作者清单时按属性生成。依赖恒有对框架的一条；额外的从 HosihikariPluginDependencies 追加。 -->
+  <Target Name="_WriteHosihikariManifest"
+          Condition="'$(HosihikariPluginManifest)' == '$(HosihikariGeneratedManifest)'">
+    <ItemGroup>
+      <_HosihikariDependency Include="hosihikari" />
+      <_HosihikariDependency Include="$(HosihikariPluginDependencies)" />
+      <_HosihikariDependencyLine Include="@(_HosihikariDependency->'    { &quot;name&quot;: &quot;%(Identity)&quot; }', ',&#x0A;')" />
+    </ItemGroup>
+    <MakeDir Directories="$(IntermediateOutputPath)hosihikari" />
+    <ItemGroup>
+      <_HosihikariManifestLine Include="{" />
+      <_HosihikariManifestLine Include="  &quot;name&quot;: &quot;$(HosihikariPluginName)&quot;," />
+      <_HosihikariManifestLine Include="  &quot;entry&quot;: &quot;$(HosihikariPluginEntry)&quot;," />
+      <_HosihikariManifestLine Include="  &quot;type&quot;: &quot;hosihikari&quot;," />
+      <_HosihikariManifestLine Include="  &quot;version&quot;: &quot;$(HosihikariPluginVersion)&quot;," />
+      <_HosihikariManifestLine Include="  &quot;dependencies&quot;: [" />
+      <_HosihikariManifestLine Include="@(_HosihikariDependencyLine)" />
+      <_HosihikariManifestLine Include="  ]," />
+      <_HosihikariManifestLine Include="  &quot;extraInfo&quot;: {" />
+      <_HosihikariManifestLine Include="    &quot;api_version&quot;: &quot;$(HosihikariPluginApiVersion)&quot;," />
+      <_HosihikariManifestLine Include="    &quot;manifest_version&quot;: &quot;$(HosihikariPluginManifestVersion)&quot;," />
+      <_HosihikariManifestLine Include="    &quot;loader&quot;: &quot;$(HosihikariPluginLoader)&quot;," />
+      <_HosihikariManifestLine Include="    &quot;packageKind&quot;: &quot;$(HosihikariPluginPackageKind)&quot;" />
+      <_HosihikariManifestLine Include="  }" />
+      <_HosihikariManifestLine Include="}" />
+    </ItemGroup>
+    <WriteLinesToFile
+      File="$(HosihikariGeneratedManifest)"
+      Lines="@(_HosihikariManifestLine)"
+      Overwrite="true"
+      WriteOnlyWhenDifferent="true" />
+  </Target>
+
   <!-- 显式目标：普通 build 不产出 dist（ADR-0043）。 -->
-  <Target Name="PackPlugin" DependsOnTargets="_ValidatePackPlugin;Build">
+  <Target Name="PackPlugin" DependsOnTargets="_ValidatePackPlugin;Build;_WriteHosihikariManifest">
     <Error Condition="!Exists('$(HosihikariPackToolPath)')"
            Text="Hosihikari packer not found: $(HosihikariPackToolPath)" />
     <MakeDir Directories="$(HosihikariPluginOutputRoot)" />

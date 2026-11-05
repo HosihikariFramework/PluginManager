@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Reflection;
 using System.Text.Json;
@@ -112,6 +113,34 @@ public static class Packager
                     : manifest.ParentName));
         }
 
+        // 包类型（ADR-0006）：写错的在加载期会被当成插件，也在打包期拦。
+        var kind = manifest.PackageKind;
+        if (kind is not ("plugin" or "loader" or "carrier"))
+        {
+            problems.Add(PackText.Get("UnknownPackageKind", kind));
+        }
+        else if (kind == "carrier" && manifest.Name != PluginContractInfo.ParentName)
+        {
+            problems.Add(PackText.Get("CarrierNotNamed", manifest.Name));
+        }
+
+        // 对框架的依赖（ADR-0006）：缺了父级会把包排到垫片前面，判成 Unknown mod type。
+        // 载体包就是垫片自己，不依赖自己。
+        if (kind != "carrier"
+            && !manifest.Dependencies.Any(dependency =>
+                string.Equals(dependency?.Name, PluginContractInfo.ParentName, StringComparison.Ordinal)))
+        {
+            problems.Add(PackText.Get("MissingFrameworkDependency"));
+        }
+
+        // prepack 先跑（ADR-0031）：它会往包目录里装 node_modules / venv，
+        // 之后共享层扫描与递归复制看到的就是最终产物。
+        Prepack(manifest, sourceDirectory, problems);
+        if (problems.Count > 0)
+        {
+            return new PackResult(false, null, problems);
+        }
+
         // 共享层副本（ADR-0004 / 0019）—— 这条是静默失败的那条，所以放在打包期拦。
         // 注意它可能是**传递**来的：作者只直接引用契约，而契约又牵进别的共享层程序集时
         // 一样会出现在构建输出里，所以这里对整份输出逐文件比对，不看是谁带进来的。
@@ -147,6 +176,7 @@ public static class Packager
 
         // file-based app 风格的 #:package 与 extraInfo.packages 一起在打包期还原。
         var packages = ReadPackages(manifest, sourceDirectory, problems);
+
         if (problems.Count > 0)
         {
             return new PackResult(false, null, problems);
@@ -227,6 +257,107 @@ public static class Packager
         }
 
         return packages.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+    }
+
+    /// <summary>
+    /// 跑 <c>extraInfo.prepack</c>。字符串与数组都收（与 <c>command</c> 同形）：字符串按单个程序名处理，
+    /// 在包目录里执行，5 分钟不结束算失败（ADR-0031）。装的是 node_modules、venv 这类构建期依赖。
+    /// </summary>
+    private static void Prepack(PluginManifest manifest, string sourceDirectory, List<string> problems)
+    {
+        if (!manifest.ExtraInfo.TryGetValue("prepack", out var value))
+        {
+            return;
+        }
+
+        var command = new List<string>();
+        if (value.ValueKind == JsonValueKind.String && value.GetString() is { Length: > 0 } single)
+        {
+            command.Add(single);
+        }
+        else if (value.ValueKind == JsonValueKind.Array)
+        {
+            // 空字符串是合法参数（例如 `cmd /c ""`），只按类型过滤。
+            command.AddRange(value.EnumerateArray()
+                .Where(item => item.ValueKind == JsonValueKind.String)
+                .Select(item => item.GetString()!));
+        }
+
+        if (command.Count == 0)
+        {
+            return;
+        }
+
+        var start = new ProcessStartInfo(command[0])
+        {
+            WorkingDirectory = sourceDirectory,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            // 关掉 stdin：会读控制台的 prepack（例如不带参数的 cmd）要靠 EOF 才会退出。
+            RedirectStandardInput = true,
+        };
+        for (var i = 1; i < command.Count; i++)
+        {
+            start.ArgumentList.Add(command[i]);
+        }
+
+        try
+        {
+            using var process = Process.Start(start);
+            if (process is null)
+            {
+                problems.Add(PackText.Get("PrepackFailed", command[0], "did not start"));
+                return;
+            }
+
+            process.StandardInput.Close();
+            var stdout = process.StandardOutput.ReadToEndAsync();
+            var stderr = process.StandardError.ReadToEndAsync();
+
+            // 时限覆盖整个 prepack，不只是主进程退出：孙进程继承管道时主进程可能先走，
+            // 读输出会一直等下去。
+            var deadline = TimeSpan.FromSeconds(PrepackTimeoutSeconds);
+            var started = Stopwatch.GetTimestamp();
+            if (!process.WaitForExit((int)deadline.TotalMilliseconds))
+            {
+                KillTree(process);
+                problems.Add(PackText.Get("PrepackTimeout", PrepackTimeoutSeconds));
+                return;
+            }
+
+            var remaining = deadline - Stopwatch.GetElapsedTime(started);
+            if (!Task.WhenAll(stdout, stderr).Wait(remaining > TimeSpan.Zero ? remaining : TimeSpan.Zero))
+            {
+                KillTree(process);
+                problems.Add(PackText.Get("PrepackTimeout", PrepackTimeoutSeconds));
+                return;
+            }
+
+            if (process.ExitCode != 0)
+            {
+                var detail = (stderr.Result + stdout.Result).Trim();
+                problems.Add(PackText.Get("PrepackFailed", command[0], detail));
+            }
+        }
+        catch (Exception ex) when (ex is Win32Exception or IOException)
+        {
+            problems.Add(PackText.Get("PrepackFailed", command[0], ex.Message));
+        }
+    }
+
+    private const int PrepackTimeoutSeconds = 300;
+
+    /// <summary>连子进程一起杀；已经退出的进程再杀会抛，忽略。</summary>
+    private static void KillTree(Process process)
+    {
+        try
+        {
+            process.Kill(entireProcessTree: true);
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or Win32Exception or NotSupportedException)
+        {
+            // 进程已经退出，或者平台不支持整棵树；这里只是尽力收尾。
+        }
     }
 
     private static void ReadSourcePackages(
