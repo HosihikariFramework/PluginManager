@@ -313,16 +313,29 @@ public static class Packager
             process.StandardInput.Close();
             var stdout = process.StandardOutput.ReadToEndAsync();
             var stderr = process.StandardError.ReadToEndAsync();
-            if (!process.WaitForExit(PrepackTimeoutSeconds * 1000))
+
+            // 时限覆盖整个 prepack，不只是主进程退出：孙进程继承管道时主进程可能先走，
+            // 读输出会一直等下去。
+            var deadline = TimeSpan.FromSeconds(PrepackTimeoutSeconds);
+            var started = Stopwatch.GetTimestamp();
+            if (!process.WaitForExit((int)deadline.TotalMilliseconds))
             {
-                process.Kill(entireProcessTree: true);
+                KillTree(process);
+                problems.Add(PackText.Get("PrepackTimeout", PrepackTimeoutSeconds));
+                return;
+            }
+
+            var remaining = deadline - Stopwatch.GetElapsedTime(started);
+            if (!Task.WhenAll(stdout, stderr).Wait(remaining > TimeSpan.Zero ? remaining : TimeSpan.Zero))
+            {
+                KillTree(process);
                 problems.Add(PackText.Get("PrepackTimeout", PrepackTimeoutSeconds));
                 return;
             }
 
             if (process.ExitCode != 0)
             {
-                var detail = (stderr.GetAwaiter().GetResult() + stdout.GetAwaiter().GetResult()).Trim();
+                var detail = (stderr.Result + stdout.Result).Trim();
                 problems.Add(PackText.Get("PrepackFailed", command[0], detail));
             }
         }
@@ -333,6 +346,19 @@ public static class Packager
     }
 
     private const int PrepackTimeoutSeconds = 300;
+
+    /// <summary>连子进程一起杀；已经退出的进程再杀会抛，忽略。</summary>
+    private static void KillTree(Process process)
+    {
+        try
+        {
+            process.Kill(entireProcessTree: true);
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or Win32Exception or NotSupportedException)
+        {
+            // 进程已经退出，或者平台不支持整棵树；这里只是尽力收尾。
+        }
+    }
 
     private static void ReadSourcePackages(
         string sourceDirectory,
