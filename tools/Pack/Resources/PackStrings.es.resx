@@ -106,4 +106,19 @@
   <data name="MultiTargetFramework" xml:space="preserve">
     <value>PackPlugin requiere un único framework de destino; pasa -f &lt;tfm&gt; a dotnet build -t:PackPlugin.</value>
   </data>
+  <data name="MissingFrameworkDependency" xml:space="preserve">
+    <value>Cada plugin debe depender de hosihikari para que el padre cargue el shim primero; añade {{ "name": "hosihikari" }} a dependencies</value>
+  </data>
+  <data name="UnknownPackageKind" xml:space="preserve">
+    <value>packageKind debe ser plugin, loader o carrier; se obtuvo {0}</value>
+  </data>
+  <data name="CarrierNotNamed" xml:space="preserve">
+    <value>packageKind carrier solo vale para el propio paquete hosihikari; se obtuvo {0}</value>
+  </data>
+  <data name="PrepackFailed" xml:space="preserve">
+    <value>extraInfo.prepack falló ({0}): {1}</value>
+  </data>
+  <data name="PrepackTimeout" xml:space="preserve">
+    <value>extraInfo.prepack no terminó en {0} segundos</value>
+  </data>
 </root>

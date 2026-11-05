@@ -150,6 +150,7 @@ internal static class RegressionChecks
         var legacyPackage = StageManifest(legacyRoot, "Legacy", """
             {
               "name": "Legacy", "entry": "main", "type": "hosihikari",
+              "dependencies": [ { "name": "hosihikari" } ],
               "extraInfo": { "api": "2", "manifest_version": "1" }
             }
             """);
@@ -166,6 +167,77 @@ internal static class RegressionChecks
             && !legacyPack.Succeeded
             && legacyPack.Problems.Any(problem => problem.Contains("已改名为 extraInfo.api_version", StringComparison.Ordinal)),
             legacyReports.FirstOrDefault() ?? string.Join(" | ", legacyPack.Problems));
+
+        // R21 起是 ADR-0006 / 0013 / 0042 的规则：每条都同时看读取期与打包期。
+        var ruleRoot = Path.Combine(root, "manifest-rules");
+        var ruleSource = Path.Combine(ruleRoot, "source");
+        Directory.CreateDirectory(ruleSource);
+        File.WriteAllText(Path.Combine(ruleSource, "main"), "entry placeholder");
+        string RuleManifest(string name, string extraInfo, string dependencies = """[ { "name": "hosihikari" } ]""")
+        {
+            var path = Path.Combine(ruleRoot, name + ".json");
+            File.WriteAllText(path, $$"""
+                {
+                  "name": "{{name}}", "entry": "main", "type": "hosihikari", "version": "1.0.0",
+                  "dependencies": {{dependencies}},
+                  "extraInfo": {{extraInfo}}
+                }
+                """);
+            return path;
+        }
+
+        var missingDependency = RuleManifest("NoFramework", """{ "api_version": "2", "manifest_version": "1", "loader": "regression" }""", "[]");
+        var missingDependencyReports = new List<string>();
+        var missingDependencyRead = ManifestReader.Read(
+            StageManifest(ruleRoot, "NoFramework", File.ReadAllText(missingDependency)), missingDependencyReports.Add);
+        var missingDependencyPack = Packager.Pack(ruleSource, missingDependency, Path.Combine(ruleRoot, "out-no-framework"), []);
+        yield return ("R21 缺少 hosihikari 依赖时读取期与打包期都拒绝",
+            missingDependencyRead is null
+            && missingDependencyReports.Any(message => message.Contains("hosihikari", StringComparison.Ordinal))
+            && !missingDependencyPack.Succeeded
+            && missingDependencyPack.Problems.Any(problem => problem.Contains("hosihikari", StringComparison.Ordinal)),
+            string.Join(" | ", missingDependencyReports.Concat(missingDependencyPack.Problems)));
+
+        var carrierKind = RuleManifest(
+            PluginContractInfo.ParentName,
+            """{ "api_version": "2", "manifest_version": "1", "loader": "regression", "packageKind": "carrier" }""",
+            "[]");
+        var unknownKind = RuleManifest(
+            "UnknownKind",
+            """{ "api_version": "2", "manifest_version": "1", "loader": "regression", "packageKind": "pluginish" }""");
+        var carrierPack = Packager.Pack(ruleSource, carrierKind, Path.Combine(ruleRoot, "out-carrier"), []);
+        var unknownPack = Packager.Pack(ruleSource, unknownKind, Path.Combine(ruleRoot, "out-unknown"), []);
+        yield return ("R22 packageKind 只认三个值，carrier 只给 hosihikari",
+            carrierPack.Succeeded
+            && !unknownPack.Succeeded
+            && unknownPack.Problems.Any(problem => problem.Contains("packageKind", StringComparison.Ordinal)),
+            string.Join(" | ", carrierPack.Problems.Concat(unknownPack.Problems)));
+
+        var prepackSource = Path.Combine(ruleRoot, "prepack-source");
+        Directory.CreateDirectory(prepackSource);
+        var prepackGood = Path.Combine(ruleRoot, "prepack-good.json");
+        File.WriteAllText(prepackGood, $$"""
+            {
+              "name": "Prepack", "entry": "main", "type": "hosihikari", "version": "1.0.0",
+              "dependencies": [ { "name": "hosihikari" } ],
+              "extraInfo": { "api_version": "2", "manifest_version": "1", "loader": "regression", "prepack": "{{(OperatingSystem.IsWindows() ? "cmd" : "sh")}}" }
+            }
+            """);
+        var prepackBad = Path.Combine(ruleRoot, "prepack-bad.json");
+        File.WriteAllText(prepackBad, $$"""
+            {
+              "name": "PrepackBad", "entry": "main", "type": "hosihikari", "version": "1.0.0",
+              "dependencies": [ { "name": "hosihikari" } ],
+              "extraInfo": { "api_version": "2", "manifest_version": "1", "loader": "regression", "prepack": "hosihikari-no-such-program" }
+            }
+            """);
+        var prepackGoodPack = Packager.Pack(prepackSource, prepackGood, Path.Combine(ruleRoot, "out-prepack"), []);
+        var prepackBadPack = Packager.Pack(prepackSource, prepackBad, Path.Combine(ruleRoot, "out-prepack-bad"), []);
+        yield return ("R23 prepack 在打包期执行，失败拒包",
+            prepackGoodPack.Succeeded
+            && !prepackBadPack.Succeeded
+            && prepackBadPack.Problems.Any(problem => problem.Contains("prepack", StringComparison.Ordinal)),
+            string.Join(" | ", prepackGoodPack.Problems.Concat(prepackBadPack.Problems)));
 
         var lockRoot = Path.Combine(root, "load-lock");
         var parentLock = new object();
@@ -214,7 +286,7 @@ internal static class RegressionChecks
         var ghostPackage = StageManifest(rollbackRoot, "GhostUser", """
             {
               "name": "GhostUser", "entry": "main", "type": "hosihikari",
-              "dependencies": [],
+              "dependencies": [ { "name": "hosihikari" } ],
               "extraInfo": { "api_version": "2", "manifest_version": "1", "loader": "ghost" }
             }
             """);
@@ -334,14 +406,14 @@ internal static class RegressionChecks
         File.WriteAllText(badVersionManifest, JsonSerializer.Serialize(new
         {
             name = "BadVersion", entry = "main.dll", type = "hosihikari", version = "not-semver",
-            dependencies = Array.Empty<object>(),
+            dependencies = new object[] { new { name = "hosihikari" } },
             extraInfo = new { api_version = PluginContractInfo.CurrentApiVersion, manifest_version = "1", loader = "assembly" },
         }));
         var badConstraintManifest = Path.Combine(packVersionRoot, "bad-constraint.json");
         File.WriteAllText(badConstraintManifest, JsonSerializer.Serialize(new
         {
             name = "BadConstraint", entry = "main.dll", type = "hosihikari", version = "1.0.0",
-            dependencies = new[] { new { name = "Lib", version = ">>1" } },
+            dependencies = new object[] { new { name = "Lib", version = ">>1" }, new { name = "hosihikari" } },
             extraInfo = new { api_version = PluginContractInfo.CurrentApiVersion, manifest_version = "1", loader = "assembly" },
         }));
         var badVersionPack = Packager.Pack(
@@ -457,7 +529,7 @@ internal static class RegressionChecks
         File.WriteAllText(Path.Combine(directory, "manifest.json"), JsonSerializer.Serialize(new
         {
             name, entry = "main", type = "hosihikari",
-            dependencies = dependency is null ? Array.Empty<object>() : [new { name = dependency }],
+            dependencies = dependency is null ? new object[] { new { name = "hosihikari" } } : new object[] { new { name = dependency }, new { name = "hosihikari" } },
             extraInfo = new { api_version = PluginContractInfo.CurrentApiVersion, manifest_version = "1", loader = "regression" },
         }));
         return directory;
@@ -499,11 +571,10 @@ internal static class RegressionChecks
             entry = "main",
             type = "hosihikari",
             version,
-            dependencies = dependencies.Select(dependency => new
-            {
-                name = dependency.Name,
-                version = dependency.Version,
-            }).ToArray(),
+            dependencies = dependencies.Select(dependency => new { dependency.Name, dependency.Version })
+                .Cast<object>()
+                .Append(new { Name = "hosihikari", Version = (string?)null })
+                .ToArray(),
             extraInfo = new { api_version = PluginContractInfo.CurrentApiVersion, manifest_version = "1", loader = "regression" },
         }));
 
@@ -594,6 +665,7 @@ internal static class RegressionChecks
         File.WriteAllText(manifest, JsonSerializer.Serialize(new
         {
             name = "OutputFixture", type = "hosihikari", entry = "src/main.cs",
+            dependencies = new object[] { new { name = "hosihikari" } },
             extraInfo = new { api_version = PluginContractInfo.CurrentApiVersion, manifest_version = "1", loader = "csharp" },
         }));
         var result = Packager.Pack(source, manifest, Path.Combine(root, "packages"), []);

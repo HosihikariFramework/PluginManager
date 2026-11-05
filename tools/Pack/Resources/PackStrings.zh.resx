@@ -106,4 +106,19 @@
   <data name="MultiTargetFramework" xml:space="preserve">
     <value>PackPlugin 需要单个目标框架；请用 dotnet build -t:PackPlugin -f &lt;tfm&gt; 指定。</value>
   </data>
+  <data name="MissingFrameworkDependency" xml:space="preserve">
+    <value>每个插件都必须在 dependencies 里声明 {{ "name": "hosihikari" }}，父级才能先装寄宿垫片</value>
+  </data>
+  <data name="UnknownPackageKind" xml:space="preserve">
+    <value>清单 packageKind 只能是 plugin、loader 或 carrier；得到 {0}</value>
+  </data>
+  <data name="CarrierNotNamed" xml:space="preserve">
+    <value>packageKind 为 carrier 时包名必须是 hosihikari；得到 {0}</value>
+  </data>
+  <data name="PrepackFailed" xml:space="preserve">
+    <value>extraInfo.prepack 执行失败（{0}）：{1}</value>
+  </data>
+  <data name="PrepackTimeout" xml:space="preserve">
+    <value>extraInfo.prepack 超过 {0} 秒未结束</value>
+  </data>
 </root>

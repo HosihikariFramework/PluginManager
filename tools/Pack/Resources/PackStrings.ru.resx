@@ -106,4 +106,19 @@
   <data name="MultiTargetFramework" xml:space="preserve">
     <value>PackPlugin требует один целевой фреймворк; передайте -f &lt;tfm&gt; в dotnet build -t:PackPlugin.</value>
   </data>
+  <data name="MissingFrameworkDependency" xml:space="preserve">
+    <value>Каждый плагин должен зависеть от hosihikari, чтобы родитель загрузил шим первым; добавьте {{ "name": "hosihikari" }} в dependencies</value>
+  </data>
+  <data name="UnknownPackageKind" xml:space="preserve">
+    <value>packageKind должно быть plugin, loader или carrier; получено {0}</value>
+  </data>
+  <data name="CarrierNotNamed" xml:space="preserve">
+    <value>packageKind carrier допустим только для самого пакета hosihikari; получено {0}</value>
+  </data>
+  <data name="PrepackFailed" xml:space="preserve">
+    <value>extraInfo.prepack завершился ошибкой ({0}): {1}</value>
+  </data>
+  <data name="PrepackTimeout" xml:space="preserve">
+    <value>extraInfo.prepack не завершился за {0} секунд</value>
+  </data>
 </root>
