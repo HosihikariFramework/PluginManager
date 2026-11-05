@@ -10,7 +10,7 @@
     <!-- 同一个打包器既是核心仓里的构建工具，也作为 dotnet 工具分发给插件作者。 -->
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>hosihikari-pack</ToolCommandName>
-    <Version>1.0.0</Version>
+    <Version>1.1.0</Version>
     <Authors>HosihikariFramework</Authors>
     <Description>Command-line packer for Hosihikari plugin packages.</Description>
     <PackageLicenseExpression>LGPL-3.0-or-later</PackageLicenseExpression>

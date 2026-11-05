@@ -57,7 +57,7 @@ jobs:
           <configuration><packageSources><clear /><add key="local" value="$out" /></packageSources></configuration>
           EOF
           dotnet tool install --tool-path "$out/bin" --configfile "$out/NuGet.config" \
-            Hosihikari.Plugin.Pack --version 1.0.0
+            Hosihikari.Plugin.Pack --version 1.1.0
           # 用法信息的退出码是 2；能打印出来就说明工具可运行。
           "$out/bin/hosihikari-pack" --help || test $? -eq 2
 
