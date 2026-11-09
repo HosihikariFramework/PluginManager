@@ -30,7 +30,7 @@ done
 # 包根的 sei.json 是分发元数据，安装时被跳过，不落进服务端根目录。
 cat > "$out/package/sei.json" <<EOF
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "name": "hosihikari",
   "version": "$version",
   "dependencies": [],
