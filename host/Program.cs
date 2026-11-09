@@ -372,6 +372,30 @@ checks.Add((
     invalidTimeoutRefused ? "构造期已拒绝" : "（没有拒绝）"
 ));
 
+// A51b：InfiniteTimeSpan 关闭计时器，一直等到加载器的验证通过（ADR-0042）。
+var infiniteLoader = new PinnedPluginLoader { Pinned = true };
+var infiniteHost = new PluginManager(
+    pluginsRoot,
+    Path.Combine(stage, "infinite", "data"),
+    Path.Combine(stage, "infinite", "config"),
+    _ => { },
+    null,
+    null,
+    new PluginManagerOptions { UnloadVerificationTimeout = Timeout.InfiniteTimeSpan });
+infiniteHost.RegisterLoader(infiniteLoader);
+var infiniteLoaded = infiniteHost.Load(Path.Combine(stage, "parented", "Pinned"));
+var infinitePending = Task.Run(() => infiniteHost.Unload("Pinned"));
+Thread.Sleep(300);
+var infiniteStillWaiting = !infinitePending.IsCompleted;
+infiniteLoader.Pinned = false;
+var infiniteReleased = infinitePending.Wait(TimeSpan.FromSeconds(5)) && infinitePending.Result.Released;
+checks.Add((
+    "A51b InfiniteTimeSpan 不设计时器，等验证通过才返回",
+    infiniteLoaded && infiniteStillWaiting && infiniteReleased
+        && !infiniteHost.LoadedNames.Contains("Pinned"),
+    $"loaded={infiniteLoaded} waiting={infiniteStillWaiting} released={infiniteReleased}"
+));
+
 // A29：拒绝启用留在册、未启用（ADR-0030）
 var guardedLoaded = host.Load(Path.Combine(stage, "parented", "Guarded"));
 guardedLoader.RefuseEnable = true;
