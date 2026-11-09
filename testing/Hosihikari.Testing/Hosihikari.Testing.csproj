@@ -27,7 +27,7 @@
   </ItemGroup>
 
   <ItemGroup Condition="!Exists('../../../Plugin.Abstractions/src/Hosihikari.Plugin.Abstractions.csproj')">
-    <PackageReference Include="Hosihikari.Plugin.Abstractions" Version="[1.1.0]" />
+    <PackageReference Include="Hosihikari.Plugin.Abstractions" Version="[1.2.0]" />
   </ItemGroup>
 
   <ItemGroup Condition="Exists('../../src/Hosihikari.PluginManager.csproj')">
@@ -35,9 +35,10 @@
   </ItemGroup>
 
   <!-- Standalone builds use the manager line the harness was validated against. PluginManager
-       1.2.0 changed distribution and version metadata only; bump this pin with a Testing release. -->
+       1.2.0 changed distribution and version metadata only; 1.3.0 enforces the new manifest
+       rules, so the pin moves together with a Testing release. -->
   <ItemGroup Condition="!Exists('../../src/Hosihikari.PluginManager.csproj')">
-    <PackageReference Include="Hosihikari.PluginManager" Version="[1.1.0]" />
+    <PackageReference Include="Hosihikari.PluginManager" Version="[1.3.0]" />
   </ItemGroup>
 
 </Project>

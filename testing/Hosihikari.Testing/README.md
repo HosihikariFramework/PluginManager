@@ -32,9 +32,9 @@ harness.Manager.RegisterLoader(new MyLoader());
 harness.Load("MyPlugin");
 ```
 
-Standalone builds reference `Hosihikari.PluginManager` 1.1.0 — the line the harness was validated
-against. PluginManager 1.2.0 changed distribution and version metadata only; the pin moves together
-with a Testing release.
+Standalone builds reference `Hosihikari.PluginManager` 1.3.0 — the line the harness was validated
+against. PluginManager 1.3.0 enforces the mandatory `hosihikari` dependency and the `packageKind`
+rules, so the pin moves together with a Testing release.
 
 The core is distributed as a release archive and as the `Hosihikari.PluginManager` NuGet package,
 starting at 1.1.0. `Hosihikari.Testing` is MIT; the core package is LGPL-3.0-or-later.
