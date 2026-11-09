@@ -37,8 +37,8 @@ CI 跑的就是这一条命令，走的也是外部插件作者拿到契约的�
 ## 配置与状态
 
 构造函数重载接受 `PluginManagerOptions`。`UnloadVerificationTimeout` 默认 30 秒；有限值必须为正且
-不超过约 49.7 天，`Timeout.InfiniteTimeSpan` 关闭计时器。超时按卸载失败记录，报告会如实写明；
-槽位保持 `Detached`，因此 `Plugins` 仍会返回它。
+不超过约 49.7 天，`Timeout.InfiniteTimeSpan` 关闭计时器、一直等到加载器的验证结束。超时按卸载
+失败记录，报告会如实写明；槽位保持 `Detached`，因此 `Plugins` 仍会返回它。
 
 ```csharp
 var options = new PluginManagerOptions

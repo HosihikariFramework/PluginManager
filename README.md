@@ -46,8 +46,9 @@ The RID-first native library probe uses the McMaster fork; check that out as a s
 
 The constructor overload accepts `PluginManagerOptions`. `UnloadVerificationTimeout` defaults to
 30 seconds; a finite value must be positive and no more than about 49.7 days, and
-`Timeout.InfiniteTimeSpan` disables the timer. A timeout is a failed unload: the report says so,
-and the slot stays `Detached`, so `Plugins` keeps returning it.
+`Timeout.InfiniteTimeSpan` turns the timer off and waits until the loader's verification finishes.
+A timeout is a failed unload: the report says so, and the slot stays `Detached`, so `Plugins` keeps
+returning it.
 
 ```csharp
 var options = new PluginManagerOptions
