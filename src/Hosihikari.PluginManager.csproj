@@ -36,13 +36,13 @@
                       Condition="Exists('../../DotNetCorePlugins/src/Plugins/McMaster.NETCore.Plugins.csproj')" />
     <PackageReference Include="Hosihikari.McMaster.NETCore.Plugins" Version="2.1.0-hosihikari.2"
                       Condition="!Exists('../../DotNetCorePlugins/src/Plugins/McMaster.NETCore.Plugins.csproj')" />
-    <PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.13" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="10.0.13" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.13" />
-    <PackageReference Include="Microsoft.Extensions.Localization" Version="10.0.13" />
-    <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.13" />
+    <PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.15" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="10.0.15" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.15" />
+    <PackageReference Include="Microsoft.Extensions.Localization" Version="10.0.15" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.15" />
     <!-- 兜底的落地端：原生宿主接不上 .NET 的 logger factory，没有它插件的日志会写进虚空。 -->
-    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="10.0.13" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="10.0.15" />
     <!-- 清单版本与依赖约束用 NuGet 的 SemVer 范围；打包期与装载期共用同一套解析。 -->
     <PackageReference Include="NuGet.Versioning" Version="6.14.3" />
   </ItemGroup>

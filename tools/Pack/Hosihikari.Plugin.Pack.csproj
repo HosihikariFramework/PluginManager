@@ -27,7 +27,7 @@
   <ItemGroup>
     <ProjectReference Include="../../src/Hosihikari.PluginManager.csproj" />
     <!-- 只读元数据地看入口声明的唯一现实办法：LoadFrom 会把程序集留在默认 ALC 里。 -->
-    <PackageReference Include="System.Reflection.MetadataLoadContext" Version="10.0.13" />
+    <PackageReference Include="System.Reflection.MetadataLoadContext" Version="10.0.15" />
   </ItemGroup>
 
 </Project>
