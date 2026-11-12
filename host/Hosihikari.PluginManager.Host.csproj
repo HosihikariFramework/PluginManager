@@ -10,7 +10,7 @@
 
   <ItemGroup>
     <!-- 日志的落地端由宿主决定（ADR-0007）；核心只依赖 Logging 抽象。 -->
-    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="10.0.13" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="10.0.15" />
     <ProjectReference Include="../src/Hosihikari.PluginManager.csproj" />
     <!-- 插件包由打包工具装配，测试插件就是它的前两个用户。 -->
     <ProjectReference Include="../tools/Pack/Hosihikari.Plugin.Pack.csproj" />
