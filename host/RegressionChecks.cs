@@ -118,7 +118,7 @@ internal static class RegressionChecks
             {
               "name": "NullDependencies", "entry": "main", "type": "hosihikari",
               "dependencies": null,
-              "extraInfo": { "api_version": "2", "manifest_version": "1", "loader": "regression" }
+              "extraInfo": { "api_version": "3", "manifest_version": "1", "loader": "regression" }
             }
             """);
         StageManifest(manifestRoot, "NullExtra", """
@@ -131,7 +131,7 @@ internal static class RegressionChecks
             {
               "name": "NullDependencyEntry", "entry": "main", "type": "hosihikari",
               "dependencies": [null],
-              "extraInfo": { "api_version": "2", "manifest_version": "1", "loader": "regression" }
+              "extraInfo": { "api_version": "3", "manifest_version": "1", "loader": "regression" }
             }
             """);
         var manifestThrew = false;
@@ -186,7 +186,7 @@ internal static class RegressionChecks
             return path;
         }
 
-        var missingDependency = RuleManifest("NoFramework", """{ "api_version": "2", "manifest_version": "1", "loader": "regression" }""", "[]");
+        var missingDependency = RuleManifest("NoFramework", """{ "api_version": "3", "manifest_version": "1", "loader": "regression" }""", "[]");
         var missingDependencyReports = new List<string>();
         var missingDependencyRead = ManifestReader.Read(
             StageManifest(ruleRoot, "NoFramework", File.ReadAllText(missingDependency)), missingDependencyReports.Add);
@@ -200,11 +200,11 @@ internal static class RegressionChecks
 
         var carrierKind = RuleManifest(
             PluginContractInfo.ParentName,
-            """{ "api_version": "2", "manifest_version": "1", "loader": "regression", "packageKind": "carrier" }""",
+            """{ "api_version": "3", "manifest_version": "1", "loader": "regression", "packageKind": "carrier" }""",
             "[]");
         var unknownKind = RuleManifest(
             "UnknownKind",
-            """{ "api_version": "2", "manifest_version": "1", "loader": "regression", "packageKind": "pluginish" }""");
+            """{ "api_version": "3", "manifest_version": "1", "loader": "regression", "packageKind": "pluginish" }""");
         var carrierPack = Packager.Pack(ruleSource, carrierKind, Path.Combine(ruleRoot, "out-carrier"), []);
         var unknownPack = Packager.Pack(ruleSource, unknownKind, Path.Combine(ruleRoot, "out-unknown"), []);
         yield return ("R22 packageKind 只认三个值，carrier 只给 hosihikari",
@@ -220,7 +220,7 @@ internal static class RegressionChecks
             {
               "name": "Prepack", "entry": "main", "type": "hosihikari", "version": "1.0.0",
               "dependencies": [ { "name": "hosihikari" } ],
-              "extraInfo": { "api_version": "2", "manifest_version": "1", "loader": "regression", "prepack": "{{(OperatingSystem.IsWindows() ? "cmd" : "sh")}}" }
+              "extraInfo": { "api_version": "3", "manifest_version": "1", "loader": "regression", "prepack": "{{(OperatingSystem.IsWindows() ? "cmd" : "sh")}}" }
             }
             """);
         var prepackBad = Path.Combine(ruleRoot, "prepack-bad.json");
@@ -228,7 +228,7 @@ internal static class RegressionChecks
             {
               "name": "PrepackBad", "entry": "main", "type": "hosihikari", "version": "1.0.0",
               "dependencies": [ { "name": "hosihikari" } ],
-              "extraInfo": { "api_version": "2", "manifest_version": "1", "loader": "regression", "prepack": "hosihikari-no-such-program" }
+              "extraInfo": { "api_version": "3", "manifest_version": "1", "loader": "regression", "prepack": "hosihikari-no-such-program" }
             }
             """);
         var prepackGoodPack = Packager.Pack(prepackSource, prepackGood, Path.Combine(ruleRoot, "out-prepack"), []);
@@ -287,7 +287,7 @@ internal static class RegressionChecks
             {
               "name": "GhostUser", "entry": "main", "type": "hosihikari",
               "dependencies": [ { "name": "hosihikari" } ],
-              "extraInfo": { "api_version": "2", "manifest_version": "1", "loader": "ghost" }
+              "extraInfo": { "api_version": "3", "manifest_version": "1", "loader": "ghost" }
             }
             """);
         var brokenLoaded = rollbackHost.Load(brokenPackage);
@@ -600,7 +600,7 @@ internal static class RegressionChecks
         method.GetILGenerator().Emit(OpCodes.Ret);
         var handler = method.CreateDelegate(typeof(Action<>).MakeGenericType(type));
         ((IDisposable)typeof(EventBus).GetMethod(nameof(EventBus.Subscribe))!
-            .MakeGenericMethod(type).Invoke(bus, [handler])!).Dispose();
+            .MakeGenericMethod(type).Invoke(bus, [handler, EventPriority.Normal])!).Dispose();
         return new WeakReference(type.Assembly);
     }
 
@@ -716,10 +716,12 @@ internal static class RegressionChecks
 
         private sealed class GhostPlugin : IPlugin
         {
-            public void OnLoad(IPluginContext context) { }
-            public PluginHookResult OnEnable() => PluginHookResult.Allow();
-            public PluginHookResult OnDisable() => PluginHookResult.Allow();
-            public void OnUnload() { }
+            public ValueTask OnLoad(IPluginContext context, CancellationToken cancellationToken) => ValueTask.CompletedTask;
+            public ValueTask<PluginHookResult> OnEnable(CancellationToken cancellationToken) =>
+                ValueTask.FromResult(PluginHookResult.Allow());
+            public ValueTask<PluginHookResult> OnDisable(CancellationToken cancellationToken) =>
+                ValueTask.FromResult(PluginHookResult.Allow());
+            public ValueTask OnUnload(CancellationToken cancellationToken) => ValueTask.CompletedTask;
         }
     }
 
@@ -776,30 +778,41 @@ internal static class RegressionChecks
         }
         private sealed class Plugin(FailingLoader owner, string name) : IPlugin
         {
-            public void OnLoad(IPluginContext context)
+            public ValueTask OnLoad(IPluginContext context, CancellationToken cancellationToken)
             {
                 owner.UseContext(context);
+                // 加载器包拿到的是 ILoaderContext（ADR-0059）；这里按接口取，普通上下文没有就跳过。
+                var loaderContext = context as ILoaderContext;
                 if (owner.RegisterLoader)
                 {
-                    context.RegisterLoader(new GhostLoader());
+                    loaderContext?.RegisterLoader(new GhostLoader());
                 }
                 if (name == "Broken" && owner._mode is "load" or "cleanup-throw")
                     throw new InvalidOperationException("load failure");
                 if (name == "Broken" && owner._mode == "fault-on-load")
-                    context.ReportFault("immediate death");
+                    context.ReportFault(PluginDiagnostic.Error("immediate-death", "immediate death"));
                 if (name == "Broken" && owner._mode == "loader-register-throw")
                 {
-                    context.RegisterLoader(new GhostLoader());
+                    loaderContext?.RegisterLoader(new GhostLoader());
                     throw new InvalidOperationException("loader registration then failure");
                 }
+
+                return ValueTask.CompletedTask;
             }
-            public PluginHookResult OnEnable() => name == "Broken" && owner._mode == "enable"
-                ? throw new InvalidOperationException("enable failure") : PluginHookResult.Allow();
-            public PluginHookResult OnDisable() { owner.Disables++; return PluginHookResult.Allow(); }
-            public void OnUnload()
+            public ValueTask<PluginHookResult> OnEnable(CancellationToken cancellationToken) =>
+                name == "Broken" && owner._mode == "enable"
+                    ? throw new InvalidOperationException("enable failure")
+                    : ValueTask.FromResult(PluginHookResult.Allow());
+            public ValueTask<PluginHookResult> OnDisable(CancellationToken cancellationToken)
+            {
+                owner.Disables++;
+                return ValueTask.FromResult(PluginHookResult.Allow());
+            }
+            public ValueTask OnUnload(CancellationToken cancellationToken)
             {
                 owner.Unloads++;
                 if (owner._mode == "cleanup-throw") throw new InvalidOperationException("unload failure");
+                return ValueTask.CompletedTask;
             }
         }
     }

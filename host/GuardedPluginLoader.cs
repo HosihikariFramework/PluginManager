@@ -26,34 +26,34 @@ public sealed class GuardedPluginLoader : IPluginLoader
 
     private sealed class GuardedPlugin(string name, GuardedPluginLoader loader, IPluginContext context) : IPlugin
     {
-        public void OnLoad(IPluginContext loadedContext)
+        public ValueTask OnLoad(IPluginContext loadedContext, CancellationToken cancellationToken)
         {
             if (name == "Vanishing")
             {
                 // 模拟 Loader 在钩子之外发现的死亡：钩子返回后，从后台报告故障。
                 context.Scheduler.ScheduleOnce(
                     TimeSpan.FromMilliseconds(50),
-                    () => context.ReportFault("模拟异步死亡"));
+                    () => context.ReportFault(PluginDiagnostic.Error("async-death", "模拟异步死亡")));
             }
+
+            return ValueTask.CompletedTask;
         }
 
-        public PluginHookResult OnEnable()
+        public ValueTask<PluginHookResult> OnEnable(CancellationToken cancellationToken)
         {
             if (name == "Faulty" && loader.ThrowOnEnable)
             {
                 throw new InvalidOperationException("故意在启用时抛出");
             }
 
-            return loader.RefuseEnable
+            return ValueTask.FromResult(loader.RefuseEnable
                 ? PluginHookResult.Refuse("现在不行")
-                : PluginHookResult.Allow();
+                : PluginHookResult.Allow());
         }
 
-        public PluginHookResult OnDisable() =>
-            loader.RefuseDisable ? PluginHookResult.Refuse("还不想停") : PluginHookResult.Allow();
+        public ValueTask<PluginHookResult> OnDisable(CancellationToken cancellationToken) =>
+            ValueTask.FromResult(loader.RefuseDisable ? PluginHookResult.Refuse("还不想停") : PluginHookResult.Allow());
 
-        public void OnUnload()
-        {
-        }
+        public ValueTask OnUnload(CancellationToken cancellationToken) => ValueTask.CompletedTask;
     }
 }

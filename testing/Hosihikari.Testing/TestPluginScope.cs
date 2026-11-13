@@ -17,14 +17,14 @@ internal sealed class TestPluginScope(
     private volatile bool _enabled;
     private bool _released;
 
-    public IDisposable Subscribe<TEvent>(Action<TEvent> handler) =>
+    public IDisposable Subscribe<TEvent>(Action<TEvent> handler, EventPriority priority = EventPriority.Normal) =>
         Track(() => events.Subscribe<TEvent>(@event =>
         {
             if (_enabled)
             {
                 handler(@event);
             }
-        }));
+        }, priority));
 
     public void Publish<TEvent>(TEvent @event) => events.Publish(@event);
 

@@ -26,20 +26,28 @@ public sealed class ScriptPluginLoader : IPluginLoader
 
 internal sealed class ScriptPlugin(string source, string dataDirectory) : IPlugin
 {
-    public void OnLoad(IPluginContext context) => Console.WriteLine($"[Lua] OnLoad   {source.Trim().Length} 字符的脚本");
+    public ValueTask OnLoad(IPluginContext context, CancellationToken cancellationToken)
+    {
+        Console.WriteLine($"[Lua] OnLoad   {source.Trim().Length} 字符的脚本");
+        return ValueTask.CompletedTask;
+    }
 
-    public PluginHookResult OnEnable()
+    public ValueTask<PluginHookResult> OnEnable(CancellationToken cancellationToken)
     {
         Console.WriteLine("[Lua] OnEnable");
         File.WriteAllText(Path.Combine(dataDirectory, "ran.txt"), source.Trim());
-        return PluginHookResult.Allow();
+        return ValueTask.FromResult(PluginHookResult.Allow());
     }
 
-    public PluginHookResult OnDisable()
+    public ValueTask<PluginHookResult> OnDisable(CancellationToken cancellationToken)
     {
         Console.WriteLine("[Lua] OnDisable");
-        return PluginHookResult.Allow();
+        return ValueTask.FromResult(PluginHookResult.Allow());
     }
 
-    public void OnUnload() => Console.WriteLine("[Lua] OnUnload");
+    public ValueTask OnUnload(CancellationToken cancellationToken)
+    {
+        Console.WriteLine("[Lua] OnUnload");
+        return ValueTask.CompletedTask;
+    }
 }

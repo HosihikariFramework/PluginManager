@@ -10,7 +10,7 @@ public sealed class TestEventBus : IEventBus
 
     public IReadOnlyList<Exception> HandlerErrors => _errors;
 
-    public IDisposable Subscribe<TEvent>(Action<TEvent> handler)
+    public IDisposable Subscribe<TEvent>(Action<TEvent> handler, EventPriority priority = EventPriority.Normal)
     {
         ArgumentNullException.ThrowIfNull(handler);
         if (!_handlers.TryGetValue(typeof(TEvent), out var list))

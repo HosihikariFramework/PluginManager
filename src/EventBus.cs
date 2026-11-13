@@ -4,29 +4,35 @@ namespace Hosihikari.Internal;
 
 internal sealed class EventBus(ILogger logger) : IEventBus
 {
-    private readonly Lock _gate = new();
-    private readonly Dictionary<Type, List<Delegate>> _handlers = [];
+    private static readonly EventPriority[] Bands =
+        [EventPriority.Lowest, EventPriority.Low, EventPriority.Normal, EventPriority.High, EventPriority.Highest, EventPriority.Monitor];
 
-    public IDisposable Subscribe<TEvent>(Action<TEvent> handler)
+    private readonly Lock _gate = new();
+    // 每个事件类型六个桶，按 Bands 的次序分发（ADR-0060）；桶内按订阅顺序。
+    private readonly Dictionary<Type, List<Delegate>[]> _handlers = [];
+
+    public IDisposable Subscribe<TEvent>(Action<TEvent> handler, EventPriority priority = EventPriority.Normal)
     {
+        var bucket = Array.IndexOf(Bands, priority);
         lock (_gate)
         {
-            if (!_handlers.TryGetValue(typeof(TEvent), out var list))
+            if (!_handlers.TryGetValue(typeof(TEvent), out var buckets))
             {
-                _handlers[typeof(TEvent)] = list = [];
+                _handlers[typeof(TEvent)] = buckets = CreateBuckets();
             }
 
-            list.Add(handler);
+            buckets[bucket].Add(handler);
         }
 
         return new Subscription(() =>
         {
             lock (_gate)
             {
-                if (_handlers.TryGetValue(typeof(TEvent), out var list))
+                if (_handlers.TryGetValue(typeof(TEvent), out var buckets))
                 {
+                    var list = buckets[bucket];
                     list.Remove(handler);
-                    if (list.Count == 0)
+                    if (buckets.All(static list => list.Count == 0))
                     {
                         _handlers.Remove(typeof(TEvent));
                     }
@@ -35,24 +41,32 @@ internal sealed class EventBus(ILogger logger) : IEventBus
         });
     }
 
+    private static List<Delegate>[] CreateBuckets() => [.. Bands.Select(static _ => new List<Delegate>())];
+
     public void Publish<TEvent>(TEvent @event)
     {
-        Delegate[] snapshot;
+        Delegate[][] snapshot;
         lock (_gate)
         {
-            snapshot = _handlers.TryGetValue(typeof(TEvent), out var list) ? [.. list] : [];
+            // 快照整组桶：分发期间新订阅的进桶，退订的从桶里摘，都影响不到这一轮。
+            snapshot = _handlers.TryGetValue(typeof(TEvent), out var buckets)
+                ? [.. buckets.Select(static list => list.ToArray())]
+                : [];
         }
 
-        foreach (var handler in snapshot)
+        foreach (var band in snapshot)
         {
-            try
+            foreach (var handler in band)
             {
-                ((Action<TEvent>)handler)(@event);
-            }
-            catch (Exception ex)
-            {
-                // 隔离到这一个 handler，继续分发给其余 —— ADR-0009 在事件总线上的落地（ADR-0014）。
-                logger.LogError(ex, "{Message}", CoreText.Get("Event_HandlerThrew", typeof(TEvent).Name));
+                try
+                {
+                    ((Action<TEvent>)handler)(@event);
+                }
+                catch (Exception ex)
+                {
+                    // 隔离到这一个 handler，继续分发给其余 —— ADR-0009 在事件总线上的落地（ADR-0014）。
+                    logger.LogError(ex, "{Message}", CoreText.Get("Event_HandlerThrew", typeof(TEvent).Name));
+                }
             }
         }
     }

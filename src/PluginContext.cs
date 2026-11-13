@@ -13,7 +13,7 @@ internal sealed class PluginContext(
     IServiceProvider carrierServices,
     PluginManager host,
     Guid instanceId,
-    Action<string> reportFault) : IPluginContext
+    Action<string> reportFault) : ILoaderContext
 {
     internal static readonly IServiceProvider Empty = new EmptyServices();
 
@@ -35,8 +35,9 @@ internal sealed class PluginContext(
 
     public IServiceProvider CarrierServices => carrierServices;
 
-    /// <summary>Loader 在钩子之外发现插件死了时走这里（ADR-0030）。</summary>
-    public void ReportFault(string reason) => host.ReportFault(name, instanceId, reason);
+    /// <summary>Loader 在钩子之外发现插件死了时走这里（ADR-0030）。诊断的可读说明进管理器的账。</summary>
+    public void ReportFault(PluginDiagnostic diagnostic) =>
+        host.ReportFault(name, instanceId, diagnostic.Message);
 
     /// <summary>Loader 是个插件包，装载时用这个把自己交出去（ADR-0002）。</summary>
     public bool RegisterLoader(IPluginLoader loader)

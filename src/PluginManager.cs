@@ -416,8 +416,8 @@ public sealed class PluginManager
         try
         {
             var result = enable
-                ? slot.Handle!.Plugin!.OnEnable()
-                : slot.Handle!.Plugin!.OnDisable();
+                ? slot.Handle!.Plugin!.OnEnable(CancellationToken.None).GetAwaiter().GetResult()
+                : slot.Handle!.Plugin!.OnDisable(CancellationToken.None).GetAwaiter().GetResult();
             if (!result.Allowed)
             {
                 if (wasEnabled && !enable)
@@ -729,7 +729,7 @@ public sealed class PluginManager
 
         try
         {
-            var result = plugin.OnDisable();
+            var result = plugin.OnDisable(CancellationToken.None).GetAwaiter().GetResult();
             if (!result.Allowed)
             {
                 if (wasEnabled)
@@ -748,7 +748,7 @@ public sealed class PluginManager
 
         try
         {
-            plugin.OnUnload();
+            plugin.OnUnload(CancellationToken.None).GetAwaiter().GetResult();
         }
         catch (Exception ex)
         {
@@ -816,7 +816,7 @@ public sealed class PluginManager
 
             if (loader is IPluginLoaderDiagnostics diagnostics)
             {
-                IReadOnlyList<string> problems;
+                IReadOnlyList<PluginDiagnostic> problems;
                 try
                 {
                     problems = diagnostics.Validate(manifest, package.Directory);
@@ -832,7 +832,7 @@ public sealed class PluginManager
                 {
                     foreach (var problem in problems)
                     {
-                        reports.Add($"{manifest.Name}: {problem}");
+                        reports.Add($"{manifest.Name}: {problem.Message}");
                     }
 
                     return false;
@@ -861,7 +861,7 @@ public sealed class PluginManager
             }
 
             loadStarted = true;
-            handle.Plugin.OnLoad(context);
+            handle.Plugin.OnLoad(context, CancellationToken.None).GetAwaiter().GetResult();
             if (_pendingFaults.TryGetValue(slot.Id, out var loadFault))
             {
                 reports.Add(CoreText.Get("Manager_Fault", manifest.Name, loadFault));
@@ -871,7 +871,7 @@ public sealed class PluginManager
             if (enable)
             {
                 enableStarted = true;
-                var result = handle.Plugin.OnEnable();
+                var result = handle.Plugin.OnEnable(CancellationToken.None).GetAwaiter().GetResult();
                 if (!result.Allowed)
                 {
                     reports.Add(CoreText.Get(
@@ -923,12 +923,12 @@ public sealed class PluginManager
             {
                 if (enableStarted)
                 {
-                    Cleanup(() => handle!.Plugin!.OnDisable());
+                    Cleanup(() => handle!.Plugin!.OnDisable(CancellationToken.None).GetAwaiter().GetResult());
                 }
 
                 if (loadStarted)
                 {
-                    Cleanup(() => handle!.Plugin!.OnUnload());
+                    Cleanup(() => handle!.Plugin!.OnUnload(CancellationToken.None).GetAwaiter().GetResult());
                 }
 
                 Cleanup(scope.ReleaseAll);

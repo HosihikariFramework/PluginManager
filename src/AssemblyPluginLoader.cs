@@ -22,22 +22,16 @@ public sealed class AssemblyPluginLoader(params Assembly[] sharedSources) : IPlu
     ];
 
     /// <summary>
-    /// 打包期要剔除的共享层程序集名。基地清单住在契约里，打包期与运行期读同一份（ADR-0019 / 0026）；
+    /// 打包期要剔除的共享层程序集名。基地清单是契约里的常量，打包期与运行期读同一份（ADR-0019 / 0026）；
     /// 载体追加的绑定程序集在运行期只按类型判身份。
     /// </summary>
-    public static IReadOnlyList<string> SharedAssemblyFileNames => PluginContractInfo.SharedAssemblyFileNames;
+    public static IReadOnlyList<string> SharedAssemblyFileNames => PluginContractInfo.BaseSharedAssemblyFileNames;
 
-    private readonly Type[] _sharedTypes = DeclareShared(sharedSources);
+    private readonly Type[] _sharedTypes = [.. BaseSharedTypes, .. DeclareShared(sharedSources)];
 
-    /// <summary>
-    /// 共享类型集，同时把载体交进来的程序集并进契约的共享层清单 ——
-    /// 打包期与运行期要同源，否则包里会出现本会被共享的副本。
-    /// </summary>
-    private static Type[] DeclareShared(Assembly[] sources)
-    {
-        PluginContractInfo.AddSharedAssemblies(sources.Select(source => source.GetName().Name + ".dll"));
-        return [.. BaseSharedTypes, .. sources.SelectMany(source => source.GetExportedTypes())];
-    }
+    /// <summary>载体交进来的程序集也算共享层：它的导出类型与契约同身份，插件包里不许有副本（ADR-0019）。</summary>
+    private static Type[] DeclareShared(Assembly[] sources) =>
+        [.. sources.SelectMany(source => source.GetExportedTypes())];
 
     public string Id => "assembly";
 

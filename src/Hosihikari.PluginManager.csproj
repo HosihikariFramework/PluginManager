@@ -57,10 +57,12 @@
        否则走包 —— 单独 clone 与 CI 走这条，插件作者也只有这一条。 -->
   <ItemGroup Condition="Exists('../../Plugin.Abstractions/src/Hosihikari.Plugin.Abstractions.csproj')">
     <ProjectReference Include="../../Plugin.Abstractions/src/Hosihikari.Plugin.Abstractions.csproj" />
+    <ProjectReference Include="../../Plugin.Abstractions/model/Hosihikari.Plugin.Model.csproj" />
   </ItemGroup>
 
   <ItemGroup Condition="!Exists('../../Plugin.Abstractions/src/Hosihikari.Plugin.Abstractions.csproj')">
-    <PackageReference Include="Hosihikari.Plugin.Abstractions" Version="[1.2.0]" />
+    <PackageReference Include="Hosihikari.Plugin.Abstractions" Version="[3.0.0]" />
+    <PackageReference Include="Hosihikari.Plugin.Model" Version="[3.0.0]" />
   </ItemGroup>
 
 </Project>

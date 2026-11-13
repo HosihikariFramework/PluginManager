@@ -6,7 +6,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 namespace Hosihikari.Testing;
 
 /// <summary>内存版 <see cref="IPluginContext"/>：日志、配置、数据目录与宿主服务都可直接检查或替换。</summary>
-public sealed class TestPluginContext : IPluginContext
+public sealed class TestPluginContext : ILoaderContext
 {
     private readonly Dictionary<string, IPluginLoader> _loaders = new(StringComparer.Ordinal);
     private readonly List<string> _faults = [];
@@ -63,7 +63,7 @@ public sealed class TestPluginContext : IPluginContext
         return _loaders.TryAdd(loader.Id, loader);
     }
 
-    public void ReportFault(string reason) => _faults.Add(reason);
+    public void ReportFault(PluginDiagnostic diagnostic) => _faults.Add(diagnostic.Message);
 
     private sealed class EmptyServices : IServiceProvider
     {

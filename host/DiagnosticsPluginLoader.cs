@@ -12,6 +12,6 @@ public sealed class DiagnosticsPluginLoader : IPluginLoader, IPluginLoaderDiagno
     public PluginHandle? Load(PluginManifest manifest, string packageDirectory, IPluginContext context) =>
         throw new InvalidOperationException("诊断没有拦下");
 
-    public IReadOnlyList<string> Validate(PluginManifest manifest, string packageDirectory) =>
-        ["缺少入口文件 Diagnostic.dll"];
+    public IReadOnlyList<PluginDiagnostic> Validate(PluginManifest manifest, string packageDirectory) =>
+        [PluginDiagnostic.Error("entry-missing", "缺少入口文件 Diagnostic.dll")];
 }

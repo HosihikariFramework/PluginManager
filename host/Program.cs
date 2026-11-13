@@ -458,7 +458,7 @@ File.WriteAllText(Path.Combine(probePackage, "manifest.json"), """
       "entry": "Probe.dll",
       "type": "hosihikari",
       "dependencies": [ { "name": "hosihikari" } ],
-      "extraInfo": { "api_version": "2", "manifest_version": "1", "loader": "guarded" }
+      "extraInfo": { "api_version": "3", "manifest_version": "1", "loader": "guarded" }
     }
     """);
 PluginManager? probeHost = null;
@@ -649,7 +649,7 @@ File.WriteAllText(Path.Combine(noEntryPackage, "manifest.json"), """
       "entry": "Lib.dll",
       "type": "hosihikari",
       "dependencies": [ { "name": "hosihikari" } ],
-      "extraInfo": { "api_version": "2", "manifest_version": "1", "loader": "assembly" }
+      "extraInfo": { "api_version": "3", "manifest_version": "1", "loader": "assembly" }
     }
     """);
 var noEntryLoaded = host.Load(noEntryPackage);
@@ -668,7 +668,7 @@ File.WriteAllText(Path.Combine(missingEntryPackage, "manifest.json"), """
       "entry": "Nope.dll",
       "type": "hosihikari",
       "dependencies": [ { "name": "hosihikari" } ],
-      "extraInfo": { "api_version": "2", "manifest_version": "1", "loader": "assembly" }
+      "extraInfo": { "api_version": "3", "manifest_version": "1", "loader": "assembly" }
     }
     """);
 var missingEntryLoaded = host.Load(missingEntryPackage);
@@ -685,7 +685,7 @@ var badFormatManifest = WriteManifest("bad-format", """
       "entry": "Foo.dll",
       "type": "hosihikari",
       "dependencies": [ { "name": "hosihikari" } ],
-      "extraInfo": { "api_version": "2", "manifest_version": "9" }
+      "extraInfo": { "api_version": "3", "manifest_version": "9" }
     }
     """);
 var badFormat = Packager.Pack(
@@ -728,7 +728,7 @@ var badNameManifest = WriteManifest("bad-name", """
       "entry": "Lib.dll",
       "type": "hosihikari",
       "dependencies": [ { "name": "hosihikari" } ],
-      "extraInfo": { "api_version": "2", "manifest_version": "1" }
+      "extraInfo": { "api_version": "3", "manifest_version": "1" }
     }
     """);
 var badName = Packager.Pack(
@@ -751,7 +751,7 @@ var withPackages = WriteManifest("with-packages", """
       "entry": "Bar.dll",
       "type": "hosihikari",
       "dependencies": [ { "name": "hosihikari" } ],
-      "extraInfo": { "api_version": "2", "manifest_version": "1", "packages": "System.IO.Hashing/10.0.0" }
+      "extraInfo": { "api_version": "3", "manifest_version": "1", "packages": "System.IO.Hashing/10.0.0" }
     }
     """);
 var declared = Packager.Pack(
@@ -875,7 +875,7 @@ void StageScript()
           "entry": "main.lua",
           "type": "hosihikari",
           "dependencies": [ { "name": "Bar" }, { "name": "hosihikari" } ],
-          "extraInfo": { "api_version": "2", "manifest_version": "1", "loader": "script" }
+          "extraInfo": { "api_version": "3", "manifest_version": "1", "loader": "script" }
         }
         """);
 }
@@ -891,7 +891,7 @@ void StageDiagnostic()
           "entry": "Diagnostic.dll",
           "type": "hosihikari",
           "dependencies": [ { "name": "hosihikari" } ],
-          "extraInfo": { "api_version": "2", "manifest_version": "1", "loader": "diagnostic" }
+          "extraInfo": { "api_version": "3", "manifest_version": "1", "loader": "diagnostic" }
         }
         """);
 }
@@ -907,7 +907,7 @@ void StagePinned()
           "entry": "Pinned.dll",
           "type": "hosihikari",
           "dependencies": [ { "name": "hosihikari" } ],
-          "extraInfo": { "api_version": "2", "manifest_version": "1", "loader": "pinned" }
+          "extraInfo": { "api_version": "3", "manifest_version": "1", "loader": "pinned" }
         }
         """);
 }
@@ -923,7 +923,7 @@ void StageGuarded(string name)
           "entry": "{{name}}.dll",
           "type": "hosihikari",
           "dependencies": [ { "name": "hosihikari" } ],
-          "extraInfo": { "api_version": "2", "manifest_version": "1", "loader": "guarded" }
+          "extraInfo": { "api_version": "3", "manifest_version": "1", "loader": "guarded" }
         }
         """);
 }
@@ -935,7 +935,7 @@ string ManifestLike(string name, string entry) => $$"""
       "entry": "{{entry}}",
       "type": "hosihikari",
       "dependencies": [ { "name": "hosihikari" } ],
-      "extraInfo": { "api_version": "2", "manifest_version": "1" }
+      "extraInfo": { "api_version": "3", "manifest_version": "1" }
     }
     """;
 
@@ -957,7 +957,7 @@ void StageThrowing()
           "entry": "Throwing.dll",
           "type": "hosihikari",
           "dependencies": [ { "name": "hosihikari" } ],
-          "extraInfo": { "api_version": "2", "manifest_version": "1", "loader": "throwing" }
+          "extraInfo": { "api_version": "3", "manifest_version": "1", "loader": "throwing" }
         }
         """);
 }
@@ -972,7 +972,7 @@ void StageWrongType()
           "name": "WrongType",
           "entry": "WrongType.dll",
           "type": "assembly",
-          "extraInfo": { "api_version": "2", "manifest_version": "1" }
+          "extraInfo": { "api_version": "3", "manifest_version": "1" }
         }
         """);
 }
@@ -988,7 +988,7 @@ void StageBadFormat()
           "entry": "BadFormat.dll",
           "type": "hosihikari",
           "dependencies": [ { "name": "hosihikari" } ],
-          "extraInfo": { "api_version": "2", "manifest_version": "9" }
+          "extraInfo": { "api_version": "3", "manifest_version": "9" }
         }
         """);
 }
@@ -1004,7 +1004,7 @@ void StageEscapingEntry()
           "entry": "../Outside.dll",
           "type": "hosihikari",
           "dependencies": [ { "name": "hosihikari" } ],
-          "extraInfo": { "api_version": "2", "manifest_version": "1" }
+          "extraInfo": { "api_version": "3", "manifest_version": "1" }
         }
         """);
 }

@@ -27,13 +27,13 @@ public sealed class PluginTestHost : IDisposable
 
     public void Load()
     {
-        Plugin.OnLoad(Context);
+        Plugin.OnLoad(Context, CancellationToken.None).GetAwaiter().GetResult();
         _hooks.Add("load");
     }
 
     public PluginHookResult Enable()
     {
-        var result = Plugin.OnEnable();
+        var result = Plugin.OnEnable(CancellationToken.None).GetAwaiter().GetResult();
         if (result.Allowed)
         {
             Context.Scope.Open();
@@ -46,7 +46,7 @@ public sealed class PluginTestHost : IDisposable
     public PluginHookResult Disable()
     {
         var wasEnabled = Context.Scope.Close();
-        var result = Plugin.OnDisable();
+        var result = Plugin.OnDisable(CancellationToken.None).GetAwaiter().GetResult();
         if (!result.Allowed && wasEnabled)
         {
             Context.Scope.Open();
@@ -61,7 +61,7 @@ public sealed class PluginTestHost : IDisposable
         Context.Scope.Close();
         try
         {
-            Plugin.OnUnload();
+            Plugin.OnUnload(CancellationToken.None).GetAwaiter().GetResult();
         }
         finally
         {

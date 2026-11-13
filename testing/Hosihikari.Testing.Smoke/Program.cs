@@ -57,7 +57,7 @@ using (var host = new PluginTestHost(probe, "Probe"))
         first && !duplicate && services.Get<IProbeService>()?.Name == "first",
         services.Get<IProbeService>()?.Name ?? "（没有）"));
 
-    host.Context.ReportFault("probe fault");
+    host.Context.ReportFault(PluginDiagnostic.Error("probe", "probe fault"));
     checks.Add(("故障报告可检查", host.Context.Faults.Contains("probe fault"), string.Join("；", host.Context.Faults)));
 }
 
@@ -152,7 +152,7 @@ using (var harness = new PluginManagerHarness())
           "type": "hosihikari",
           "version": "1.0.0",
           "dependencies": [ { "name": "hosihikari" } ],
-          "extraInfo": { "api_version": "2", "manifest_version": "1", "loader": "probe" }
+          "extraInfo": { "api_version": "3", "manifest_version": "1", "loader": "probe" }
         }
         """);
     var loaded = harness.Load("HarnessProbe");
@@ -186,18 +186,32 @@ sealed class ProbePlugin : IPlugin
 {
     public IPluginContext? Context { get; private set; }
 
-    public void OnLoad(IPluginContext context) => Context = context;
-    public PluginHookResult OnEnable() => PluginHookResult.Allow();
-    public PluginHookResult OnDisable() => PluginHookResult.Allow();
-    public void OnUnload() { }
+    public ValueTask OnLoad(IPluginContext context, CancellationToken cancellationToken)
+    {
+        Context = context;
+        return ValueTask.CompletedTask;
+    }
+
+    public ValueTask<PluginHookResult> OnEnable(CancellationToken cancellationToken) =>
+        ValueTask.FromResult(PluginHookResult.Allow());
+
+    public ValueTask<PluginHookResult> OnDisable(CancellationToken cancellationToken) =>
+        ValueTask.FromResult(PluginHookResult.Allow());
+
+    public ValueTask OnUnload(CancellationToken cancellationToken) => ValueTask.CompletedTask;
 }
 
 sealed class RefusePlugin : IPlugin
 {
-    public void OnLoad(IPluginContext context) { }
-    public PluginHookResult OnEnable() => PluginHookResult.Refuse("not now");
-    public PluginHookResult OnDisable() => PluginHookResult.Allow();
-    public void OnUnload() { }
+    public ValueTask OnLoad(IPluginContext context, CancellationToken cancellationToken) => ValueTask.CompletedTask;
+
+    public ValueTask<PluginHookResult> OnEnable(CancellationToken cancellationToken) =>
+        ValueTask.FromResult(PluginHookResult.Refuse("not now"));
+
+    public ValueTask<PluginHookResult> OnDisable(CancellationToken cancellationToken) =>
+        ValueTask.FromResult(PluginHookResult.Allow());
+
+    public ValueTask OnUnload(CancellationToken cancellationToken) => ValueTask.CompletedTask;
 }
 
 sealed class GatePlugin : IPlugin
@@ -205,16 +219,21 @@ sealed class GatePlugin : IPlugin
     public int Seen { get; private set; }
     public int Scheduled { get; private set; }
 
-    public void OnLoad(IPluginContext context)
+    public ValueTask OnLoad(IPluginContext context, CancellationToken cancellationToken)
     {
         context.Events.Subscribe<string>(_ => Seen++);
         context.Scheduler.ScheduleOnce(TimeSpan.Zero, () => Scheduled++);
         context.PluginServices.Register<IProbeService>(new ProbeService("from-plugin"));
+        return ValueTask.CompletedTask;
     }
 
-    public PluginHookResult OnEnable() => PluginHookResult.Allow();
-    public PluginHookResult OnDisable() => PluginHookResult.Allow();
-    public void OnUnload() { }
+    public ValueTask<PluginHookResult> OnEnable(CancellationToken cancellationToken) =>
+        ValueTask.FromResult(PluginHookResult.Allow());
+
+    public ValueTask<PluginHookResult> OnDisable(CancellationToken cancellationToken) =>
+        ValueTask.FromResult(PluginHookResult.Allow());
+
+    public ValueTask OnUnload(CancellationToken cancellationToken) => ValueTask.CompletedTask;
 }
 
 sealed class UnloadPublishPlugin : IPlugin
@@ -222,25 +241,42 @@ sealed class UnloadPublishPlugin : IPlugin
     private IPluginContext? _context;
     public int Seen { get; private set; }
 
-    public void OnLoad(IPluginContext context)
+    public ValueTask OnLoad(IPluginContext context, CancellationToken cancellationToken)
     {
         _context = context;
         context.Events.Subscribe<string>(_ => Seen++);
+        return ValueTask.CompletedTask;
     }
 
-    public PluginHookResult OnEnable() => PluginHookResult.Allow();
-    public PluginHookResult OnDisable() => PluginHookResult.Allow();
-    public void OnUnload() => _context?.Events.Publish("during-unload");
+    public ValueTask<PluginHookResult> OnEnable(CancellationToken cancellationToken) =>
+        ValueTask.FromResult(PluginHookResult.Allow());
+
+    public ValueTask<PluginHookResult> OnDisable(CancellationToken cancellationToken) =>
+        ValueTask.FromResult(PluginHookResult.Allow());
+
+    public ValueTask OnUnload(CancellationToken cancellationToken)
+    {
+        _context?.Events.Publish("during-unload");
+        return ValueTask.CompletedTask;
+    }
 }
 
 sealed class ThrowUnloadPlugin : IPlugin
 {
-    public void OnLoad(IPluginContext context) =>
+    public ValueTask OnLoad(IPluginContext context, CancellationToken cancellationToken)
+    {
         context.PluginServices.Register<IProbeService>(new ProbeService("throw-unload"));
+        return ValueTask.CompletedTask;
+    }
 
-    public PluginHookResult OnEnable() => PluginHookResult.Allow();
-    public PluginHookResult OnDisable() => PluginHookResult.Allow();
-    public void OnUnload() => throw new InvalidOperationException("unload failed");
+    public ValueTask<PluginHookResult> OnEnable(CancellationToken cancellationToken) =>
+        ValueTask.FromResult(PluginHookResult.Allow());
+
+    public ValueTask<PluginHookResult> OnDisable(CancellationToken cancellationToken) =>
+        ValueTask.FromResult(PluginHookResult.Allow());
+
+    public ValueTask OnUnload(CancellationToken cancellationToken) =>
+        throw new InvalidOperationException("unload failed");
 }
 
 sealed class ProbeLoader : IPluginLoader
