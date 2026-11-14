@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Text.Json;
 using Hosihikari.Internal;
 using McMaster.NETCore.Plugins;
 using Microsoft.Extensions.Configuration;
@@ -22,10 +23,29 @@ public sealed class AssemblyPluginLoader(params Assembly[] sharedSources) : IPlu
     ];
 
     /// <summary>
-    /// 打包期要剔除的共享层程序集名。基地清单是契约里的常量，打包期与运行期读同一份（ADR-0019 / 0026）；
-    /// 载体追加的绑定程序集在运行期只按类型判身份。
+    /// 基地清单：契约与它引用的抽象包（ADR-0019）。载体自己的绑定程序集在它的包清单里，
+    /// 由 <see cref="SharedLayerFor"/> 并进来。
     /// </summary>
     public static IReadOnlyList<string> SharedAssemblyFileNames => PluginContractInfo.BaseSharedAssemblyFileNames;
+
+    /// <summary>
+    /// 目标载体的完整共享层：基地清单 + 该载体包 <c>carrier.sharedAssemblies</c> 声明的程序集
+    /// （ADR-0061）。运行期与打包期读同一份，插件包里才剔得干净。
+    /// </summary>
+    /// <param name="carrierPackageDirectory">载体包目录。</param>
+    public static IReadOnlyList<string> SharedLayerFor(string carrierPackageDirectory)
+    {
+        var manifestPath = Path.Combine(carrierPackageDirectory, "hosihikari.json");
+        if (!File.Exists(manifestPath))
+        {
+            return PluginContractInfo.BaseSharedAssemblyFileNames;
+        }
+
+        var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+        var manifest = JsonSerializer.Deserialize<PluginManifest>(File.ReadAllText(manifestPath), options);
+        var declared = manifest?.Carrier?.SharedAssemblies ?? [];
+        return [.. PluginContractInfo.BaseSharedAssemblyFileNames, .. declared];
+    }
 
     private readonly Type[] _sharedTypes = [.. BaseSharedTypes, .. DeclareShared(sharedSources)];
 

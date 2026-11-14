@@ -139,8 +139,14 @@
   <data name="MigrateNotes" xml:space="preserve">
     <value>Aún queda por rellenar a mano:</value>
   </data>
+  <data name="UsageCarrier" xml:space="preserve">
+    <value>  --carrier &lt;directorio del paquete de portador instalado&gt;  excluir también su capa declarada</value>
+  </data>
   <data name="UsageMigrate" xml:space="preserve">
     <value>  Hosihikari.Plugin.Pack migrate &lt;directorio del paquete&gt;</value>
+  </data>
+  <data name="CarrierMissing" xml:space="preserve">
+    <value>el directorio del portador {0} no existe</value>
   </data>
   <data name="CarrierSharedMissing" xml:space="preserve">
     <value>carrier.sharedAssemblies enumera {0}, que no está en el paquete</value>

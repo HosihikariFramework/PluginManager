@@ -139,8 +139,14 @@
   <data name="MigrateNotes" xml:space="preserve">
     <value>Still to fill in by hand:</value>
   </data>
+  <data name="UsageCarrier" xml:space="preserve">
+    <value>  --carrier &lt;installed carrier package directory&gt;  share its declared layer too</value>
+  </data>
   <data name="UsageMigrate" xml:space="preserve">
     <value>  Hosihikari.Plugin.Pack migrate &lt;package directory&gt;</value>
+  </data>
+  <data name="CarrierMissing" xml:space="preserve">
+    <value>the carrier directory {0} does not exist</value>
   </data>
   <data name="CarrierSharedMissing" xml:space="preserve">
     <value>carrier.sharedAssemblies lists {0}, which is not in the package</value>

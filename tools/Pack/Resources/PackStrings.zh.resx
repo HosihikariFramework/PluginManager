@@ -139,8 +139,14 @@
   <data name="MigrateNotes" xml:space="preserve">
     <value>还需要手工补：</value>
   </data>
+  <data name="UsageCarrier" xml:space="preserve">
+    <value>  --carrier &lt;已安装的载体包目录&gt;  一并剔除它声明的共享层</value>
+  </data>
   <data name="UsageMigrate" xml:space="preserve">
     <value>  Hosihikari.Plugin.Pack migrate &lt;包目录&gt;</value>
+  </data>
+  <data name="CarrierMissing" xml:space="preserve">
+    <value>载体目录 {0} 不存在</value>
   </data>
   <data name="CarrierSharedMissing" xml:space="preserve">
     <value>carrier.sharedAssemblies 列出的 {0} 不在包里</value>

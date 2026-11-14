@@ -3,8 +3,8 @@ using Hosihikari.Internal;
 using Hosihikari.Internal.Pack;
 
 // 用法：
-//   Hosihikari.Plugin.Pack pack-loader <构建输出目录> <清单路径> <输出根目录>
-//   Hosihikari.Plugin.Pack pack-plugin   <构建输出目录> <清单路径> <输出根目录>
+//   Hosihikari.Plugin.Pack pack-loader <构建输出目录> <清单路径> <输出根目录> [--carrier <载体包目录>]
+//   Hosihikari.Plugin.Pack pack-plugin   <构建输出目录> <清单路径> <输出根目录> [--carrier <载体包目录>]
 //   Hosihikari.Plugin.Pack pack-plugin-from-assembly <入口程序集> <清单路径> <输出根目录>
 //   Hosihikari.Plugin.Pack migrate <包目录>
 //   Hosihikari.Plugin.Pack <构建输出目录> <清单路径> <输出根目录> [--shared <程序集文件名>]...
@@ -52,9 +52,28 @@ if (args.Length == 2 && args[0] == "migrate")
 
 // pack-loader / pack-plugin 都用核心的共享层清单剔除共享层副本（ADR-0036）；
 // 两个名字只是说明调用方，规则只有一份。显式清单那条留给自定义共享层的载体。
-if (args.Length == 4 && (args[0] == "pack-loader" || args[0] == "pack-plugin"))
+if (args.Length >= 4 && (args[0] == "pack-loader" || args[0] == "pack-plugin"))
 {
-    return PackLoader(args[1], args[2], args[3]);
+    // --carrier 指到已装好的载体包，读它声明的共享层（ADR-0061）；不传就只剔基地清单。
+    string? carrier = null;
+    for (var i = 4; i < args.Length; i++)
+    {
+        if (args[i] != "--carrier" || i + 1 >= args.Length)
+        {
+            Console.WriteLine(PackText.Get("UnrecognizedArgument", args[i]));
+            return 2;
+        }
+
+        carrier = args[++i];
+    }
+
+    if (carrier is not null && !Directory.Exists(carrier))
+    {
+        Console.WriteLine(PackText.Get("CarrierMissing", carrier));
+        return 2;
+    }
+
+    return PackLoader(args[1], args[2], args[3], carrier);
 }
 
 // MSBuild 的 $(TargetPath) 是文件路径，不会有 $(TargetDir) 的收尾反斜杠；
@@ -68,7 +87,7 @@ if (args.Length == 4 && args[0] == "pack-plugin-from-assembly")
         return 2;
     }
 
-    return PackLoader(directory, args[2], args[3]);
+    return PackLoader(directory, args[2], args[3], null);
 }
 
 // --shared 可以重复，写的是**目标载体**的共享层清单 —— 它由载体声明，
@@ -86,6 +105,7 @@ static void PrintUsage()
     Console.WriteLine(PackText.Get("UsagePackPlugin"));
     Console.WriteLine(PackText.Get("UsagePackAssembly"));
     Console.WriteLine(PackText.Get("UsageMigrate"));
+    Console.WriteLine(PackText.Get("UsageCarrier"));
     Console.WriteLine(PackText.Get("UsageShared"));
 }
 
@@ -122,11 +142,13 @@ foreach (var problem in result.Problems)
 
 return 1;
 
-// Loader 包的装配：先按核心的共享层清单剔除副本，再交给 Packager 做常规校验与复制。
-// 共享清单只有这一份（AssemblyPluginLoader.SharedAssemblyFileNames），各加载器仓的 pack 脚本 不再各写一份。
-static int PackLoader(string sourceDirectory, string manifestPath, string outputRoot)
+// Loader 包的装配：先按共享层清单剔除副本，再交给 Packager 做常规校验与复制。
+// 共享清单 = 契约的基地清单 + 目标载体声明的那份（ADR-0061）；载体包用 --carrier 指定。
+static int PackLoader(string sourceDirectory, string manifestPath, string outputRoot, string? carrierDirectory)
 {
-    var shared = AssemblyPluginLoader.SharedAssemblyFileNames;
+    var shared = carrierDirectory is null
+        ? AssemblyPluginLoader.SharedAssemblyFileNames
+        : AssemblyPluginLoader.SharedLayerFor(carrierDirectory);
     var sharedBases = shared
         .Select(name => Path.GetFileNameWithoutExtension(name))
         .ToHashSet(StringComparer.OrdinalIgnoreCase);

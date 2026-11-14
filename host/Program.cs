@@ -708,6 +708,28 @@ checks.Add((
     envelope ?? "（没打出包）"
 ));
 
+// A63：载体声明的共享层与基地清单并集；没有载体目录时只回基地清单（ADR-0061）。
+// 打包期靠它把绑定程序集从插件包里剔掉，运行期也靠它判身份。
+var carrierHome = Path.Combine(stage, "carrier-with-bindings");
+Directory.CreateDirectory(carrierHome);
+File.WriteAllText(Path.Combine(carrierHome, "hosihikari.json"), """
+    {
+      "schemaVersion": 1, "name": "hosihikari", "entry": "hosihikari.dll", "version": "1.2.3",
+      "loader": "assembly", "kind": "carrier", "apiVersion": 3,
+      "dependencies": [ { "name": "hosihikari" } ],
+      "carrier": { "sharedAssemblies": [ "Hosihikari.Bindings.Stub.dll" ], "components": [] }
+    }
+    """);
+var mergedLayer = AssemblyPluginLoader.SharedLayerFor(carrierHome);
+checks.Add((
+    "A63 载体共享层并入基地清单",
+    mergedLayer.Contains("Hosihikari.Bindings.Stub.dll")
+        && mergedLayer.Contains("Hosihikari.Plugin.Abstractions.dll")
+        && !AssemblyPluginLoader.SharedLayerFor(Path.Combine(stage, "no-such-carrier"))
+            .Contains("Hosihikari.Bindings.Stub.dll"),
+    string.Join(", ", mergedLayer)
+));
+
 // A29：拒绝启用留在册、未启用（ADR-0030）
 var guardedLoaded = host.Load(Path.Combine(stage, "parented", "Guarded"));
 guardedLoader.RefuseEnable = true;

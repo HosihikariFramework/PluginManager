@@ -139,8 +139,14 @@
   <data name="MigrateNotes" xml:space="preserve">
     <value>Reste à compléter à la main :</value>
   </data>
+  <data name="UsageCarrier" xml:space="preserve">
+    <value>  --carrier &lt;répertoire du paquet de transporteur installé&gt;  exclure aussi sa couche déclarée</value>
+  </data>
   <data name="UsageMigrate" xml:space="preserve">
     <value>  Hosihikari.Plugin.Pack migrate &lt;répertoire du paquet&gt;</value>
+  </data>
+  <data name="CarrierMissing" xml:space="preserve">
+    <value>le répertoire du transporteur {0} n'existe pas</value>
   </data>
   <data name="CarrierSharedMissing" xml:space="preserve">
     <value>carrier.sharedAssemblies liste {0}, absent du paquet</value>
