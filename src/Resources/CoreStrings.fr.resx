@@ -133,6 +133,18 @@
   <data name="Manager_HookTimeout" xml:space="preserve">
     <value>{0} : le hook {1} a expiré ({2}) ; attente abandonnée</value>
   </data>
+  <data name="Manager_ComponentThrew" xml:space="preserve">
+    <value>{0} : le composant de transport a levé une exception - {1}</value>
+  </data>
+  <data name="Manager_ComponentTimeout" xml:space="preserve">
+    <value>{0} : le composant de transport n'a pas terminé en {1} ; attente abandonnée</value>
+  </data>
+  <data name="Manager_ComponentAssemblyFailed" xml:space="preserve">
+    <value>impossible de charger l'assembly de composant {0} - {1}</value>
+  </data>
+  <data name="Manager_ComponentTypeFailed" xml:space="preserve">
+    <value>le type de composant {0} est absent ou n'implémente pas ICarrierComponent</value>
+  </data>
   <data name="Common_NoReason" xml:space="preserve">
     <value>aucune raison fournie</value>
   </data>

@@ -133,6 +133,18 @@
   <data name="Manager_HookTimeout" xml:space="preserve">
     <value>{0}: {1} 钩子超时（{2}） —— 不再等它</value>
   </data>
+  <data name="Manager_ComponentThrew" xml:space="preserve">
+    <value>{0}: 载体组件抛出 —— {1}</value>
+  </data>
+  <data name="Manager_ComponentTimeout" xml:space="preserve">
+    <value>{0}: 载体组件在 {1} 内没收尾 —— 不再等它</value>
+  </data>
+  <data name="Manager_ComponentAssemblyFailed" xml:space="preserve">
+    <value>载体组件程序集 {0} 装载失败 —— {1}</value>
+  </data>
+  <data name="Manager_ComponentTypeFailed" xml:space="preserve">
+    <value>载体组件类型 {0} 不存在或没有实现 ICarrierComponent</value>
+  </data>
   <data name="Common_NoReason" xml:space="preserve">
     <value>未给原因</value>
   </data>

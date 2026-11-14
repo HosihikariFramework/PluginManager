@@ -133,6 +133,18 @@
   <data name="Manager_HookTimeout" xml:space="preserve">
     <value>{0}: время ожидания хука {1} истекло ({2}); ожидание прекращено</value>
   </data>
+  <data name="Manager_ComponentThrew" xml:space="preserve">
+    <value>{0}: компонент носителя выбросил исключение - {1}</value>
+  </data>
+  <data name="Manager_ComponentTimeout" xml:space="preserve">
+    <value>{0}: компонент носителя не завершился за {1}; ожидание прекращено</value>
+  </data>
+  <data name="Manager_ComponentAssemblyFailed" xml:space="preserve">
+    <value>не удалось загрузить сборку компонента {0} - {1}</value>
+  </data>
+  <data name="Manager_ComponentTypeFailed" xml:space="preserve">
+    <value>тип компонента {0} отсутствует или не реализует ICarrierComponent</value>
+  </data>
   <data name="Common_NoReason" xml:space="preserve">
     <value>причина не указана</value>
   </data>

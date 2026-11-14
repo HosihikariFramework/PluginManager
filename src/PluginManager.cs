@@ -21,6 +21,7 @@ public sealed class PluginManager
 
     private readonly TimeSpan _hookTimeout;
     private readonly TimeSpan _unloadVerificationTimeout;
+    private readonly TimeSpan _componentStopTimeout;
     private readonly Action<string> _reportFault;
     private readonly IServiceProvider? _carrierServices;
     private readonly Action<string>? _onRemoved;
@@ -39,6 +40,8 @@ public sealed class PluginManager
     private readonly HashSet<Guid> _loaderIds = [];
     private readonly Dictionary<Guid, List<IPluginLoader>> _registeredLoaders = [];
     private readonly List<IPluginLoader> _loaders = [];
+    private readonly List<ICarrierComponent> _components = [];
+    private bool _componentsStarted;
 
     public PluginManager(
         string pluginsRoot,
@@ -73,6 +76,8 @@ public sealed class PluginManager
         _hookTimeout = ValidateTimeout(options.HookTimeout, nameof(options), "HookTimeout");
         _unloadVerificationTimeout = ValidateTimeout(
             options.UnloadVerificationTimeout, nameof(options), "UnloadVerificationTimeout");
+        _componentStopTimeout = ValidateTimeout(
+            options.ComponentStopTimeout, nameof(options), "ComponentStopTimeout");
 
         _pluginsRoot = pluginsRoot;
         _dataRoot = dataRoot;
@@ -271,6 +276,142 @@ public sealed class PluginManager
     /// <summary>载体适配器要把载体事件并进来，所以事件总线得对外可达（ADR-0007）。</summary>
     public IEventBus Events => _events;
 
+    /// <summary>
+    /// 启动载体包声明的进程级组件（ADR-0061）。在事件分发对插件开启**之前**、由载体在服务端线程上调用。
+    /// 任何一个组件启动失败就返回 <see langword="false"/>，整个启动按失败处理；已经启动的照旧留着，
+    /// 由调用方决定是否 <see cref="StopComponents"/>。
+    /// </summary>
+    /// <param name="carrierPackageDirectory">载体包目录；组件程序集从它里面装。</param>
+    /// <param name="components">清单 <c>carrier.components</c> 的声明。</param>
+    /// <returns>全部启动成功为 <see langword="true"/>。</returns>
+    public bool StartComponents(
+        string carrierPackageDirectory,
+        IReadOnlyList<ManifestCarrierComponent> components)
+    {
+        ArgumentNullException.ThrowIfNull(components);
+        if (_componentsStarted)
+        {
+            return true;
+        }
+
+        var reports = new List<string>();
+
+        // 组件类型住共享层（ADR-0026 / 0061），按约定名从默认上下文解析；载体包里的私有程序集按路径装。
+        var assemblies = new Dictionary<string, System.Reflection.Assembly>(StringComparer.OrdinalIgnoreCase);
+        foreach (var component in components)
+        {
+            if (!assemblies.TryGetValue(component.Assembly, out var assembly))
+            {
+                var path = Path.Combine(carrierPackageDirectory, component.Assembly);
+                try
+                {
+                    assemblies[component.Assembly] = assembly = File.Exists(path)
+                        ? System.Reflection.Assembly.LoadFrom(path)
+                        : System.Reflection.Assembly.Load(new System.Reflection.AssemblyName(
+                            Path.GetFileNameWithoutExtension(component.Assembly)));
+                }
+                catch (Exception ex)
+                {
+                    reports.Add(CoreText.Get(
+                        "Manager_ComponentAssemblyFailed",
+                        component.Assembly,
+                        ex.Demystify()));
+                    continue;
+                }
+            }
+
+            if (assembly.GetType(component.Type, throwOnError: false) is not { } type
+                || Activator.CreateInstance(type) is not ICarrierComponent instance)
+            {
+                reports.Add(CoreText.Get("Manager_ComponentTypeFailed", component.Type));
+                continue;
+            }
+
+            var context = new CarrierComponentContext(_events, _loggerFactory.CreateLogger(type.FullName ?? type.Name));
+            if (!TryInvokeComponent(component.Type, token => instance.StartAsync(context, token), reports))
+            {
+                continue;
+            }
+
+            lock (_gate)
+            {
+                _components.Add(instance);
+            }
+
+            if (!_componentsStarted)
+            {
+                _componentsStarted = true;
+            }
+        }
+
+        ReportAll(reports);
+        lock (_gate)
+        {
+            _componentsStarted = true;
+        }
+
+        return reports.Count == 0;
+    }
+
+    /// <summary>
+    /// 停止组件（ADR-0061）。在事件分发停止**之前**调用；逆着启动顺序停。
+    /// 每个组件各用一份 <see cref="PluginManagerOptions.ComponentStopTimeout"/> 预算：
+    /// 超时不再等待并记账，继续停下一个与后续退出（ADR-0063）。
+    /// </summary>
+    public void StopComponents()
+    {
+        ICarrierComponent[] components;
+        lock (_gate)
+        {
+            components = [.. _components];
+            _components.Clear();
+            _componentsStarted = false;
+        }
+
+        var reports = new List<string>();
+        for (var i = components.Length - 1; i >= 0; i--)
+        {
+            var component = components[i];
+            var name = component.GetType().FullName ?? component.GetType().Name;
+            TryInvokeComponent(name, component.StopAsync, reports);
+        }
+
+        ReportAll(reports);
+    }
+
+    /// <summary>
+    /// 组件的启动/停止在服务端线程上调用，且调用方可能正是装 <c>SynchronizationContext</c> 的那个线程 ——
+    /// 与钩子同样投到线程池再阻塞等（ADR-0059 / 0061）。
+    /// </summary>
+    private bool TryInvokeComponent(
+        string name,
+        Func<CancellationToken, ValueTask> call,
+        List<string> reports)
+    {
+        using var budget = new CancellationTokenSource();
+        if (_componentStopTimeout != Timeout.InfiniteTimeSpan)
+        {
+            budget.CancelAfter(_componentStopTimeout);
+        }
+
+        var task = RunOffPool(() => call(budget.Token));
+        try
+        {
+            task.WaitAsync(budget.Token).GetAwaiter().GetResult();
+            return true;
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException || !budget.IsCancellationRequested)
+        {
+            reports.Add(CoreText.Get("Manager_ComponentThrew", name, ex.Demystify()));
+            return false;
+        }
+        catch (OperationCanceledException)
+        {
+            reports.Add(CoreText.Get("Manager_ComponentTimeout", name, _componentStopTimeout));
+            return false;
+        }
+    }
+
     /// <summary>自持态：插件包就在 <c>plugins/</c> 下，由我们枚举、按依赖排序后逐个装（ADR-0018）。</summary>
     public void LoadAll()
     {
@@ -445,7 +586,7 @@ public sealed class PluginManager
         // 预算用 CTS 的 CancelAfter 而不是 WaitAsync(TimeSpan)：后者的定时器要等 Task 完成才摘掉，
         // 会把钩子闭包（进而把插件的 ALC）钉住一整个超时时长（ADR-0023）。
         using var budget = CreateHookBudget();
-        var task = Task.Run(() => call(budget.Token).AsTask());
+        var task = RunOffPool(() => call(budget.Token));
         try
         {
             result = task.WaitAsync(budget.Token).GetAwaiter().GetResult();
@@ -475,6 +616,69 @@ public sealed class PluginManager
             },
             reports,
             out _);
+
+    /// <summary>
+    /// 在专起的一根线程上跑钩子，而不是 <see cref="Task.Run(Func{Task})"/>。
+    ///
+    /// 两条理由，都是实测出来的：一是调用方要阻塞等，线程池一旦被别的阻塞等待占满就不会再补员，
+    /// 钩子的续体排不上，<c>WaitAsync</c> 的计时器到点把它当超时；二是这些线程不该有
+    /// <c>SynchronizationContext</c>，专起线程天然没有（线程池线程可能被调用方污染）。
+    /// </summary>
+    private static Task<T> RunOffPool<T>(Func<ValueTask<T>> call)
+    {
+        var completion = new TaskCompletionSource<T>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var thread = new Thread(() =>
+        {
+            try
+            {
+                var pending = call();
+                if (pending.IsCompletedSuccessfully)
+                {
+                    completion.TrySetResult(pending.Result);
+                    return;
+                }
+
+                pending.AsTask().ContinueWith(
+                    static (finished, state) =>
+                    {
+                        var target = (TaskCompletionSource<T>)state!;
+                        if (finished.IsCompletedSuccessfully)
+                        {
+                            target.TrySetResult(finished.Result);
+                        }
+                        else if (finished.IsCanceled)
+                        {
+                            target.TrySetCanceled();
+                        }
+                        else
+                        {
+                            target.TrySetException(finished.Exception!);
+                        }
+                    },
+                    completion,
+                    CancellationToken.None,
+                    TaskContinuationOptions.ExecuteSynchronously,
+                    TaskScheduler.Default);
+            }
+            catch (Exception ex)
+            {
+                completion.TrySetException(ex);
+            }
+        })
+        {
+            IsBackground = true,
+            Name = "hosihikari-hook",
+        };
+        thread.Start();
+        return completion.Task;
+    }
+
+    private static Task RunOffPool(Func<ValueTask> call) =>
+        RunOffPool<bool>(async () =>
+        {
+            await call().ConfigureAwait(false);
+            return true;
+        });
 
     private CancellationTokenSource CreateHookBudget()
     {

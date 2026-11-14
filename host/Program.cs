@@ -618,6 +618,66 @@ checks.Add((
         .Concat(carrierRealType.Problems))
 ));
 
+// A61：组件阶段按清单装配、逆序停止，且拿到的是总线与日志（ADR-0061）。
+// A62：停止超时只记账、不再等待，退出不被挂住的组件拖住（ADR-0063 的第三段）。
+var componentHost = new PluginManager(
+    pluginsRoot,
+    Path.Combine(stage, "components", "data"),
+    Path.Combine(stage, "components", "config"),
+    _ => { },
+    null,
+    null,
+    new PluginManagerOptions { ComponentStopTimeout = TimeSpan.FromMilliseconds(200) });
+var componentSource = Path.Combine(stage, "component-source");
+Directory.CreateDirectory(componentSource);
+File.Copy(
+    Path.Combine(AppContext.BaseDirectory, "Hosihikari.Bindings.Stub.dll"),
+    Path.Combine(componentSource, "probe.dll"),
+    overwrite: true);
+var componentStarted = componentHost.StartComponents(
+    componentSource,
+    [new ManifestCarrierComponent
+    {
+        Assembly = "probe.dll",
+        Type = "Hosihikari.Bindings.ProbeCarrierComponent",
+    }]);
+var componentSawBus = ProbeCarrierComponent.SeenBus is not null;
+ProbeCarrierComponent.HangOnStop = true;
+var componentStopWatch = System.Diagnostics.Stopwatch.StartNew();
+componentHost.StopComponents();
+componentStopWatch.Stop();
+checks.Add((
+    "A61 组件按清单启动并拿到总线，停止超时不拖住退出",
+    componentStarted && componentSawBus
+        && ProbeCarrierComponent.Started == 1 && ProbeCarrierComponent.Stopped >= 1
+        && componentStopWatch.Elapsed < TimeSpan.FromSeconds(5),
+    $"started={componentStarted} sawBus={componentSawBus} "
+        + $"starts={ProbeCarrierComponent.Started} stops={ProbeCarrierComponent.Stopped} "
+        + $"elapsed={componentStopWatch.ElapsedMilliseconds}ms"
+));
+
+// A62：组件类型不存在、程序集不存在时启动失败并记账，不抛。
+var badComponentHost = new PluginManager(
+    pluginsRoot,
+    Path.Combine(stage, "components-bad", "data"),
+    Path.Combine(stage, "components-bad", "config"),
+    _ => { });
+var badComponentStarted = badComponentHost.StartComponents(
+    componentSource,
+    [
+        new ManifestCarrierComponent { Assembly = "nope.dll", Type = "Nope.Component" },
+        new ManifestCarrierComponent
+        {
+            Assembly = "probe.dll",
+            Type = "Hosihikari.Bindings.NoSuchComponent",
+        },
+    ]);
+checks.Add((
+    "A62 组件装配失败只记账",
+    !badComponentStarted,
+    $"started={badComponentStarted}"
+));
+
 // A60：信封里的展示字段是单向派生副本：清单有就写，没有就不写（ADR-0058）。
 // 它是父级与面板读的那一份，作者不该为它再手写一遍。
 var envelope = BuildEnvelopeProbe("""

@@ -133,6 +133,18 @@
   <data name="Manager_HookTimeout" xml:space="preserve">
     <value>{0}: {1} hook timed out ({2}); not waiting for it</value>
   </data>
+  <data name="Manager_ComponentThrew" xml:space="preserve">
+    <value>{0}: carrier component threw - {1}</value>
+  </data>
+  <data name="Manager_ComponentTimeout" xml:space="preserve">
+    <value>{0}: carrier component did not finish within {1}; not waiting</value>
+  </data>
+  <data name="Manager_ComponentAssemblyFailed" xml:space="preserve">
+    <value>carrier component assembly {0} could not be loaded - {1}</value>
+  </data>
+  <data name="Manager_ComponentTypeFailed" xml:space="preserve">
+    <value>carrier component type {0} is missing or does not implement ICarrierComponent</value>
+  </data>
   <data name="Common_NoReason" xml:space="preserve">
     <value>no reason given</value>
   </data>
