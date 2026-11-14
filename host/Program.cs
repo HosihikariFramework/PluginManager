@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Runtime.Loader;
 using Hosihikari;
@@ -41,9 +41,13 @@ var dataRoot = Path.Combine(stage, "data");
 var configRoot = Path.Combine(stage, "config", "hosihikari");
 var reported = new List<string>();
 
-// 目标载体的共享层清单。打包工具与运行期必须拿同一份 —— 一个来自这里，另一个来自
-// AssemblyPluginLoader 的构造（ADR-0021 / 0026）。这个宿主用的是替身载体绑定。
-var sharedLayer = new[] { "Hosihikari.Plugin.Abstractions.dll", "Hosihikari.Bindings.Stub.dll" };
+// 目标载体的共享层清单。基地清单与运行期同源（ADR-0021 / 0026）；这个宿主再追加替身载体的绑定。
+// 模型程序集是基地清单的一员（ADR-0059），A2 因此能抓到漏进包里的 Hosihikari.Plugin.Model.dll。
+string[] sharedLayer =
+[
+    .. AssemblyPluginLoader.SharedAssemblyFileNames,
+    "Hosihikari.Bindings.Stub.dll",
+];
 
 Stage("Foo", withConfig: true);
 Stage("Bar", withConfig: false);
@@ -58,6 +62,9 @@ StageThrowing();
 StageWrongType();
 StageBadFormat();
 StageEscapingEntry();
+StageHooking("Awaiting");
+StageHooking("Hanging");
+StageHooking("LoaderKind", packageKind: "loader");
 
 // 宿主服务用现成的包拼装（ADR-0007）：DI + 日志。载体对象经服务解析交给插件（ADR-0019）。
 // Loader 的可读失败原因走插件日志，所以测试同时收一份。
@@ -205,21 +212,21 @@ File.Copy(
     Path.Combine(AppContext.BaseDirectory, "Hosihikari.Plugin.Abstractions.dll"),
     Path.Combine(badSource, "Hosihikari.Plugin.Abstractions.dll"),
     overwrite: true);
-var bad = Packager.Pack(badSource, Path.Combine(repoRoot, "test", "Foo", "manifest.json"), Path.Combine(stage, "bad-out"), sharedLayer);
+var bad = Packager.Pack(badSource, Path.Combine(repoRoot, "test", "Foo", "hosihikari.json"), Path.Combine(stage, "bad-out"), sharedLayer);
 var sharedProblem = bad.Problems.FirstOrDefault(problem => problem.Contains("共享层"));
 checks.Add(("A12 打包拒绝共享层副本", !bad.Succeeded && sharedProblem is not null, sharedProblem ?? "（未拦下）"));
 
-// A6：api_version 不匹配必须被拒载并留下可读报告（ADR-0012）
-var rejected = !host.LoadedNames.Contains("Broken") && reported.Any(entry => entry.Contains("api_version 不匹配"));
-checks.Add(("A6 api_version 不匹配时拒载", rejected, reported.LastOrDefault(entry => entry.Contains("api_version 不匹配")) ?? "（无报告）"));
+// A6：apiVersion 不匹配必须被拒载并留下可读报告（ADR-0012）
+var rejected = !host.LoadedNames.Contains("Broken") && reported.Any(entry => entry.Contains("apiVersion 不匹配"));
+checks.Add(("A6 apiVersion 不匹配时拒载", rejected, reported.LastOrDefault(entry => entry.Contains("apiVersion 不匹配")) ?? "（无报告）"));
 
-// A33：manifest_version 不匹配必须被拒载（ADR-0012）
+// A33：schemaVersion 不匹配必须被拒载（ADR-0012）
 var formatRefused = !host.LoadedNames.Contains("BadFormat")
-    && reported.Any(entry => entry.Contains("manifest_version 不匹配"));
+    && reported.Any(entry => entry.Contains("schemaVersion 不匹配"));
 checks.Add((
-    "A33 manifest_version 不匹配时拒载",
+    "A33 schemaVersion 不匹配时拒载",
     formatRefused,
-    reported.LastOrDefault(entry => entry.Contains("manifest_version")) ?? "（无报告）"
+    reported.LastOrDefault(entry => entry.Contains("schemaVersion")) ?? "（无报告）"
 ));
 
 // A34：entry 必须留在包内 —— 绝对路径与 .. 都不能把包外的东西装进插件的 ALC（ADR-0006）
@@ -396,6 +403,220 @@ checks.Add((
     $"loaded={infiniteLoaded} waiting={infiniteStillWaiting} released={infiniteReleased}"
 ));
 
+// A53：服务端线程上装着 SynchronizationContext 时，钩子里的 await 不能把同步等待挂死（ADR-0059）。
+// 复现的就是这个：装上下文后直接 GetAwaiter().GetResult() 等 Task.Delay / Task.Yield / Task.Run 会永久阻塞。
+// 修法是框架把钩子投到线程池；这里在装了上下文的线程上跑完整生命周期，5 秒不回来即判红。
+var hookLoader = new HookPluginLoader();
+var hookedHost = new PluginManager(
+    pluginsRoot,
+    Path.Combine(stage, "hooks", "data"),
+    Path.Combine(stage, "hooks", "config"),
+    _ => { });
+hookedHost.RegisterLoader(hookLoader);
+var hookedPackage = Path.Combine(stage, "parented", "Awaiting");
+var awaited = false;
+var deadlocked = false;
+var awaitingThread = new Thread(() =>
+{
+    SynchronizationContext.SetSynchronizationContext(new SingleThreadContext());
+    var loaded = hookedHost.Load(hookedPackage);
+    var enabled = loaded && hookedHost.Enable("Awaiting");
+    var unloaded = enabled && hookedHost.Unload("Awaiting").Released;
+    awaited = loaded && enabled && unloaded && hookLoader.DelaysCompleted.GetValueOrDefault("Awaiting");
+}) { IsBackground = true };
+awaitingThread.Start();
+deadlocked = !awaitingThread.Join(TimeSpan.FromSeconds(5));
+checks.Add((
+    "A53 装着服务端上下文时钩子不挂死",
+    awaited && !deadlocked,
+    $"completed={awaited} deadlocked={deadlocked}"
+));
+
+// A54：钩子超时是独立一段，回收验证照走；结果如实标注是钩子超的（ADR-0063）。
+// Hanging 的 OnDisable / OnUnload 等到令牌取消才返回，回收验证本身是快的。
+var hangLoader = new HookPluginLoader();
+var hangHost = new PluginManager(
+    pluginsRoot,
+    Path.Combine(stage, "hooks-hang", "data"),
+    Path.Combine(stage, "hooks-hang", "config"),
+    _ => { },
+    null,
+    null,
+    new PluginManagerOptions { HookTimeout = TimeSpan.FromMilliseconds(150) });
+hangHost.RegisterLoader(hangLoader);
+var hangLoaded = hangHost.Load(Path.Combine(stage, "parented", "Hanging"));
+var hangStarted = System.Diagnostics.Stopwatch.StartNew();
+var hangUnload = hangHost.Unload("Hanging");
+hangStarted.Stop();
+checks.Add((
+    "A54 钩子超时不再等待并继续回收验证",
+    hangLoaded && hangUnload.Released && hangUnload.HookTimedOut
+        && hangUnload.Failure == UnloadFailure.None
+        && hangStarted.Elapsed < TimeSpan.FromSeconds(5)
+        && !hangHost.TryGetPlugin("Hanging", out _),
+    $"released={hangUnload.Released} hookTimedOut={hangUnload.HookTimedOut} "
+        + $"failure={hangUnload.Failure} elapsed={hangStarted.ElapsedMilliseconds}ms"
+));
+
+// A55：钩子超时在自持态的装载/E启用里也成立：OnLoad 取消按回滚处理，OnEnable 取消保持停用（ADR-0059）。
+var enableHangLoader = new HookPluginLoader();
+var enableHangHost = new PluginManager(
+    pluginsRoot,
+    Path.Combine(stage, "hooks-enable", "data"),
+    Path.Combine(stage, "hooks-enable", "config"),
+    _ => { },
+    null,
+    null,
+    new PluginManagerOptions { HookTimeout = TimeSpan.FromMilliseconds(150) });
+enableHangHost.RegisterLoader(enableHangLoader);
+var loadTimedOut = true;
+var hangingLoaded = false;
+try
+{
+    // 父级交付，不走 LoadAll（包不在 plugins/ 下）；交付后父级驱动启用。
+    hangingLoaded = enableHangHost.Load(Path.Combine(stage, "parented", "Hanging"));
+}
+catch (Exception)
+{
+    loadTimedOut = false;
+}
+
+var enableTimedOut = !enableHangHost.Enable("Hanging");
+checks.Add((
+    "A55 OnEnable 超时保持停用且不挂死",
+    loadTimedOut && hangingLoaded && enableTimedOut && enableHangHost.LoadedNames.Contains("Hanging")
+        && enableHangHost.TryGetPlugin("Hanging", out var hangInfo) && hangInfo.Enabled == false,
+    $"load={loadTimedOut} loaded={hangingLoaded} refusedEnable={enableTimedOut} "
+        + $"names=[{string.Join(", ", enableHangHost.LoadedNames)}]"
+));
+
+// A56：普通包与加载器包拿到的上下文不同（ADR-0059）；判别认清单的 packageKind。
+var contextKindLoader = new HookPluginLoader();
+var kindHost = new PluginManager(
+    pluginsRoot,
+    Path.Combine(stage, "contexts", "data"),
+    Path.Combine(stage, "contexts", "config"),
+    _ => { });
+kindHost.RegisterLoader(contextKindLoader);
+var plainPackage = Path.Combine(stage, "parented", "Awaiting");
+var loaderPackage = Path.Combine(stage, "parented", "LoaderKind");
+var plainLoaded = kindHost.Load(plainPackage);
+var loaderLoaded = kindHost.Load(loaderPackage);
+checks.Add((
+    "A56 普通包拿不到 ILoaderContext，加载器包拿得到",
+    plainLoaded && loaderLoaded
+        && contextKindLoader.SawLoaderContext.GetValueOrDefault("Awaiting") == false
+        && contextKindLoader.SawLoaderContext.GetValueOrDefault("LoaderKind") == true,
+    $"plain={contextKindLoader.SawLoaderContext.GetValueOrDefault("Awaiting")} "
+        + $"loader={contextKindLoader.SawLoaderContext.GetValueOrDefault("LoaderKind")}"
+));
+
+// A59：状态迁移事件照实发出 —— 装载成功发 →Loaded，放下发 Loaded→Detached（ADR-0062 / 0062 的接线）。
+// 事件在线程池上发，所以等一小会儿再收。
+var statePlugin = new HookPluginLoader();
+var stateHost = new PluginManager(
+    pluginsRoot,
+    Path.Combine(stage, "states", "data"),
+    Path.Combine(stage, "states", "config"),
+    _ => { });
+stateHost.RegisterLoader(statePlugin);
+var stateTransitions = new System.Collections.Concurrent.ConcurrentQueue<PluginStateChanged>();
+stateHost.Events.Subscribe<PluginStateChanged>(change => stateTransitions.Enqueue(change));
+var stateLoaded = stateHost.Load(Path.Combine(stage, "parented", "Awaiting"));
+var stateUnloaded = stateHost.Unload("Awaiting").Released;
+Thread.Sleep(300);
+var transitions = stateTransitions.ToArray();
+checks.Add((
+    "A59 装载与放下各发一次状态事件",
+    stateLoaded && stateUnloaded
+        && transitions.Any(change => change is { Previous: PluginState.Detached, Current: PluginState.Loaded })
+        && transitions.Any(change => change is { Previous: PluginState.Loaded, Current: PluginState.Detached }),
+    string.Join(", ", transitions.Select(change => $"{change.Previous}→{change.Current}"))
+        is { Length: > 0 } text ? text : "（没有事件）"
+));
+// A57：只有旧 manifest.json 的包在载入前拒载，报错指向 migrate（ADR-0058）。
+// 父级自己的插件住在同一个 plugins/ 下，它们的信封 type 不是 hosihikari，不该被报出来。
+var legacyPackage = Path.Combine(pluginsRoot, "LegacyOnly");
+Directory.CreateDirectory(legacyPackage);
+File.WriteAllText(Path.Combine(legacyPackage, "manifest.json"), """
+    {
+      "name": "LegacyOnly",
+      "entry": "LegacyOnly.dll",
+      "type": "hosihikari",
+      "dependencies": [ { "name": "hosihikari" } ],
+      "extraInfo": { "api_version": "2", "manifest_version": "1" }
+    }
+    """);
+var parentPackage = Path.Combine(pluginsRoot, "ParentMod");
+Directory.CreateDirectory(parentPackage);
+File.WriteAllText(Path.Combine(parentPackage, "manifest.json"), """
+    { "name": "ParentMod", "entry": "ParentMod.dll", "type": "native" }
+    """);
+var foreignReports = new List<string>();
+ManifestReader.Scan(pluginsRoot, foreignReports.Add);
+checks.Add((
+    "A57 旧包拒载并给出 migrate，父级 mod 不吭声",
+    foreignReports.Any(report => report.Contains("hosihikari-pack migrate LegacyOnly"))
+        && !foreignReports.Any(report => report.Contains("ParentMod"))
+        && !host.LoadedNames.Contains("LegacyOnly"),
+    foreignReports.FirstOrDefault() ?? "（无报告）"
+));
+
+// A58：carrier 组声明的程序集与类型要真的存在且实现 ICarrierComponent（ADR-0061）。
+// 核心按名字装配组件，等到启动阶段才发现就太晚了。入口只是占位：载体包不由父级加载。
+var carrierSource = Path.Combine(stage, "carrier-source");
+Directory.CreateDirectory(carrierSource);
+File.WriteAllText(Path.Combine(carrierSource, "entry.dll"), "placeholder");
+File.Copy(
+    Path.Combine(AppContext.BaseDirectory, "Hosihikari.Bindings.Stub.dll"),
+    Path.Combine(carrierSource, "probe.dll"),
+    overwrite: true);
+string CarrierManifest(string components) => WriteManifest("carrier-" + Guid.NewGuid().ToString("N"), $$"""
+    {
+      "schemaVersion": 1,
+      "name": "hosihikari",
+      "entry": "entry.dll",
+      "loader": "stub",
+      "kind": "carrier",
+      "apiVersion": 3,
+      "carrier": { "components": {{components}} }
+    }
+    """);
+// 替身里有一个真实现与一个抽象实现：类型不存在、类型没实现、抽象类都必须拒。
+var carrierMissingType = Packager.Pack(
+    carrierSource,
+    CarrierManifest("""[ { "assembly": "probe.dll", "type": "Hosihikari.NoSuchComponent" } ]"""),
+    Path.Combine(stage, "carrier-missing-type"),
+    sharedLayer);
+var carrierMissingAssembly = Packager.Pack(
+    carrierSource,
+    CarrierManifest("""[ { "assembly": "nope.dll", "type": "Some.Component" } ]"""),
+    Path.Combine(stage, "carrier-missing-assembly"),
+    sharedLayer);
+var carrierAbstract = Packager.Pack(
+    carrierSource,
+    CarrierManifest("""[ { "assembly": "probe.dll", "type": "Hosihikari.Bindings.AbstractCarrierComponent" } ]"""),
+    Path.Combine(stage, "carrier-abstract"),
+    sharedLayer);
+var carrierRealType = Packager.Pack(
+    carrierSource,
+    CarrierManifest("""[ { "assembly": "probe.dll", "type": "Hosihikari.Bindings.StubCarrierComponent" } ]"""),
+    Path.Combine(stage, "carrier-real"),
+    sharedLayer);
+checks.Add((
+    "A58 carrier 组校验程序集与类型",
+    !carrierMissingType.Succeeded
+        && carrierMissingType.Problems.Any(problem => problem.Contains("NoSuchComponent"))
+        && !carrierMissingAssembly.Succeeded
+        && carrierMissingAssembly.Problems.Any(problem => problem.Contains("nope.dll"))
+        && !carrierAbstract.Succeeded
+        && carrierRealType.Succeeded,
+    string.Join(" | ", carrierMissingType.Problems
+        .Concat(carrierMissingAssembly.Problems)
+        .Concat(carrierAbstract.Problems)
+        .Concat(carrierRealType.Problems))
+));
+
 // A29：拒绝启用留在册、未启用（ADR-0030）
 var guardedLoaded = host.Load(Path.Combine(stage, "parented", "Guarded"));
 guardedLoader.RefuseEnable = true;
@@ -452,13 +673,13 @@ checks.Add((
 // 若 _gate 还攥在报告线程手里，那个 Load 在超时内完不成。
 var probePackage = Path.Combine(stage, "parented", "Probe");
 Directory.CreateDirectory(probePackage);
-File.WriteAllText(Path.Combine(probePackage, "manifest.json"), """
+File.WriteAllText(Path.Combine(probePackage, "hosihikari.json"), """
     {
       "name": "Probe",
       "entry": "Probe.dll",
-      "type": "hosihikari",
+      "schemaVersion": 1, "kind": "plugin", "apiVersion": 3,
       "dependencies": [ { "name": "hosihikari" } ],
-      "extraInfo": { "api_version": "3", "manifest_version": "1", "loader": "guarded" }
+      "loader": "guarded"
     }
     """);
 PluginManager? probeHost = null;
@@ -565,7 +786,7 @@ checks.Add((
 // 上下文只带名字与装载编号；带上槽位、实例或委托，外部的这一份引用就会钉住整个 ALC。
 var retainedPacked = Packager.Pack(
     OutputDirectory("Retained"),
-    Path.Combine(repoRoot, "test", "Retained", "manifest.json"),
+    Path.Combine(repoRoot, "test", "Retained", "hosihikari.json"),
     Path.Combine(stage, "parented"),
     sharedLayer);
 var retainedLoaded = retainedPacked.PackageDirectory is { } retainedPackage && host.Load(retainedPackage);
@@ -602,8 +823,8 @@ checks.Add((
 var wrongTypeManifest = Path.Combine(stage, "wrong-type.json");
 File.WriteAllText(
     wrongTypeManifest,
-    File.ReadAllText(Path.Combine(repoRoot, "test", "Foo", "manifest.json"))
-        .Replace("\"type\": \"hosihikari\"", "\"type\": \"assembly\""));
+    File.ReadAllText(Path.Combine(repoRoot, "test", "Foo", "hosihikari.json"))
+        .Replace("\"loader\": \"assembly\",", "\"loader\": \"assembly\", \"type\": \"assembly\","));
 var wrongType = Packager.Pack(
     OutputDirectory("Foo"), wrongTypeManifest, Path.Combine(stage, "wrong-type-out"), sharedLayer);
 var typeProblem = wrongType.Problems.FirstOrDefault(problem => problem.Contains("type 必须是"));
@@ -643,13 +864,13 @@ checks.Add((
 var noEntryPackage = Path.Combine(stage, "parented", "NoEntry");
 Directory.CreateDirectory(noEntryPackage);
 File.Copy(Path.Combine(OutputDirectory("Lib"), "Lib.dll"), Path.Combine(noEntryPackage, "Lib.dll"), overwrite: true);
-File.WriteAllText(Path.Combine(noEntryPackage, "manifest.json"), """
+File.WriteAllText(Path.Combine(noEntryPackage, "hosihikari.json"), """
     {
       "name": "NoEntry",
       "entry": "Lib.dll",
-      "type": "hosihikari",
+      "schemaVersion": 1, "kind": "plugin", "apiVersion": 3,
       "dependencies": [ { "name": "hosihikari" } ],
-      "extraInfo": { "api_version": "3", "manifest_version": "1", "loader": "assembly" }
+      "loader": "assembly"
     }
     """);
 var noEntryLoaded = host.Load(noEntryPackage);
@@ -662,13 +883,13 @@ checks.Add((
 // A36：入口文件不在包里时，Loader 报出路径而不是文件异常（ADR-0008）
 var missingEntryPackage = Path.Combine(stage, "parented", "NoEntryFile");
 Directory.CreateDirectory(missingEntryPackage);
-File.WriteAllText(Path.Combine(missingEntryPackage, "manifest.json"), """
+File.WriteAllText(Path.Combine(missingEntryPackage, "hosihikari.json"), """
     {
       "name": "NoEntryFile",
       "entry": "Nope.dll",
-      "type": "hosihikari",
+      "schemaVersion": 1, "kind": "plugin", "apiVersion": 3,
       "dependencies": [ { "name": "hosihikari" } ],
-      "extraInfo": { "api_version": "3", "manifest_version": "1", "loader": "assembly" }
+      "loader": "assembly"
     }
     """);
 var missingEntryLoaded = host.Load(missingEntryPackage);
@@ -678,21 +899,21 @@ checks.Add((
     providerLogs.LastOrDefault(line => line.Contains("不在包里")) ?? "（无报告）"
 ));
 
-// A37：打包期同样拦 manifest_version（ADR-0012）
+// A37：打包期同样拦 schemaVersion（ADR-0012）
 var badFormatManifest = WriteManifest("bad-format", """
     {
       "name": "Foo",
       "entry": "Foo.dll",
-      "type": "hosihikari",
+      "schemaVersion": 1, "kind": "plugin", "apiVersion": 3,
       "dependencies": [ { "name": "hosihikari" } ],
-      "extraInfo": { "api_version": "3", "manifest_version": "9" }
+      "schemaVersion": 9
     }
     """);
 var badFormat = Packager.Pack(
     OutputDirectory("Foo"), badFormatManifest, Path.Combine(stage, "bad-format-out"), sharedLayer);
-var badFormatProblem = badFormat.Problems.FirstOrDefault(problem => problem.Contains("manifest_version"));
+var badFormatProblem = badFormat.Problems.FirstOrDefault(problem => problem.Contains("schemaVersion"));
 checks.Add((
-    "A37 打包拒绝 manifest_version 不匹配",
+    "A37 打包拒绝 schemaVersion 不匹配",
     !badFormat.Succeeded && badFormatProblem is not null,
     badFormatProblem ?? "（未拦下）"
 ));
@@ -726,9 +947,8 @@ var badNameManifest = WriteManifest("bad-name", """
     {
       "name": "../Evil",
       "entry": "Lib.dll",
-      "type": "hosihikari",
-      "dependencies": [ { "name": "hosihikari" } ],
-      "extraInfo": { "api_version": "3", "manifest_version": "1" }
+      "schemaVersion": 1, "kind": "plugin", "apiVersion": 3,
+      "dependencies": [ { "name": "hosihikari" } ]
     }
     """);
 var badName = Packager.Pack(
@@ -749,9 +969,9 @@ var withPackages = WriteManifest("with-packages", """
     {
       "name": "Bar",
       "entry": "Bar.dll",
-      "type": "hosihikari",
+      "schemaVersion": 1, "kind": "plugin", "apiVersion": 3,
       "dependencies": [ { "name": "hosihikari" } ],
-      "extraInfo": { "api_version": "3", "manifest_version": "1", "packages": "System.IO.Hashing/10.0.0" }
+      "pack": { "packages": [ "System.IO.Hashing/10.0.0" ] }
     }
     """);
 var declared = Packager.Pack(
@@ -832,7 +1052,7 @@ return checks.All(check => check.Passed) ? 0 : 1;
 // 测试插件走打包工具 —— 它们就是它的前两个用户，包因此与作者拿到的是同一种东西。
 void Stage(string name, bool withConfig)
 {
-    var manifestPath = Path.Combine(repoRoot, "test", name, "manifest.json");
+    var manifestPath = Path.Combine(repoRoot, "test", name, "hosihikari.json");
     var packed = Packager.Pack(OutputDirectory(name), manifestPath, pluginsRoot, sharedLayer);
     if (!packed.Succeeded)
     {
@@ -852,13 +1072,12 @@ void StageBroken()
 {
     var package = Path.Combine(pluginsRoot, "Broken");
     Directory.CreateDirectory(package);
-    File.WriteAllText(Path.Combine(package, "manifest.json"), $$"""
+    File.WriteAllText(Path.Combine(package, "hosihikari.json"), $$"""
         {
           "name": "Broken",
           "entry": "Broken.dll",
-          "type": "hosihikari",
           "dependencies": [ { "name": "hosihikari" } ],
-          "extraInfo": { "api_version": "999", "manifest_version": "1" }
+          "apiVersion": 999
         }
         """);
 }
@@ -869,13 +1088,13 @@ void StageScript()
     var package = Path.Combine(pluginsRoot, "Lua");
     Directory.CreateDirectory(package);
     File.WriteAllText(Path.Combine(package, "main.lua"), "print('hello from script')\n");
-    File.WriteAllText(Path.Combine(package, "manifest.json"), """
+    File.WriteAllText(Path.Combine(package, "hosihikari.json"), """
         {
           "name": "Lua",
           "entry": "main.lua",
-          "type": "hosihikari",
+          "schemaVersion": 1, "kind": "plugin", "apiVersion": 3,
           "dependencies": [ { "name": "Bar" }, { "name": "hosihikari" } ],
-          "extraInfo": { "api_version": "3", "manifest_version": "1", "loader": "script" }
+          "loader": "script"
         }
         """);
 }
@@ -885,13 +1104,13 @@ void StageDiagnostic()
 {
     var package = Path.Combine(pluginsRoot, "Diagnostic");
     Directory.CreateDirectory(package);
-    File.WriteAllText(Path.Combine(package, "manifest.json"), """
+    File.WriteAllText(Path.Combine(package, "hosihikari.json"), """
         {
           "name": "Diagnostic",
           "entry": "Diagnostic.dll",
-          "type": "hosihikari",
+          "schemaVersion": 1, "kind": "plugin", "apiVersion": 3,
           "dependencies": [ { "name": "hosihikari" } ],
-          "extraInfo": { "api_version": "3", "manifest_version": "1", "loader": "diagnostic" }
+          "loader": "diagnostic"
         }
         """);
 }
@@ -901,13 +1120,31 @@ void StagePinned()
 {
     var package = Path.Combine(stage, "parented", "Pinned");
     Directory.CreateDirectory(package);
-    File.WriteAllText(Path.Combine(package, "manifest.json"), """
+    File.WriteAllText(Path.Combine(package, "hosihikari.json"), """
         {
           "name": "Pinned",
           "entry": "Pinned.dll",
-          "type": "hosihikari",
+          "schemaVersion": 1, "kind": "plugin", "apiVersion": 3,
           "dependencies": [ { "name": "hosihikari" } ],
-          "extraInfo": { "api_version": "3", "manifest_version": "1", "loader": "pinned" }
+          "loader": "pinned"
+        }
+        """);
+}
+
+// 钩子语义的检验包（ADR-0059 / 0063）：Awaiting 的钩子真的 await，Hanging 的停用/卸载挂到取消为止。
+void StageHooking(string name, string packageKind = "plugin")
+{
+    var package = Path.Combine(stage, "parented", name);
+    Directory.CreateDirectory(package);
+    File.WriteAllText(Path.Combine(package, "hosihikari.json"), $$"""
+        {
+          "schemaVersion": 1,
+          "name": "{{name}}",
+          "entry": "{{name}}.dll",
+          "apiVersion": 3,
+          "loader": "hooking",
+          "kind": "{{packageKind}}",
+          "dependencies": [ { "name": "hosihikari" } ]
         }
         """);
 }
@@ -917,13 +1154,13 @@ void StageGuarded(string name)
 {
     var package = Path.Combine(stage, "parented", name);
     Directory.CreateDirectory(package);
-    File.WriteAllText(Path.Combine(package, "manifest.json"), $$"""
+    File.WriteAllText(Path.Combine(package, "hosihikari.json"), $$"""
         {
           "name": "{{name}}",
           "entry": "{{name}}.dll",
-          "type": "hosihikari",
+          "schemaVersion": 1, "kind": "plugin", "apiVersion": 3,
           "dependencies": [ { "name": "hosihikari" } ],
-          "extraInfo": { "api_version": "3", "manifest_version": "1", "loader": "guarded" }
+          "loader": "guarded"
         }
         """);
 }
@@ -933,9 +1170,8 @@ string ManifestLike(string name, string entry) => $$"""
     {
       "name": "{{name}}",
       "entry": "{{entry}}",
-      "type": "hosihikari",
-      "dependencies": [ { "name": "hosihikari" } ],
-      "extraInfo": { "api_version": "3", "manifest_version": "1" }
+      "schemaVersion": 1, "kind": "plugin", "apiVersion": 3,
+      "dependencies": [ { "name": "hosihikari" } ]
     }
     """;
 
@@ -951,13 +1187,13 @@ void StageThrowing()
 {
     var package = Path.Combine(pluginsRoot, "Throwing");
     Directory.CreateDirectory(package);
-    File.WriteAllText(Path.Combine(package, "manifest.json"), """
+    File.WriteAllText(Path.Combine(package, "hosihikari.json"), """
         {
           "name": "Throwing",
           "entry": "Throwing.dll",
-          "type": "hosihikari",
+          "schemaVersion": 1, "kind": "plugin", "apiVersion": 3,
           "dependencies": [ { "name": "hosihikari" } ],
-          "extraInfo": { "api_version": "3", "manifest_version": "1", "loader": "throwing" }
+          "loader": "throwing"
         }
         """);
 }
@@ -967,28 +1203,28 @@ void StageWrongType()
 {
     var package = Path.Combine(pluginsRoot, "WrongType");
     Directory.CreateDirectory(package);
-    File.WriteAllText(Path.Combine(package, "manifest.json"), """
+    File.WriteAllText(Path.Combine(package, "hosihikari.json"), """
         {
           "name": "WrongType",
           "entry": "WrongType.dll",
-          "type": "assembly",
-          "extraInfo": { "api_version": "3", "manifest_version": "1" }
+          "loader": "assembly",
+          "type": "assembly"
         }
         """);
 }
 
-// manifest_version 不匹配的包：与 api 一样，拒载发生在载入之前（ADR-0012）。
+// schemaVersion 不匹配的包：与 api 一样，拒载发生在载入之前（ADR-0012）。
 void StageBadFormat()
 {
     var package = Path.Combine(pluginsRoot, "BadFormat");
     Directory.CreateDirectory(package);
-    File.WriteAllText(Path.Combine(package, "manifest.json"), """
+    File.WriteAllText(Path.Combine(package, "hosihikari.json"), """
         {
           "name": "BadFormat",
           "entry": "BadFormat.dll",
-          "type": "hosihikari",
-          "dependencies": [ { "name": "hosihikari" } ],
-          "extraInfo": { "api_version": "3", "manifest_version": "9" }
+          "apiVersion": 3,
+          "schemaVersion": 9,
+          "dependencies": [ { "name": "hosihikari" } ]
         }
         """);
 }
@@ -998,13 +1234,13 @@ void StageEscapingEntry()
 {
     var package = Path.Combine(pluginsRoot, "Escaping");
     Directory.CreateDirectory(package);
-    File.WriteAllText(Path.Combine(package, "manifest.json"), """
+    File.WriteAllText(Path.Combine(package, "hosihikari.json"), """
         {
           "name": "Escaping",
           "entry": "../Outside.dll",
-          "type": "hosihikari",
+          "schemaVersion": 1, "kind": "plugin", "apiVersion": 3,
           "dependencies": [ { "name": "hosihikari" } ],
-          "extraInfo": { "api_version": "3", "manifest_version": "1" }
+          "loader": "assembly"
         }
         """);
 }
@@ -1038,7 +1274,7 @@ void StageEscapingEntry()
 
     var packed = Packager.Pack(
         output,
-        Path.Combine(repoRoot, "test", "NativeProbe", "manifest.json"),
+        Path.Combine(repoRoot, "test", "NativeProbe", "hosihikari.json"),
         Path.Combine(stage, "parented"),
         sharedLayer);
     if (!packed.Succeeded || packed.PackageDirectory is null)
@@ -1164,8 +1400,7 @@ static string RepoRoot()
     return directory?.FullName ?? throw new InvalidOperationException("找不到仓库根");
 }
 
-sealed class CapturingLoggerProvider(System.Collections.Concurrent.ConcurrentQueue<string> lines) : ILoggerProvider
-{
+sealed class CapturingLoggerProvider(System.Collections.Concurrent.ConcurrentQueue<string> lines) : ILoggerProvider{
     public ILogger CreateLogger(string categoryName) => new Logger(lines);
 
     public void Dispose()
@@ -1184,5 +1419,27 @@ sealed class CapturingLoggerProvider(System.Collections.Concurrent.ConcurrentQue
             TState state,
             Exception? exception,
             Func<TState, Exception?, string> formatter) => lines.Enqueue(formatter(state, exception));
+    }
+}
+
+/// <summary>
+/// 模拟服务端线程的上下文：<c>Post</c> 把续体排队，只有在这个线程上跑消息循环时才执行。
+/// 同步阻塞等一个要回到这里的续体，就是这个上下文存在的意义 —— 也是死锁的来源。
+/// </summary>
+sealed class SingleThreadContext : SynchronizationContext
+{
+    private readonly System.Collections.Concurrent.BlockingCollection<(SendOrPostCallback Callback, object? State)> _queue = [];
+
+    public override void Post(SendOrPostCallback d, object? state) => _queue.Add((d, state));
+
+    public override void Send(SendOrPostCallback d, object? state) => d(state);
+
+    /// <summary>把排队的续体跑掉：只在有人主动驱动时才推进，正是死锁成立的条件。</summary>
+    public void RunPending()
+    {
+        while (_queue.TryTake(out var item))
+        {
+            item.Callback(item.State);
+        }
     }
 }

@@ -1,4 +1,4 @@
-# Hosihikari.Testing
+﻿# Hosihikari.Testing
 
 Test host and in-memory host services for Hosihikari plugins. It does not start BDS, create an
 assembly load context, or read a manifest; it drives the public `IPlugin` contract directly.
@@ -27,7 +27,7 @@ real `PluginManager` plus captured reports:
 
 ```csharp
 using var harness = new PluginManagerHarness();
-harness.CreatePackage("MyPlugin", manifestJson, ("main.cs", source));
+harness.CreatePackage("MyPlugin", hosihikariJson, ("main.cs", source));
 harness.Manager.RegisterLoader(new MyLoader());
 harness.Load("MyPlugin");
 ```

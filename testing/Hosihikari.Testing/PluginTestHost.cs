@@ -23,17 +23,24 @@ public sealed class PluginTestHost : IDisposable
 
     public IPlugin Plugin { get; }
     public TestPluginContext Context { get; }
+
+    /// <summary>
+    /// 裸总线，绕过启用闸门。断言分发顺序用它：<see cref="TestPluginContext.Events"/> 是带闸门的视图，
+    /// 未启用时什么都不投递，测不出档位。
+    /// </summary>
+    public TestEventBus Bus => Context.TestEvents;
+
     public IReadOnlyList<string> HookLog => _hooks;
 
     public void Load()
     {
-        Plugin.OnLoad(Context, CancellationToken.None).GetAwaiter().GetResult();
+        Run(token => Plugin.OnLoad(Context, token));
         _hooks.Add("load");
     }
 
     public PluginHookResult Enable()
     {
-        var result = Plugin.OnEnable(CancellationToken.None).GetAwaiter().GetResult();
+        var result = Run(token => Plugin.OnEnable(token));
         if (result.Allowed)
         {
             Context.Scope.Open();
@@ -46,7 +53,7 @@ public sealed class PluginTestHost : IDisposable
     public PluginHookResult Disable()
     {
         var wasEnabled = Context.Scope.Close();
-        var result = Plugin.OnDisable(CancellationToken.None).GetAwaiter().GetResult();
+        var result = Run(token => Plugin.OnDisable(token));
         if (!result.Allowed && wasEnabled)
         {
             Context.Scope.Open();
@@ -61,7 +68,7 @@ public sealed class PluginTestHost : IDisposable
         Context.Scope.Close();
         try
         {
-            Plugin.OnUnload(CancellationToken.None).GetAwaiter().GetResult();
+            Run(token => Plugin.OnUnload(token));
         }
         finally
         {
@@ -88,6 +95,13 @@ public sealed class PluginTestHost : IDisposable
 
         Unload();
     }
+
+    /// <summary>钩子投到线程池再等，与生产一致（ADR-0059）：调用方线程上若装着上下文，同步等会死锁。</summary>
+    private static T Run<T>(Func<CancellationToken, ValueTask<T>> hook) =>
+        Task.Run(() => hook(CancellationToken.None).AsTask()).GetAwaiter().GetResult();
+
+    private static void Run(Func<CancellationToken, ValueTask> hook) =>
+        Task.Run(() => hook(CancellationToken.None).AsTask()).GetAwaiter().GetResult();
 
     public void Dispose()
     {

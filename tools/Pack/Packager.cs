@@ -1,5 +1,6 @@
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using System.Diagnostics;
+using System.Globalization;
 using System.Reflection;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -12,6 +13,12 @@ namespace Hosihikari.Internal.Pack;
 /// <param name="PackageDirectory">成功时的包目录。</param>
 /// <param name="Problems">失败原因，逐条可读。</param>
 public readonly record struct PackResult(bool Succeeded, string? PackageDirectory, IReadOnlyList<string> Problems);
+
+/// <summary>一次 migrate 的结果。</summary>
+/// <param name="Succeeded">是否成功。</param>
+/// <param name="Problems">失败原因，逐条可读。</param>
+/// <param name="Notes">要人工补的字段。</param>
+public readonly record struct MigrateResult(bool Succeeded, IReadOnlyList<string> Problems, IReadOnlyList<string> Notes);
 
 /// <summary>
 /// 把一份构建输出 + 一份清单装配成插件包，并在这里检查那些**报错点离病因很远**的规则。
@@ -84,33 +91,36 @@ public static class Packager
         }
 
         // 契约主版本（ADR-0012）。
-        if (manifest.ApiVersion != PluginContractInfo.CurrentApiVersion)
+        if (manifest.EffectiveApiVersion?.ToString(CultureInfo.InvariantCulture)
+            != PluginContractInfo.CurrentApiVersion)
         {
             problems.Add(PackText.Get(
                 "ApiMismatch",
-                manifest.ApiVersion ?? PackText.Get("Undeclared"),
+                manifest.EffectiveApiVersion?.ToString(CultureInfo.InvariantCulture)
+                    ?? PackText.Get("Undeclared"),
                 PluginContractInfo.CurrentApiVersion));
         }
 
         // 清单 schema 版本（ADR-0012）。
-        if (manifest.ManifestVersion != PluginContractInfo.CurrentManifestVersion)
+        if (manifest.EffectiveSchemaVersion?.ToString(CultureInfo.InvariantCulture)
+            != PluginContractInfo.CurrentManifestVersion)
         {
             problems.Add(PackText.Get(
                 "ManifestVersionMismatch",
-                manifest.ManifestVersion ?? PackText.Get("Undeclared"),
+                manifest.EffectiveSchemaVersion?.ToString(CultureInfo.InvariantCulture)
+                    ?? PackText.Get("Undeclared"),
                 PluginContractInfo.CurrentManifestVersion));
         }
 
         // type 是父级的路由键（ADR-0006）。写错的包在父级态下根本到不了我们手里，
-        // 而且失败点离病因很远 —— 所以在这里就拦下。
-        if (manifest.ParentName != PluginContractInfo.ParentName)
+        // 而且失败点离病因很远 —— 所以在这里就拦下。hosihikari.json 里可以省略。
+        if (!string.IsNullOrWhiteSpace(manifest.ParentName)
+            && manifest.ParentName != PluginContractInfo.ParentName)
         {
             problems.Add(PackText.Get(
                 "TypeMismatch",
                 PluginContractInfo.ParentName,
-                string.IsNullOrWhiteSpace(manifest.ParentName)
-                    ? PackText.Get("Undeclared")
-                    : manifest.ParentName));
+                manifest.ParentName));
         }
 
         // 包类型（ADR-0006）：写错的在加载期会被当成插件，也在打包期拦。
@@ -174,6 +184,13 @@ public static class Packager
             }
         }
 
+        // 载体组（ADR-0061）：声明的程序集与类型必须真的在包里、且实现 ICarrierComponent。
+        // 核心在启动阶段按名字装配，等到那时候才发现就太晚了。
+        if (kind == "carrier")
+        {
+            ValidateCarrier(manifest, sourceDirectory, problems);
+        }
+
         // file-based app 风格的 #:package 与 extraInfo.packages 一起在打包期还原。
         var packages = ReadPackages(manifest, sourceDirectory, problems);
 
@@ -195,7 +212,10 @@ public static class Packager
                 File.Copy(file, target, overwrite: true);
             }
 
-            File.Copy(manifestPath, Path.Combine(staging, "manifest.json"), overwrite: true);
+            // 作者清单原样进包（语义消费者是我们），父级要的信封另外生成（ADR-0058）。
+            var manifestName = Path.GetFileName(manifestPath);
+            File.Copy(manifestPath, Path.Combine(staging, manifestName), overwrite: true);
+            File.WriteAllText(Path.Combine(staging, LegacyEnvelopeFileName), BuildEnvelope(manifest));
 
             // 清单里声明的第三方包在**这里**还原 —— 供应链留在打包那一刻，服务端加载时不联网。
             if (!RestorePackages(packages, staging, sharedLayer, problems))
@@ -233,8 +253,8 @@ public static class Packager
     }
 
     /// <summary>
-    /// 收集清单 <c>extraInfo.packages</c>（逗号分隔的 <c>Id/Version</c>）与 C# 入口里的
-    /// <c>#:package Id@Version</c>。NuGet 只在打包期还原，服务端加载时不联网。
+    /// 收集清单 <c>pack.packages</c> 与 C# 入口里的 <c>#:package Id@Version</c>。
+    /// NuGet 只在打包期还原，服务端加载时不联网。
     /// </summary>
     private static List<string> ReadPackages(
         PluginManifest manifest,
@@ -242,13 +262,15 @@ public static class Packager
         List<string> problems)
     {
         var packages = new List<string>();
-        if (manifest.ExtraInfo.TryGetValue("packages", out var packagesValue)
-            && packagesValue.ValueKind == JsonValueKind.String
-            && packagesValue.GetString() is { Length: > 0 } declared)
+        if (manifest.Pack is { } pack)
         {
-            packages.AddRange(declared.Split(
-                ',',
-                StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+            foreach (var declared in pack.Packages)
+            {
+                if (!string.IsNullOrWhiteSpace(declared))
+                {
+                    packages.Add(declared.Trim());
+                }
+            }
         }
 
         if (manifest.Loader == "csharp")
@@ -260,12 +282,12 @@ public static class Packager
     }
 
     /// <summary>
-    /// 跑 <c>extraInfo.prepack</c>。字符串与数组都收（与 <c>command</c> 同形）：字符串按单个程序名处理，
+    /// 跑 <c>pack.prepack</c>。字符串与数组都收（与 <c>command</c> 同形）：字符串按单个程序名处理，
     /// 在包目录里执行，5 分钟不结束算失败（ADR-0031）。装的是 node_modules、venv 这类构建期依赖。
     /// </summary>
     private static void Prepack(PluginManifest manifest, string sourceDirectory, List<string> problems)
     {
-        if (!manifest.ExtraInfo.TryGetValue("prepack", out var value))
+        if (manifest.Pack?.Prepack is not { } value)
         {
             return;
         }
@@ -702,6 +724,310 @@ public static class Packager
                 ex.Message));
             return false;
         }
+    }
+
+    /// <summary>
+    /// 信封的文件名。父级的 <c>ModRegistrar</c> 硬编码读它（ADR-0006），
+    /// 这里是唯一写它的地方（ADR-0058）。
+    /// </summary>
+    internal const string LegacyEnvelopeFileName = "manifest.json";
+
+    /// <summary>作者清单的文件名。</summary>
+    internal const string ManifestFileName = "hosihikari.json";
+
+    /// <summary>
+    /// 生成给父级看的信封：只有路由与展示用得上的字段。父级照旧读 <c>manifest.json</c>，
+    /// 但它从作者的元数据里派生，作者不再维护两份（ADR-0058）。
+    /// </summary>
+    private static string BuildEnvelope(PluginManifest manifest)
+    {
+        using var buffer = new MemoryStream();
+        using (var writer = new Utf8JsonWriter(buffer, new JsonWriterOptions { Indented = true }))
+        {
+            writer.WriteStartObject();
+            writer.WriteString("name", manifest.Name);
+            writer.WriteString("type", PluginContractInfo.ParentName);
+            writer.WriteString("entry", manifest.EntryPath);
+            if (manifest.Version is { } version)
+            {
+                writer.WriteString("version", version);
+            }
+
+            if (manifest.Description is { } description)
+            {
+                writer.WriteString("description", description);
+            }
+
+            if (manifest.Author is { } author)
+            {
+                writer.WriteString("author", author);
+            }
+
+            writer.WriteStartArray("dependencies");
+            // 父级靠这条把垫片排在插件前面；载体包就是垫片自己，不依赖自己。
+            if (manifest.PackageKind != "carrier")
+            {
+                writer.WriteStartObject();
+                writer.WriteString("name", PluginContractInfo.ParentName);
+                writer.WriteEndObject();
+            }
+
+            foreach (var dependency in manifest.Dependencies)
+            {
+                if (dependency is null
+                    || string.IsNullOrWhiteSpace(dependency.Name)
+                    || string.Equals(dependency.Name, PluginContractInfo.ParentName, StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                writer.WriteStartObject();
+                writer.WriteString("name", dependency.Name);
+                if (!string.IsNullOrWhiteSpace(dependency.VersionRange))
+                {
+                    writer.WriteString("version", dependency.VersionRange);
+                }
+
+                writer.WriteEndObject();
+            }
+
+            writer.WriteEndArray();
+            writer.WriteEndObject();
+        }
+
+        return System.Text.Encoding.UTF8.GetString(buffer.ToArray());
+    }
+
+    /// <summary>
+    /// 校验 <c>carrier</c> 组：每个组件都得在包里有实现 <c>ICarrierComponent</c> 的类型。
+    /// 共享层清单里的程序集同样要真的在包里。
+    /// </summary>
+    private static void ValidateCarrier(
+        PluginManifest manifest,
+        string sourceDirectory,
+        List<string> problems)
+    {
+        if (manifest.Carrier is not { } carrier)
+        {
+            return;
+        }
+
+        foreach (var assembly in carrier.SharedAssemblies)
+        {
+            if (!string.IsNullOrWhiteSpace(assembly) && !File.Exists(Path.Combine(sourceDirectory, assembly)))
+            {
+                problems.Add(PackText.Get("CarrierSharedMissing", assembly));
+            }
+        }
+
+        if (carrier.Components.Count == 0)
+        {
+            return;
+        }
+
+        // 只读元数据地看一遍，不把任何程序集装进可执行上下文。
+        var references = Directory.EnumerateFiles(sourceDirectory, "*.dll", SearchOption.AllDirectories)
+            .Append(typeof(PluginContractInfo).Assembly.Location)
+            .Append(typeof(ICarrierComponent).Assembly.Location)
+            .Concat(((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(Path.PathSeparator));
+
+        using var metadata = new MetadataLoadContext(new PathAssemblyResolver(references));
+        foreach (var component in carrier.Components)
+        {
+            if (component is null
+                || string.IsNullOrWhiteSpace(component.Assembly)
+                || string.IsNullOrWhiteSpace(component.Type))
+            {
+                problems.Add(PackText.Get("CarrierComponentShape"));
+                continue;
+            }
+
+            var assemblyPath = Path.Combine(sourceDirectory, component.Assembly);
+            if (!File.Exists(assemblyPath))
+            {
+                problems.Add(PackText.Get("CarrierAssemblyMissing", component.Assembly));
+                continue;
+            }
+
+            if (!DeclaresCarrierComponent(metadata, assemblyPath, component, problems))
+            {
+                // DeclaresCarrierComponent 自己填了原因
+            }
+        }
+    }
+
+    private static bool DeclaresCarrierComponent(
+        MetadataLoadContext metadata,
+        string assemblyPath,
+        ManifestCarrierComponent component,
+        List<string> problems)
+    {
+        try
+        {
+            var type = metadata.LoadFromAssemblyPath(Path.GetFullPath(assemblyPath))
+                .GetType(component.Type, throwOnError: false);
+            if (type is null)
+            {
+                problems.Add(PackText.Get(
+                    "CarrierTypeMissing",
+                    component.Type,
+                    component.Assembly));
+                return false;
+            }
+
+            // 在只读元数据里契约是另一套类型对象，按名字认（与 IsEntryPoint 同理）。
+            // 抽象类装配不了；静态类也是 IsAbstract，一并拦掉。
+            if (!type.IsClass || type.IsAbstract || !ImplementsCarrierComponent(type))
+            {
+                problems.Add(PackText.Get("CarrierTypeNotComponent", component.Type));
+                return false;
+            }
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            problems.Add(PackText.Get("CarrierReadFailed", component.Assembly, ex.Message));
+            return false;
+        }
+    }
+
+    private static bool ImplementsCarrierComponent(Type type)
+    {
+        for (var current = type; current is not null; current = current.BaseType)
+        {
+            if (current.GetInterfaces().Any(candidate =>
+                    candidate.FullName == typeof(ICarrierComponent).FullName))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// 把旧包目录里的 <c>manifest.json</c> 迁成 <c>hosihikari.json</c>，并删掉旧文件（ADR-0058）。
+    /// 只做形状转换；1.x 里没有对应语义的字段列进 <see cref="MigrateResult.Notes"/> 交给人补。
+    /// </summary>
+    public static MigrateResult Migrate(string packageDirectory)
+    {
+        var problems = new List<string>();
+        var notes = new List<string>();
+
+        var legacyPath = Path.Combine(packageDirectory, LegacyEnvelopeFileName);
+        if (!File.Exists(legacyPath))
+        {
+            problems.Add(PackText.Get("MigrateMissing", LegacyEnvelopeFileName));
+            return new MigrateResult(false, problems, notes);
+        }
+
+        var targetPath = Path.Combine(packageDirectory, ManifestFileName);
+        if (File.Exists(targetPath))
+        {
+            problems.Add(PackText.Get("MigrateExists", ManifestFileName));
+            return new MigrateResult(false, problems, notes);
+        }
+
+        PluginManifest? manifest;
+        try
+        {
+            manifest = JsonSerializer.Deserialize<PluginManifest>(
+                File.ReadAllText(legacyPath),
+                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+        }
+        catch (JsonException ex)
+        {
+            problems.Add(PackText.Get("ReadManifest", ex.Message));
+            return new MigrateResult(false, problems, notes);
+        }
+
+        if (manifest is null || string.IsNullOrWhiteSpace(manifest.Name))
+        {
+            problems.Add(PackText.Get("MissingName"));
+            return new MigrateResult(false, problems, notes);
+        }
+
+        try
+        {
+            File.WriteAllText(targetPath, BuildManifest(manifest, notes));
+            File.Delete(legacyPath);
+            return new MigrateResult(true, problems, notes);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            problems.Add(PackText.Get("WriteFailed", ex.Message));
+            return new MigrateResult(false, problems, notes);
+        }
+    }
+
+    /// <summary>把旧清单的语义搬进新文件。打包期设置与载体组在 1.x 里不存在，只可能来自手写。</summary>
+    private static string BuildManifest(PluginManifest manifest, List<string> notes)
+    {
+        using var buffer = new MemoryStream();
+        using (var writer = new Utf8JsonWriter(buffer, new JsonWriterOptions { Indented = true }))
+        {
+            writer.WriteStartObject();
+            writer.WriteNumber("schemaVersion", 1);
+            writer.WriteString("name", manifest.Name);
+            if (manifest.Version is { } version)
+            {
+                writer.WriteString("version", version);
+            }
+
+            writer.WriteString("entry", manifest.EntryPath);
+            writer.WriteString("loader", manifest.Loader);
+            // 1.x 的 packageKind 改名成 kind（ADR-0058）。
+            writer.WriteString("kind", manifest.PackageKind);
+            writer.WriteNumber("apiVersion", int.Parse(
+                PluginContractInfo.CurrentApiVersion, CultureInfo.InvariantCulture));
+
+            if (manifest.Description is { } description)
+            {
+                writer.WriteString("description", description);
+            }
+
+            if (manifest.Author is { } author)
+            {
+                writer.WriteString("author", author);
+            }
+
+            if (manifest.Dependencies.Count > 0)
+            {
+                writer.WriteStartArray("dependencies");
+                foreach (var dependency in manifest.Dependencies)
+                {
+                    writer.WriteStartObject();
+                    writer.WriteString("name", dependency.Name);
+                    if (!string.IsNullOrWhiteSpace(dependency.VersionRange))
+                    {
+                        writer.WriteString("version", dependency.VersionRange);
+                    }
+
+                    writer.WriteEndObject();
+                }
+
+                writer.WriteEndArray();
+            }
+
+            writer.WriteEndObject();
+        }
+
+        // 1.x 的 extraInfo 里只剩打包期设置还有语义；值是原始 JSON，照搬即可。
+        if (manifest.ExtraInfo.TryGetValue("packages", out var packages)
+            || manifest.ExtraInfo.TryGetValue("prepack", out var prepack)
+            || manifest.ExtraInfo.TryGetValue("command", out var command))
+        {
+            notes.Add(PackText.Get("MigratePack"));
+        }
+
+        // 载体组在 1.x 没有对应字段，只能人工补。
+        if (manifest.PackageKind == "carrier")
+        {
+            notes.Add(PackText.Get("MigrateCarrier"));
+        }
+
+        return System.Text.Encoding.UTF8.GetString(buffer.ToArray());
     }
 
     /// <summary>path 等于 root，或落在 root 下面。</summary>

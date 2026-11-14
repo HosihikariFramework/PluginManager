@@ -1,11 +1,15 @@
+using System.Globalization;
 using System.Text.Json;
 
 namespace Hosihikari.Internal;
 
-/// <summary>读插件包目录里的 <c>manifest.json</c>（ADR-0006）。</summary>
+/// <summary>读插件包目录里的 <c>hosihikari.json</c>（ADR-0058）。</summary>
 internal static class ManifestReader
 {
-    private const string FileName = "manifest.json";
+    private const string FileName = "hosihikari.json";
+
+    /// <summary>1.x 的清单。只剩它、且路由给我们的包按旧包拒载。</summary>
+    private const string LegacyFileName = "manifest.json";
 
     private static readonly JsonSerializerOptions Options = new()
     {
@@ -25,13 +29,20 @@ internal static class ManifestReader
 
         foreach (var directory in Directory.EnumerateDirectories(pluginsRoot))
         {
-            // 不是包目录也属正常：父级自己的插件就住在同一个 plugins/ 下（ADR-0003），
-            // 所以这里对没有清单的目录不吭声。
-            if (File.Exists(Path.Combine(directory, FileName)) && Read(directory, report) is { } package
-                // 载体包就是垫片自己，不是插件（ADR-0006）。
-                && package.Manifest.PackageKind != "carrier")
+            // 父级自己的插件就住在同一个 plugins/ 下（ADR-0003）：既没有我们的清单、
+            // 旧信封的 type 也不是 hosihikari 的目录，不吭声。
+            if (File.Exists(Path.Combine(directory, FileName)))
             {
-                packages.Add(package);
+                if (Read(directory, report) is { } package
+                    // 载体包就是垫片自己，不是插件（ADR-0006）。
+                    && package.Manifest.PackageKind != "carrier")
+                {
+                    packages.Add(package);
+                }
+            }
+            else if (IsRoutedToUs(directory))
+            {
+                report(CoreText.Get("Manifest_LegacyPackage", Path.GetFileName(directory)));
             }
         }
 
@@ -45,7 +56,10 @@ internal static class ManifestReader
         var manifestPath = Path.Combine(directory, FileName);
         if (!File.Exists(manifestPath))
         {
-            report(CoreText.Get("Manifest_MissingFile", folderName, FileName));
+            // 父级只把路由给我们的包交过来，所以这里的旧信封一定是旧包（ADR-0058）。
+            report(File.Exists(Path.Combine(directory, LegacyFileName))
+                ? CoreText.Get("Manifest_LegacyPackage", folderName)
+                : CoreText.Get("Manifest_MissingFile", folderName, FileName));
             return null;
         }
 
@@ -86,38 +100,40 @@ internal static class ManifestReader
                 return null;
             }
 
-            // type 是父级的路由键。写错的包不会被父级交过来，所以在自持态下也一并拦下 ——
-            // 否则同一个包换一个拓扑才失败，而那是最难查的一类（ADR-0012）。
-            if (manifest.ParentName != PluginContractInfo.ParentName)
+            // type 在 hosihikari.json 里可省；写了就必须对。它是父级的路由键，写错的包
+            // 不会被父级交过来，所以在自持态下也一并拦下（ADR-0012）。
+            if (!string.IsNullOrWhiteSpace(manifest.ParentName)
+                && manifest.ParentName != PluginContractInfo.ParentName)
             {
-                var actual = string.IsNullOrWhiteSpace(manifest.ParentName)
-                    ? CoreText.Get("Common_Undeclared")
-                    : manifest.ParentName;
                 report(CoreText.Get(
                     "Manifest_ParentMismatch",
                     folderName,
                     PluginContractInfo.ParentName,
-                    actual));
+                    manifest.ParentName));
                 return null;
             }
 
-            if (manifest.ApiVersion != PluginContractInfo.CurrentApiVersion)
+            if (manifest.EffectiveApiVersion is not { } apiVersion
+                || apiVersion.ToString(CultureInfo.InvariantCulture) != PluginContractInfo.CurrentApiVersion)
             {
                 report(CoreText.Get(
                     "Manifest_ApiMismatch",
                     folderName,
-                    manifest.ApiVersion ?? CoreText.Get("Common_Undeclared"),
+                    manifest.EffectiveApiVersion?.ToString(CultureInfo.InvariantCulture)
+                        ?? CoreText.Get("Common_Undeclared"),
                     PluginContractInfo.CurrentApiVersion));
                 return null;
             }
 
             // 清单 schema 版本（ADR-0012）：解析器只认这一个版本。
-            if (manifest.ManifestVersion != PluginContractInfo.CurrentManifestVersion)
+            if (manifest.EffectiveSchemaVersion is not { } schemaVersion
+                || schemaVersion.ToString(CultureInfo.InvariantCulture) != PluginContractInfo.CurrentManifestVersion)
             {
                 report(CoreText.Get(
                     "Manifest_ManifestVersionMismatch",
                     folderName,
-                    manifest.ManifestVersion ?? CoreText.Get("Common_Undeclared"),
+                    manifest.EffectiveSchemaVersion?.ToString(CultureInfo.InvariantCulture)
+                        ?? CoreText.Get("Common_Undeclared"),
                     PluginContractInfo.CurrentManifestVersion));
                 return null;
             }
@@ -180,6 +196,29 @@ internal static class ManifestReader
         {
             report(CoreText.Get("Manifest_ReadFailed", folderName, ex.Message));
             return null;
+        }
+    }
+
+    /// <summary>旧信封是否由父级路由给我们 —— 决定 <c>plugins/</c> 下要不要报旧包。</summary>
+    private static bool IsRoutedToUs(string directory)
+    {
+        var legacyPath = Path.Combine(directory, LegacyFileName);
+        if (!File.Exists(legacyPath))
+        {
+            return false;
+        }
+
+        try
+        {
+            using var document = JsonDocument.Parse(File.ReadAllText(legacyPath));
+            return document.RootElement.ValueKind == JsonValueKind.Object
+                && document.RootElement.TryGetProperty("type", out var type)
+                && type.ValueKind == JsonValueKind.String
+                && type.GetString() == PluginContractInfo.ParentName;
+        }
+        catch (Exception ex) when (ex is JsonException or IOException or UnauthorizedAccessException)
+        {
+            return false;
         }
     }
 

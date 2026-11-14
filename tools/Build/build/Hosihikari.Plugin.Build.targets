@@ -4,9 +4,9 @@
     <HosihikariPluginOutputRoot Condition="'$(HosihikariPluginOutputRoot)' == ''">$(MSBuildProjectDirectory)/dist</HosihikariPluginOutputRoot>
     <HosihikariPackToolPath>$(MSBuildThisFileDirectory)../tools/net10.0/Hosihikari.Plugin.Pack.dll</HosihikariPackToolPath>
 
-    <!-- 作者显式放的清单优先；没有就按下面的属性生成一份（ADR-0045）。 -->
-    <HosihikariPluginManifest Condition="'$(HosihikariPluginManifest)' == '' and Exists('$(MSBuildProjectDirectory)/manifest.json')">$(MSBuildProjectDirectory)/manifest.json</HosihikariPluginManifest>
-    <HosihikariGeneratedManifest>$(IntermediateOutputPath)hosihikari/manifest.json</HosihikariGeneratedManifest>
+    <!-- 作者清单是 hosihikari.json（ADR-0058）；manifest.json 由打包器生成，不手写。 -->
+    <HosihikariPluginManifest Condition="'$(HosihikariPluginManifest)' == '' and Exists('$(MSBuildProjectDirectory)/hosihikari.json')">$(MSBuildProjectDirectory)/hosihikari.json</HosihikariPluginManifest>
+    <HosihikariGeneratedManifest>$(IntermediateOutputPath)hosihikari/hosihikari.json</HosihikariGeneratedManifest>
     <HosihikariPluginManifest Condition="'$(HosihikariPluginManifest)' == ''">$(HosihikariGeneratedManifest)</HosihikariPluginManifest>
 
     <HosihikariPluginName Condition="'$(HosihikariPluginName)' == ''">$(AssemblyName)</HosihikariPluginName>
@@ -14,8 +14,8 @@
     <HosihikariPluginEntry Condition="'$(HosihikariPluginEntry)' == ''">$(TargetFileName)</HosihikariPluginEntry>
     <HosihikariPluginLoader Condition="'$(HosihikariPluginLoader)' == ''">assembly</HosihikariPluginLoader>
     <HosihikariPluginPackageKind Condition="'$(HosihikariPluginPackageKind)' == ''">plugin</HosihikariPluginPackageKind>
-    <HosihikariPluginApiVersion Condition="'$(HosihikariPluginApiVersion)' == ''">2</HosihikariPluginApiVersion>
-    <HosihikariPluginManifestVersion Condition="'$(HosihikariPluginManifestVersion)' == ''">1</HosihikariPluginManifestVersion>
+    <HosihikariPluginApiVersion Condition="'$(HosihikariPluginApiVersion)' == ''">3</HosihikariPluginApiVersion>
+    <HosihikariPluginSchemaVersion Condition="'$(HosihikariPluginSchemaVersion)' == ''">1</HosihikariPluginSchemaVersion>
   </PropertyGroup>
 
   <!-- 多目标项目的外层没有具体的 TargetPath；先要求调用方选一个 TFM。
@@ -37,19 +37,16 @@
     <MakeDir Directories="$(IntermediateOutputPath)hosihikari" />
     <ItemGroup>
       <_HosihikariManifestLine Include="{" />
+      <_HosihikariManifestLine Include="  &quot;schemaVersion&quot;: $(HosihikariPluginSchemaVersion)," />
       <_HosihikariManifestLine Include="  &quot;name&quot;: &quot;$(HosihikariPluginName)&quot;," />
       <_HosihikariManifestLine Include="  &quot;entry&quot;: &quot;$(HosihikariPluginEntry)&quot;," />
-      <_HosihikariManifestLine Include="  &quot;type&quot;: &quot;hosihikari&quot;," />
       <_HosihikariManifestLine Include="  &quot;version&quot;: &quot;$(HosihikariPluginVersion)&quot;," />
+      <_HosihikariManifestLine Include="  &quot;loader&quot;: &quot;$(HosihikariPluginLoader)&quot;," />
+      <_HosihikariManifestLine Include="  &quot;kind&quot;: &quot;$(HosihikariPluginPackageKind)&quot;," />
+      <_HosihikariManifestLine Include="  &quot;apiVersion&quot;: $(HosihikariPluginApiVersion)," />
       <_HosihikariManifestLine Include="  &quot;dependencies&quot;: [" />
       <_HosihikariManifestLine Include="@(_HosihikariDependencyLine)" />
-      <_HosihikariManifestLine Include="  ]," />
-      <_HosihikariManifestLine Include="  &quot;extraInfo&quot;: {" />
-      <_HosihikariManifestLine Include="    &quot;api_version&quot;: &quot;$(HosihikariPluginApiVersion)&quot;," />
-      <_HosihikariManifestLine Include="    &quot;manifest_version&quot;: &quot;$(HosihikariPluginManifestVersion)&quot;," />
-      <_HosihikariManifestLine Include="    &quot;loader&quot;: &quot;$(HosihikariPluginLoader)&quot;," />
-      <_HosihikariManifestLine Include="    &quot;packageKind&quot;: &quot;$(HosihikariPluginPackageKind)&quot;" />
-      <_HosihikariManifestLine Include="  }" />
+      <_HosihikariManifestLine Include="  ]" />
       <_HosihikariManifestLine Include="}" />
     </ItemGroup>
     <WriteLinesToFile

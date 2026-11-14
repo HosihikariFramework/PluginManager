@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <root>
   <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
   <resheader name="version"><value>2.0</value></resheader>
@@ -125,10 +125,13 @@
     <value>{0} 已经放下，但回收验证没通过 —— 再卸载一次会重新验证</value>
   </data>
   <data name="Manager_Fault" xml:space="preserve">
-    <value>{0}: 故障 —— {1}</value>
+    <value>{0}: 故障 [{1}/{2}] —— {3}</value>
   </data>
   <data name="Manager_FaultUnloadIncomplete" xml:space="preserve">
     <value>{0}: 故障卸载没完成 —— {1}</value>
+  </data>
+  <data name="Manager_HookTimeout" xml:space="preserve">
+    <value>{0}: {1} 钩子超时（{2}） —— 不再等它</value>
   </data>
   <data name="Common_NoReason" xml:space="preserve">
     <value>未给原因</value>
@@ -185,10 +188,10 @@
     <value>未声明</value>
   </data>
   <data name="Manifest_ApiMismatch" xml:space="preserve">
-    <value>{0}: api_version 不匹配（清单 {1}，框架 {2}）</value>
+    <value>{0}: apiVersion 不匹配（清单 {1}，框架 {2}）</value>
   </data>
   <data name="Manifest_ManifestVersionMismatch" xml:space="preserve">
-    <value>{0}: manifest_version 不匹配（清单 {1}，框架 {2}）</value>
+    <value>{0}: schemaVersion 不匹配（清单 {1}，框架 {2}）</value>
   </data>
   <data name="Manifest_DependencyName" xml:space="preserve">
     <value>{0}: dependencies 里必须有非空的 name</value>
@@ -249,5 +252,8 @@
   </data>
   <data name="Manager_AlreadyDisabled" xml:space="preserve">
     <value>{0} 已经停用</value>
+  </data>
+  <data name="Manifest_LegacyPackage" xml:space="preserve">
+    <value>{0}: 这是旧包（只有 manifest.json，api_version 2 或更早）—— 跑 `hosihikari-pack migrate {0}` 再重新打包</value>
   </data>
 </root>

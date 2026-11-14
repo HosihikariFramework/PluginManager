@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <root>
   <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
   <resheader name="version"><value>2.0</value></resheader>
@@ -17,10 +17,10 @@
     <value>يجب ألا يتداخل ناتج التغليف مع ناتج البناء: {0} / {1}</value>
   </data>
   <data name="ApiMismatch" xml:space="preserve">
-    <value>قيمة api_version في البيان هي {0}؛ العقد الحالي {1}</value>
+    <value>قيمة apiVersion في البيان هي {0}؛ العقد الحالي {1}</value>
   </data>
   <data name="ManifestVersionMismatch" xml:space="preserve">
-    <value>قيمة manifest_version في البيان هي {0}؛ الإصدار الحالي {1}</value>
+    <value>قيمة schemaVersion في البيان هي {0}؛ الإصدار الحالي {1}</value>
   </data>
   <data name="TypeMismatch" xml:space="preserve">
     <value>يجب أن يكون type في البيان {0}؛ والفعلي {1}</value>
@@ -116,9 +116,48 @@
     <value>packageKind بالقيمة carrier صالحة فقط للحزمة hosihikari نفسها؛ القيمة {0}</value>
   </data>
   <data name="PrepackFailed" xml:space="preserve">
-    <value>فشل extraInfo.prepack ({0}): {1}</value>
+    <value>فشل pack.prepack ({0}): {1}</value>
   </data>
   <data name="PrepackTimeout" xml:space="preserve">
-    <value>لم ينتهِ extraInfo.prepack خلال {0} ثانية</value>
+    <value>لم ينتهِ pack.prepack خلال {0} ثانية</value>
+  </data>
+  <data name="MigrateMissing" xml:space="preserve">
+    <value>لا يوجد {0} للترحيل في هذا الدليل</value>
+  </data>
+  <data name="MigrateExists" xml:space="preserve">
+    <value>{0} موجود بالفعل؛ احذفه أولًا لإعادة الترحيل</value>
+  </data>
+  <data name="MigratePack" xml:space="preserve">
+    <value>انتقلت ‎extraInfo.packages / prepack / command‎ في 1.x إلى pack؛ انسخ قيمها هناك</value>
+  </data>
+  <data name="MigrateCarrier" xml:space="preserve">
+    <value>النوع carrier يحتاج أيضًا إلى كتلة carrier block (sharedAssemblies وcomponents) — أضفها يدويًا</value>
+  </data>
+  <data name="Migrated" xml:space="preserve">
+    <value>تم الترحيل: {0}</value>
+  </data>
+  <data name="MigrateNotes" xml:space="preserve">
+    <value>ما يزال عليك تعبئته يدويًا:</value>
+  </data>
+  <data name="UsageMigrate" xml:space="preserve">
+    <value>  Hosihikari.Plugin.Pack migrate &lt;دليل الحزمة&gt;</value>
+  </data>
+  <data name="CarrierSharedMissing" xml:space="preserve">
+    <value>يسرد carrier.sharedAssemblies الملف {0}، وهو ليس في الحزمة</value>
+  </data>
+  <data name="CarrierComponentShape" xml:space="preserve">
+    <value>كل عنصر في carrier.components يحتاج إلى assembly وtype</value>
+  </data>
+  <data name="CarrierAssemblyMissing" xml:space="preserve">
+    <value>تجميع المكوّن {0} ليس في ناتج البناء</value>
+  </data>
+  <data name="CarrierTypeMissing" xml:space="preserve">
+    <value>{0} غير موجود في {1}</value>
+  </data>
+  <data name="CarrierTypeNotComponent" xml:space="preserve">
+    <value>{0} ليس صنفًا ملموسًا ينفّذ ICarrierComponent</value>
+  </data>
+  <data name="CarrierReadFailed" xml:space="preserve">
+    <value>تعذّرت قراءة تجميع المكوّن {0}: {1}</value>
   </data>
 </root>

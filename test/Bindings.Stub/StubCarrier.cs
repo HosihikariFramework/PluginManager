@@ -1,3 +1,5 @@
+﻿using Hosihikari;
+
 namespace Hosihikari.Bindings;
 
 /// <summary>
@@ -21,4 +23,21 @@ public sealed class StubCarrier(string name) : ICarrierInfo
 public static class ContextSink
 {
     public static object? Held { get; set; }
+}
+
+/// <summary>打包期载体组校验用的最小实现（ADR-0061）；运行时不会被装配。</summary>
+public sealed class StubCarrierComponent : ICarrierComponent
+{
+    public ValueTask StartAsync(ICarrierComponentContext context, CancellationToken token) =>
+        ValueTask.CompletedTask;
+
+    public ValueTask StopAsync(CancellationToken token) => ValueTask.CompletedTask;
+}
+
+/// <summary>抽象类：实现了接口但没有无参构造，不能作为组件装配。</summary>
+public abstract class AbstractCarrierComponent : ICarrierComponent
+{
+    public abstract ValueTask StartAsync(ICarrierComponentContext context, CancellationToken token);
+
+    public ValueTask StopAsync(CancellationToken token) => ValueTask.CompletedTask;
 }

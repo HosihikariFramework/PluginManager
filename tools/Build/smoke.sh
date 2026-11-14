@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+﻿#!/usr/bin/env bash
 # Pack the Build package, then use its PackPlugin target on a throwaway plugin.
 set -euo pipefail
 
@@ -45,8 +45,8 @@ cat > "$plugin/TestPlugin.csproj" <<'EOF'
     <RootNamespace>TestPlugin</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Hosihikari.Plugin.Abstractions" Version="[1.0.0]" ExcludeAssets="runtime" />
-    <PackageReference Include="Hosihikari.Plugin.Build" Version="1.1.0" PrivateAssets="all" />
+    <PackageReference Include="Hosihikari.Plugin.Abstractions" Version="[3.0.0]" ExcludeAssets="runtime" />
+    <PackageReference Include="Hosihikari.Plugin.Build" Version="1.2.0" PrivateAssets="all" />
   </ItemGroup>
 </Project>
 EOF
@@ -60,25 +60,25 @@ namespace TestPlugin;
 
 public sealed class Plugin : IPlugin
 {
-    public void OnLoad(IPluginContext context) { }
-    public PluginHookResult OnEnable() => PluginHookResult.Allow();
-    public PluginHookResult OnDisable() => PluginHookResult.Allow();
-    public void OnUnload() { }
+    public ValueTask OnLoad(IPluginContext context, CancellationToken token) => ValueTask.CompletedTask;
+    public ValueTask<PluginHookResult> OnEnable(CancellationToken token) =>
+        ValueTask.FromResult(PluginHookResult.Allow());
+    public ValueTask<PluginHookResult> OnDisable(CancellationToken token) =>
+        ValueTask.FromResult(PluginHookResult.Allow());
+    public ValueTask OnUnload(CancellationToken token) => ValueTask.CompletedTask;
 }
 EOF
 
-cat > "$plugin/manifest.json" <<'EOF'
+cat > "$plugin/hosihikari.json" <<'EOF'
 {
+  "schemaVersion": 1,
   "name": "TestPlugin",
   "entry": "TestPlugin.dll",
-  "type": "hosihikari",
   "version": "1.0.0",
-  "dependencies": [ { "name": "hosihikari" } ],
-  "extraInfo": {
-    "api_version": "2",
-    "manifest_version": "1",
-    "loader": "assembly"
-  }
+  "loader": "assembly",
+  "kind": "plugin",
+  "apiVersion": 3,
+  "dependencies": [ { "name": "hosihikari" } ]
 }
 EOF
 
@@ -87,7 +87,10 @@ dotnet build "$plugin/TestPlugin.csproj" -t:PackPlugin -c Release --nologo --no-
   -p:HosihikariPluginOutputRoot="$plugin/dist"
 
 test -f "$plugin/dist/TestPlugin/TestPlugin.dll"
-test -f "$plugin/dist/TestPlugin/manifest.json"
+test -f "$plugin/dist/TestPlugin/hosihikari.json"
+# 信封由打包器生成，不是作者清单的复制品；apiVersion 缺省值必须已经是 3。
+grep -q '"type": "hosihikari"' "$plugin/dist/TestPlugin/manifest.json"
+grep -q '"apiVersion": 3' "$plugin/dist/TestPlugin/hosihikari.json"
 if find "$plugin/dist/TestPlugin" -name 'Hosihikari.Plugin.Abstractions.dll' | grep -q .; then
   echo 'shared contract leaked into the plugin package' >&2
   exit 1

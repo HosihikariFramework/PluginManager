@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <root>
   <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
   <resheader name="version"><value>2.0</value></resheader>
@@ -17,10 +17,10 @@
     <value>打包输出不能与构建输出相交：{0} / {1}</value>
   </data>
   <data name="ApiMismatch" xml:space="preserve">
-    <value>清单 api_version 是 {0}；当前契约是 {1}</value>
+    <value>清单 apiVersion 是 {0}；当前契约是 {1}</value>
   </data>
   <data name="ManifestVersionMismatch" xml:space="preserve">
-    <value>清单 manifest_version 是 {0}；当前版本是 {1}</value>
+    <value>清单 schemaVersion 是 {0}；当前版本是 {1}</value>
   </data>
   <data name="TypeMismatch" xml:space="preserve">
     <value>清单 type 必须是 {0}；实际 {1}</value>
@@ -116,9 +116,48 @@
     <value>packageKind 为 carrier 时包名必须是 hosihikari；得到 {0}</value>
   </data>
   <data name="PrepackFailed" xml:space="preserve">
-    <value>extraInfo.prepack 执行失败（{0}）：{1}</value>
+    <value>pack.prepack 执行失败（{0}）：{1}</value>
   </data>
   <data name="PrepackTimeout" xml:space="preserve">
-    <value>extraInfo.prepack 超过 {0} 秒未结束</value>
+    <value>pack.prepack 超过 {0} 秒未结束</value>
+  </data>
+  <data name="MigrateMissing" xml:space="preserve">
+    <value>目录里没有可迁移的 {0}</value>
+  </data>
+  <data name="MigrateExists" xml:space="preserve">
+    <value>{0} 已存在；要重做迁移请先删掉它</value>
+  </data>
+  <data name="MigratePack" xml:space="preserve">
+    <value>1.x 的 extraInfo.packages / prepack / command 已挪到 pack 下；请把值搬过去</value>
+  </data>
+  <data name="MigrateCarrier" xml:space="preserve">
+    <value>kind 为 carrier 时还需要 carrier 组（sharedAssemblies、components）—— 请手工补上</value>
+  </data>
+  <data name="Migrated" xml:space="preserve">
+    <value>已迁移：{0}</value>
+  </data>
+  <data name="MigrateNotes" xml:space="preserve">
+    <value>还需要手工补：</value>
+  </data>
+  <data name="UsageMigrate" xml:space="preserve">
+    <value>  Hosihikari.Plugin.Pack migrate &lt;包目录&gt;</value>
+  </data>
+  <data name="CarrierSharedMissing" xml:space="preserve">
+    <value>carrier.sharedAssemblies 列出的 {0} 不在包里</value>
+  </data>
+  <data name="CarrierComponentShape" xml:space="preserve">
+    <value>carrier.components 的每一项都要有 assembly 与 type</value>
+  </data>
+  <data name="CarrierAssemblyMissing" xml:space="preserve">
+    <value>载体组件程序集 {0} 不在构建输出里</value>
+  </data>
+  <data name="CarrierTypeMissing" xml:space="preserve">
+    <value>{1} 里没有类型 {0}</value>
+  </data>
+  <data name="CarrierTypeNotComponent" xml:space="preserve">
+    <value>{0} 不是实现 ICarrierComponent 的具体类</value>
+  </data>
+  <data name="CarrierReadFailed" xml:space="preserve">
+    <value>读不了载体组件程序集 {0}：{1}</value>
   </data>
 </root>

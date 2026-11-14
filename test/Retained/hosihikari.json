@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "name": "Retained",
+  "entry": "Retained.dll",
+  "version": "1.0.0",
+  "loader": "assembly",
+  "kind": "plugin",
+  "apiVersion": 3,
+  "dependencies": [
+    {
+      "name": "hosihikari"
+    }
+  ]
+}

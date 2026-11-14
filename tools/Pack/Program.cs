@@ -6,12 +6,48 @@ using Hosihikari.Internal.Pack;
 //   Hosihikari.Plugin.Pack pack-loader <构建输出目录> <清单路径> <输出根目录>
 //   Hosihikari.Plugin.Pack pack-plugin   <构建输出目录> <清单路径> <输出根目录>
 //   Hosihikari.Plugin.Pack pack-plugin-from-assembly <入口程序集> <清单路径> <输出根目录>
+//   Hosihikari.Plugin.Pack migrate <包目录>
 //   Hosihikari.Plugin.Pack <构建输出目录> <清单路径> <输出根目录> [--shared <程序集文件名>]...
 // MSBuild 目标没有自己的资源机制；用打包器按当前 UI 文化打印 target 的错误。
 if (args.Length == 2 && args[0] == "message")
 {
     Console.WriteLine(PackText.Get(args[1]));
     return 1;
+}
+
+// --help 走的是缺参数的用法路径，退出码一致为 2。
+if (args.Length == 1 && args[0] is "--help" or "-h")
+{
+    PrintUsage();
+    return 2;
+}
+
+// 旧包升级（ADR-0058）：读 manifest.json 写 hosihikari.json，然后删掉旧文件。
+if (args.Length == 2 && args[0] == "migrate")
+{
+    var migrated = Packager.Migrate(args[1]);
+    if (!migrated.Succeeded)
+    {
+        Console.WriteLine(PackText.Get("PackingFailed"));
+        foreach (var problem in migrated.Problems)
+        {
+            Console.WriteLine($"- {problem}");
+        }
+
+        return 1;
+    }
+
+    Console.WriteLine(PackText.Get("Migrated", Path.Combine(args[1], Packager.ManifestFileName)));
+    if (migrated.Notes.Count > 0)
+    {
+        Console.WriteLine(PackText.Get("MigrateNotes"));
+        foreach (var note in migrated.Notes)
+        {
+            Console.WriteLine($"- {note}");
+        }
+    }
+
+    return 0;
 }
 
 // pack-loader / pack-plugin 都用核心的共享层清单剔除共享层副本（ADR-0036）；
@@ -39,12 +75,18 @@ if (args.Length == 4 && args[0] == "pack-plugin-from-assembly")
 // 与运行期 AssemblyPluginLoader 拿到的那份必须同源（ADR-0021 / 0026）。
 if (args.Length < 3)
 {
+    PrintUsage();
+    return 2;
+}
+
+static void PrintUsage()
+{
     Console.WriteLine(PackText.Get("Usage"));
     Console.WriteLine(PackText.Get("UsagePackLoader"));
     Console.WriteLine(PackText.Get("UsagePackPlugin"));
     Console.WriteLine(PackText.Get("UsagePackAssembly"));
+    Console.WriteLine(PackText.Get("UsageMigrate"));
     Console.WriteLine(PackText.Get("UsageShared"));
-    return 2;
 }
 
 var sharedLayer = new List<string>();

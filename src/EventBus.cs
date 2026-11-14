@@ -13,7 +13,13 @@ internal sealed class EventBus(ILogger logger) : IEventBus
 
     public IDisposable Subscribe<TEvent>(Action<TEvent> handler, EventPriority priority = EventPriority.Normal)
     {
+        ArgumentNullException.ThrowIfNull(handler);
         var bucket = Array.IndexOf(Bands, priority);
+        if (bucket < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(priority), priority, "Unknown event priority");
+        }
+
         lock (_gate)
         {
             if (!_handlers.TryGetValue(typeof(TEvent), out var buckets))

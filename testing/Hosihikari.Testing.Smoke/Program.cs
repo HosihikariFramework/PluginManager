@@ -1,4 +1,4 @@
-using Hosihikari;
+﻿using Hosihikari;
 using Hosihikari.Testing;
 
 var checks = new List<(string Name, bool Passed, string Detail)>();
@@ -35,6 +35,42 @@ using (var host = new PluginTestHost(probe, "Probe"))
     subscription.Dispose();
     host.Context.TestEvents.Publish("after-dispose");
     checks.Add(("事件总线订阅与退订", seen == 2, $"seen={seen}"));
+
+    // 跨档：Lowest → Low → Normal → High → Highest → Monitor，同档按订阅顺序（ADR-0060）。
+    var order = new List<string>();
+    foreach (var (priority, label) in new[]
+             {
+                 (EventPriority.Monitor, "monitor"),
+                 (EventPriority.Highest, "highest"),
+                 (EventPriority.Normal, "normal"),
+                 (EventPriority.Lowest, "lowest"),
+                 (EventPriority.High, "high"),
+                 (EventPriority.Low, "low"),
+                 (EventPriority.Normal, "normal-2"),
+                 (EventPriority.Monitor, "monitor-2"),
+             })
+    {
+        host.Context.TestEvents.Subscribe<string>(_ => order.Add(label), priority);
+    }
+
+    host.Context.TestEvents.Publish("order");
+    checks.Add((
+        "事件按档分发、同档按订阅顺序",
+        order.SequenceEqual(["lowest", "low", "normal", "normal-2", "high", "highest", "monitor", "monitor-2"]),
+        string.Join(" → ", order)));
+
+    var badPriorityRefused = false;
+    try
+    {
+        host.Context.TestEvents.Subscribe<string>(_ => { }, (EventPriority)42);
+    }
+    catch (ArgumentOutOfRangeException)
+    {
+        badPriorityRefused = true;
+    }
+
+    checks.Add(("越界档位抛 ArgumentOutOfRangeException", badPriorityRefused,
+        badPriorityRefused ? "已抛出" : "（没有抛）"));
 
     var once = 0;
     host.Context.TestScheduler.ScheduleOnce(TimeSpan.Zero, () => once++);
@@ -149,10 +185,12 @@ using (var harness = new PluginManagerHarness())
         {
           "name": "HarnessProbe",
           "entry": "HarnessProbe.dll",
-          "type": "hosihikari",
+          "schemaVersion": 1,
           "version": "1.0.0",
+          "kind": "plugin",
+          "apiVersion": 3,
           "dependencies": [ { "name": "hosihikari" } ],
-          "extraInfo": { "api_version": "3", "manifest_version": "1", "loader": "probe" }
+          "loader": "probe"
         }
         """);
     var loaded = harness.Load("HarnessProbe");
@@ -161,7 +199,7 @@ using (var harness = new PluginManagerHarness())
     checks.Add((
         "真实管理器辅助加载、启用并卸载",
         loaded && enabled && unloaded.Released,
-        $"loaded={loaded} enabled={enabled} unloaded={unloaded.Released} {unloaded.Error}"));
+        $"loaded={loaded} enabled={enabled} unloaded={unloaded.Released} {unloaded.Error} reports=[{string.Join(" | ", harness.Reports)}]"));
 }
 
 Console.WriteLine("=== Hosihikari.Testing 冒烟 ===");

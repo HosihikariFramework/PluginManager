@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <root>
   <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
   <resheader name="version"><value>2.0</value></resheader>
@@ -17,10 +17,10 @@
     <value>La salida del paquete no debe solaparse con la salida de compilación: {0} / {1}</value>
   </data>
   <data name="ApiMismatch" xml:space="preserve">
-    <value>api_version del manifiesto es {0}; el contrato actual es {1}</value>
+    <value>apiVersion del manifiesto es {0}; el contrato actual es {1}</value>
   </data>
   <data name="ManifestVersionMismatch" xml:space="preserve">
-    <value>manifest_version del manifiesto es {0}; la versión actual es {1}</value>
+    <value>schemaVersion del manifiesto es {0}; la versión actual es {1}</value>
   </data>
   <data name="TypeMismatch" xml:space="preserve">
     <value>El tipo del manifiesto debe ser {0}; se recibió {1}</value>
@@ -116,9 +116,48 @@
     <value>packageKind carrier solo vale para el propio paquete hosihikari; se obtuvo {0}</value>
   </data>
   <data name="PrepackFailed" xml:space="preserve">
-    <value>extraInfo.prepack falló ({0}): {1}</value>
+    <value>pack.prepack falló ({0}): {1}</value>
   </data>
   <data name="PrepackTimeout" xml:space="preserve">
-    <value>extraInfo.prepack no terminó en {0} segundos</value>
+    <value>pack.prepack no terminó en {0} segundos</value>
+  </data>
+  <data name="MigrateMissing" xml:space="preserve">
+    <value>No hay {0} que migrar en este directorio</value>
+  </data>
+  <data name="MigrateExists" xml:space="preserve">
+    <value>{0} ya existe; bórralo primero para rehacer la migración</value>
+  </data>
+  <data name="MigratePack" xml:space="preserve">
+    <value>Los campos extraInfo.packages / prepack / command de 1.x pasan a pack; copia sus valores allí</value>
+  </data>
+  <data name="MigrateCarrier" xml:space="preserve">
+    <value>El tipo carrier también necesita un bloque carrier block (sharedAssemblies, components); añádelo a mano</value>
+  </data>
+  <data name="Migrated" xml:space="preserve">
+    <value>Migrado: {0}</value>
+  </data>
+  <data name="MigrateNotes" xml:space="preserve">
+    <value>Aún queda por rellenar a mano:</value>
+  </data>
+  <data name="UsageMigrate" xml:space="preserve">
+    <value>  Hosihikari.Plugin.Pack migrate &lt;directorio del paquete&gt;</value>
+  </data>
+  <data name="CarrierSharedMissing" xml:space="preserve">
+    <value>carrier.sharedAssemblies enumera {0}, que no está en el paquete</value>
+  </data>
+  <data name="CarrierComponentShape" xml:space="preserve">
+    <value>cada entrada de carrier.components necesita assembly y type</value>
+  </data>
+  <data name="CarrierAssemblyMissing" xml:space="preserve">
+    <value>el ensamblado de componente {0} no está en la salida de compilación</value>
+  </data>
+  <data name="CarrierTypeMissing" xml:space="preserve">
+    <value>{0} no existe en {1}</value>
+  </data>
+  <data name="CarrierTypeNotComponent" xml:space="preserve">
+    <value>{0} no es una clase concreta que implemente ICarrierComponent</value>
+  </data>
+  <data name="CarrierReadFailed" xml:space="preserve">
+    <value>No se puede leer el ensamblado de componente {0}: {1}</value>
   </data>
 </root>

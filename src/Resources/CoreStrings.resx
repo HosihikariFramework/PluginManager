@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <root>
   <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
   <resheader name="version"><value>2.0</value></resheader>
@@ -125,10 +125,13 @@
     <value>{0} was released, but reclamation verification failed; unload again to re-verify</value>
   </data>
   <data name="Manager_Fault" xml:space="preserve">
-    <value>{0}: fault - {1}</value>
+    <value>{0}: fault [{1}/{2}] - {3}</value>
   </data>
   <data name="Manager_FaultUnloadIncomplete" xml:space="preserve">
     <value>{0}: fault unload did not finish - {1}</value>
+  </data>
+  <data name="Manager_HookTimeout" xml:space="preserve">
+    <value>{0}: {1} hook timed out ({2}); not waiting for it</value>
   </data>
   <data name="Common_NoReason" xml:space="preserve">
     <value>no reason given</value>
@@ -185,10 +188,10 @@
     <value>undeclared</value>
   </data>
   <data name="Manifest_ApiMismatch" xml:space="preserve">
-    <value>{0}: api_version mismatch (manifest {1}, framework {2})</value>
+    <value>{0}: apiVersion mismatch (manifest {1}, framework {2})</value>
   </data>
   <data name="Manifest_ManifestVersionMismatch" xml:space="preserve">
-    <value>{0}: manifest_version mismatch (manifest {1}, framework {2})</value>
+    <value>{0}: schemaVersion mismatch (manifest {1}, framework {2})</value>
   </data>
   <data name="Manifest_DependencyName" xml:space="preserve">
     <value>{0}: dependencies must have a non-empty name</value>
@@ -249,5 +252,8 @@
   </data>
   <data name="Manager_AlreadyDisabled" xml:space="preserve">
     <value>{0} is already disabled</value>
+  </data>
+  <data name="Manifest_LegacyPackage" xml:space="preserve">
+    <value>{0}: legacy package (manifest.json only, api_version 2 or older) - run 'hosihikari-pack migrate {0}' and pack again</value>
   </data>
 </root>

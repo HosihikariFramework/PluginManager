@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <root>
   <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
   <resheader name="version"><value>2.0</value></resheader>
@@ -17,10 +17,10 @@
     <value>Выходной каталог пакета не должен пересекаться с каталогом сборки: {0} / {1}</value>
   </data>
   <data name="ApiMismatch" xml:space="preserve">
-    <value>api_version в манифесте — {0}; текущий контракт — {1}</value>
+    <value>apiVersion в манифесте — {0}; текущий контракт — {1}</value>
   </data>
   <data name="ManifestVersionMismatch" xml:space="preserve">
-    <value>manifest_version в манифесте — {0}; текущая версия — {1}</value>
+    <value>schemaVersion в манифесте — {0}; текущая версия — {1}</value>
   </data>
   <data name="TypeMismatch" xml:space="preserve">
     <value>type в манифесте должен быть {0}; получено {1}</value>
@@ -116,9 +116,48 @@
     <value>packageKind carrier допустим только для самого пакета hosihikari; получено {0}</value>
   </data>
   <data name="PrepackFailed" xml:space="preserve">
-    <value>extraInfo.prepack завершился ошибкой ({0}): {1}</value>
+    <value>pack.prepack завершился ошибкой ({0}): {1}</value>
   </data>
   <data name="PrepackTimeout" xml:space="preserve">
-    <value>extraInfo.prepack не завершился за {0} секунд</value>
+    <value>pack.prepack не завершился за {0} секунд</value>
+  </data>
+  <data name="MigrateMissing" xml:space="preserve">
+    <value>В этом каталоге нет {0} для переноса</value>
+  </data>
+  <data name="MigrateExists" xml:space="preserve">
+    <value>{0} уже существует; удалите его, чтобы повторить перенос</value>
+  </data>
+  <data name="MigratePack" xml:space="preserve">
+    <value>Поля 1.x extraInfo.packages / prepack / command переехали в pack; перенесите туда их значения</value>
+  </data>
+  <data name="MigrateCarrier" xml:space="preserve">
+    <value>Типу carrier также нужен блок carrier block (sharedAssemblies, components) — добавьте его вручную</value>
+  </data>
+  <data name="Migrated" xml:space="preserve">
+    <value>Перенесено: {0}</value>
+  </data>
+  <data name="MigrateNotes" xml:space="preserve">
+    <value>Ещё нужно заполнить вручную:</value>
+  </data>
+  <data name="UsageMigrate" xml:space="preserve">
+    <value>  Hosihikari.Plugin.Pack migrate &lt;каталог пакета&gt;</value>
+  </data>
+  <data name="CarrierSharedMissing" xml:space="preserve">
+    <value>carrier.sharedAssemblies содержит {0}, которого нет в пакете</value>
+  </data>
+  <data name="CarrierComponentShape" xml:space="preserve">
+    <value>каждому элементу carrier.components нужны assembly и type</value>
+  </data>
+  <data name="CarrierAssemblyMissing" xml:space="preserve">
+    <value>сборки компонента {0} нет в выходных данных сборки</value>
+  </data>
+  <data name="CarrierTypeMissing" xml:space="preserve">
+    <value>{0} отсутствует в {1}</value>
+  </data>
+  <data name="CarrierTypeNotComponent" xml:space="preserve">
+    <value>{0} — не конкретный класс, реализующий ICarrierComponent</value>
+  </data>
+  <data name="CarrierReadFailed" xml:space="preserve">
+    <value>Не удалось прочитать сборку компонента {0}: {1}</value>
   </data>
 </root>
