@@ -1,6 +1,7 @@
 ﻿using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Runtime.Loader;
+using System.Text.Json;
 using Hosihikari;
 using Hosihikari.Bindings;
 using Hosihikari.Internal;
@@ -617,6 +618,36 @@ checks.Add((
         .Concat(carrierRealType.Problems))
 ));
 
+// A60：信封里的展示字段是单向派生副本：清单有就写，没有就不写（ADR-0058）。
+// 它是父级与面板读的那一份，作者不该为它再手写一遍。
+var envelope = BuildEnvelopeProbe("""
+    {
+      "schemaVersion": 1, "name": "Shown", "entry": "Shown.dll", "version": "1.0.0",
+      "loader": "stub", "kind": "plugin", "apiVersion": 3,
+      "description": "一句话说明", "author": "某作者",
+      "dependencies": [ { "name": "hosihikari" } ]
+    }
+    """);
+var envelopePlain = BuildEnvelopeProbe("""
+    {
+      "schemaVersion": 1, "name": "Shown", "entry": "Shown.dll", "version": "1.0.0",
+      "loader": "stub", "kind": "plugin", "apiVersion": 3,
+      "dependencies": [ { "name": "hosihikari" } ]
+    }
+    """);
+using var envelopeDocument = envelope is null ? null : JsonDocument.Parse(envelope);
+var envelopeRoot = envelopeDocument?.RootElement;
+checks.Add((
+    "A60 信封按清单派生展示字段，缺了就省",
+    envelopeRoot is { } shown
+        && shown.GetProperty("description").GetString() == "一句话说明"
+        && shown.GetProperty("author").GetString() == "某作者"
+        && envelopePlain is not null
+        && !envelopePlain.Contains("\"description\"", StringComparison.Ordinal)
+        && !envelopePlain.Contains("\"author\"", StringComparison.Ordinal),
+    envelope ?? "（没打出包）"
+));
+
 // A29：拒绝启用留在册、未启用（ADR-0030）
 var guardedLoaded = host.Load(Path.Combine(stage, "parented", "Guarded"));
 guardedLoader.RefuseEnable = true;
@@ -1180,6 +1211,23 @@ string WriteManifest(string name, string json)
     var path = Path.Combine(stage, name + ".json");
     File.WriteAllText(path, json);
     return path;
+}
+
+// 打一个小包，读回生成的信封；校验失败时返回 null。
+string? BuildEnvelopeProbe(string manifestJson)
+{
+    var source = Path.Combine(stage, "envelope-source");
+    Directory.CreateDirectory(source);
+    File.WriteAllText(Path.Combine(source, "entry.dll"), "placeholder");
+    var packed = Packager.Pack(
+        source,
+        WriteManifest("envelope-" + Guid.NewGuid().ToString("N"), manifestJson),
+        Path.Combine(stage, "envelope-out-" + Guid.NewGuid().ToString("N")),
+        sharedLayer);
+    var envelope = packed.PackageDirectory is null
+        ? null
+        : Path.Combine(packed.PackageDirectory, "manifest.json");
+    return File.Exists(envelope) ? File.ReadAllText(envelope) : null;
 }
 
 // 装载时抛出的那个包：只到 Loader 为止，所以入口文件可以不存在。
