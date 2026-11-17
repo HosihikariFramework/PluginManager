@@ -70,6 +70,18 @@ public sealed class DisposableProbe : IDisposable
     public void Dispose() => Disposed = true;
 }
 
+/// <summary>只实现异步释放的服务：断言换代容器时不会被同步 Dispose 卡住。</summary>
+public sealed class AsyncDisposableProbe : IAsyncDisposable
+{
+    public bool Disposed { get; private set; }
+
+    public ValueTask DisposeAsync()
+    {
+        Disposed = true;
+        return ValueTask.CompletedTask;
+    }
+}
+
 /// <summary>运行期组件阶段的检验：记录收到的是总线与日志，按需在启动/停止里挂住。</summary>
 public sealed class ProbeCarrierComponent : ICarrierComponent
 {

@@ -319,10 +319,27 @@ public sealed class PluginManager
         var previous = _carrierServices;
         _carrierServices = services;
         // 上一代的容器由我们自己建（托管入口），换掉时把它收掉：注册进来的单例可能攥着计时器之类的东西。
-        if (previous is IDisposable disposable && !ReferenceEquals(previous, services))
+        if (previous is not null && !ReferenceEquals(previous, services))
         {
-            disposable.Dispose();
+            DisposeCarrierServices(previous);
         }
+    }
+
+    /// <summary>
+    /// 收掉一代载体容器。只实现了 <see cref="IAsyncDisposable"/> 的单例会让同步 <c>Dispose</c> 抛，
+    /// 所以异步可释放的一律走异步路径；投到线程池再等，续体不会要求回到正被占着的服务端线程。
+    /// </summary>
+    private static void DisposeCarrierServices(IServiceProvider services)
+    {
+        if (services is IAsyncDisposable asyncDisposable)
+        {
+            Task.Run(async () => await asyncDisposable.DisposeAsync().ConfigureAwait(false))
+                .GetAwaiter()
+                .GetResult();
+            return;
+        }
+
+        (services as IDisposable)?.Dispose();
     }
 
     /// <summary>

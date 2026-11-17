@@ -861,8 +861,10 @@ checks.Add((
 var republishOld = new Microsoft.Extensions.DependencyInjection.ServiceCollection()
     .AddSingleton(startupLoggerFactory)
     .AddSingleton<DisposableProbe>()
+    .AddSingleton<AsyncDisposableProbe>()
     .BuildServiceProvider();
 var oldProbe = republishOld.GetRequiredService<DisposableProbe>();
+var oldAsyncProbe = republishOld.GetRequiredService<AsyncDisposableProbe>();
 var republishNew = new Microsoft.Extensions.DependencyInjection.ServiceCollection()
     .AddSingleton(startupLoggerFactory)
     .AddSingleton(new ProbeCarrierService(7))
@@ -888,8 +890,10 @@ checks.Add((
     "A69 重载后换代的载体服务对组件可见，旧容器被收掉",
     republishStarted && ReferenceEquals(ProbeCarrierComponent.SeenCarrierServices, republishNew)
         && republishedService?.HostHandle == 7
-        && oldProbe.Disposed,
-    $"started={republishStarted} handle={republishedService?.HostHandle} oldDisposed={oldProbe.Disposed}"
+        && oldProbe.Disposed
+        && oldAsyncProbe.Disposed,
+    $"started={republishStarted} handle={republishedService?.HostHandle} "
+        + $"oldDisposed={oldProbe.Disposed}/{oldAsyncProbe.Disposed}"
 ));
 
 var emptyStartup = CarrierStartup.Create(null, 0, startupLoggerFactory, out var emptyError);
