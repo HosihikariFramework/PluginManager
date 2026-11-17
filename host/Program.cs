@@ -857,6 +857,38 @@ checks.Add((
         + $"hook={componentService?.HostHandle}"
 ));
 
+// A69：父级重载后换代载体服务——组件重新启动时看到的必须是新的提供器（ADR-0065）。
+var republishOld = new Microsoft.Extensions.DependencyInjection.ServiceCollection()
+    .AddSingleton(startupLoggerFactory)
+    .BuildServiceProvider();
+var republishNew = new Microsoft.Extensions.DependencyInjection.ServiceCollection()
+    .AddSingleton(startupLoggerFactory)
+    .AddSingleton(new ProbeCarrierService(7))
+    .BuildServiceProvider();
+var republishHost = new PluginManager(
+    pluginsRoot,
+    Path.Combine(stage, "carrier-republish", "data"),
+    Path.Combine(stage, "carrier-republish", "config"),
+    _ => { },
+    republishOld);
+republishHost.RepublishCarrierServices(republishNew);
+var republishStarted = republishHost.StartComponents(
+    startupHome,
+    [new ManifestCarrierComponent
+    {
+        Assembly = "probe.dll",
+        Type = "Hosihikari.Bindings.ProbeCarrierComponent",
+    }]);
+var republishedService = ProbeCarrierComponent.SeenCarrierServices?.GetService(typeof(ProbeCarrierService))
+    as ProbeCarrierService;
+republishHost.StopComponents();
+checks.Add((
+    "A69 重载后换代的载体服务对组件可见",
+    republishStarted && ReferenceEquals(ProbeCarrierComponent.SeenCarrierServices, republishNew)
+        && republishedService?.HostHandle == 7,
+    $"started={republishStarted} handle={republishedService?.HostHandle}"
+));
+
 var emptyStartup = CarrierStartup.Create(null, 0, startupLoggerFactory, out var emptyError);
 checks.Add((
     "A68 没有载体目录时照常启动",

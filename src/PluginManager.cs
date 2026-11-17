@@ -24,7 +24,9 @@ public sealed class PluginManager
     private readonly TimeSpan _componentStopTimeout;
     private readonly bool _ownsPluginSet;
     private readonly Action<string> _reportFault;
-    private readonly IServiceProvider? _carrierServices;
+    // 载体服务在父级重载后可以换代（Endstone 的 Plugin* 会变），所以不是 readonly；
+    // 换代经 RepublishCarrierServices，由托管入口在重载路径上调用（ADR-0065）。
+    private IServiceProvider? _carrierServices;
     private readonly Action<string>? _onRemoved;
     private readonly object _gate = new();
     // 钩子跑在线程池上，钩子里回调管理器时拿不到 _gate（调用方正握着它等钩子）。
@@ -307,6 +309,12 @@ public sealed class PluginManager
 
     /// <summary>载体适配器要把载体事件并进来，所以事件总线得对外可达（ADR-0007）。</summary>
     public IEventBus Events => _events;
+
+    /// <summary>
+    /// 父级重载后换一份载体服务（ADR-0065）：新装的插件与新启动的组件看到新的提供器；
+    /// 已装载的插件仍攥着装载时那一份，它们本来就会随父级重载被卸掉。
+    /// </summary>
+    internal void RepublishCarrierServices(IServiceProvider services) => _carrierServices = services;
 
     /// <summary>
     /// 启动载体包声明的进程级组件（ADR-0061）。在事件分发对插件开启**之前**、由载体在服务端线程上调用。

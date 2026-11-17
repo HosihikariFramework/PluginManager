@@ -304,11 +304,32 @@ public static class NativeHostingEntry
 
     private static int StartCore(bool scanPlugins, (string? CarrierDirectory, nint Host) args)
     {
-        if (s_host is not null)
+        if (s_host is { } reused)
         {
             // Endstone reload：Loader 与旧 host 留着，靠原生回调槽换到新模块。
-            s_loggerFactory?.CreateLogger("Hosihikari")
-                .LogInformation("{Message}", CoreText.Get("Native_ReuseCore"));
+            // 但载体服务与组件攥着上一个宿主句柄（新模块的 Plugin* 换了），必须按新参数重装。
+            var reuseLogger = s_loggerFactory?.CreateLogger("Hosihikari");
+            reuseLogger?.LogInformation("{Message}", CoreText.Get("Native_ReuseCore"));
+            var restarted = CarrierStartup.Create(
+                args.CarrierDirectory, args.Host, s_loggerFactory!, out var restartError);
+            if (restartError is not null)
+            {
+                reuseLogger?.LogError("{Message}", restartError);
+                return 1;
+            }
+
+            reused.RepublishCarrierServices(restarted.Services);
+            if (restarted.Directory is { Length: > 0 } reusedDirectory && restarted.Components.Count > 0)
+            {
+                if (!reused.StartComponents(reusedDirectory, restarted.Components))
+                {
+                    reuseLogger?.LogError(
+                        "{Message}",
+                        CoreText.Get("Native_ComponentsFailed", string.Join(" | ", restarted.Components)));
+                    return 1;
+                }
+            }
+
             return 0;
         }
 
@@ -349,7 +370,7 @@ public static class NativeHostingEntry
                 return 1;
             }
 
-            s_host = new PluginManager(
+            var host = new PluginManager(
                 Path.Combine(root, "plugins"),
                 Path.Combine(root, "data", "hosihikari"),
                 Path.Combine(root, "config", "hosihikari"),
@@ -358,27 +379,30 @@ public static class NativeHostingEntry
                 ForwardRemoval,
                 // 自持态扫描并拥有插件集；父级态由父级驱动启停（ADR-0003 / 0062）。
                 new PluginManagerOptions { OwnsPluginSet = scanPlugins });
-            s_host.RegisterLoader(new AssemblyPluginLoader([.. startup.SharedAssemblies]));
+            host.RegisterLoader(new AssemblyPluginLoader([.. startup.SharedAssemblies]));
 
             // 组件在事件分发对插件开启之前启动；任何一个失败都中止整次启动（ADR-0061）。
+            // 宿主到这里才公布：失败的启动不能留一个“已就绪”的静态宿主给重试（Codex 指出）。
             if (startup.Directory is { Length: > 0 } carrierDirectory && startup.Components.Count > 0)
             {
-                if (!s_host.StartComponents(carrierDirectory, startup.Components))
+                if (!host.StartComponents(carrierDirectory, startup.Components))
                 {
                     logger.LogError("{Message}", CoreText.Get("Native_ComponentsFailed", string.Join(" | ", startup.Components)));
                     return 1;
                 }
             }
 
+            s_host = host;
+
             if (scanPlugins)
             {
-                s_host.LoadAll();
+                host.LoadAll();
                 logger.LogInformation(
                     "{Message}",
                     CoreText.Get(
                         "Native_Loaded",
-                        s_host.LoadedNames.Count,
-                        string.Join(", ", s_host.LoadedNames)));
+                        host.LoadedNames.Count,
+                        string.Join(", ", host.LoadedNames)));
             }
             else
             {
