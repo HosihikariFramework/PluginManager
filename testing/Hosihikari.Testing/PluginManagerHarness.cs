@@ -1,4 +1,4 @@
-using Hosihikari;
+﻿using Hosihikari;
 
 namespace Hosihikari.Testing;
 
@@ -63,7 +63,7 @@ public sealed class PluginManagerHarness : IDisposable
         }
 
         Directory.CreateDirectory(directory);
-        File.WriteAllText(Path.Combine(directory, "manifest.json"), manifestJson);
+        File.WriteAllText(Path.Combine(directory, "hosihikari.json"), manifestJson);
         foreach (var (path, content) in files)
         {
             var target = Path.GetFullPath(Path.Combine(directory, path));

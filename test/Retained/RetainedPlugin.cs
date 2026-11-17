@@ -11,13 +11,17 @@ namespace Retained;
 /// </summary>
 public sealed class RetainedPlugin : IPlugin
 {
-    public void OnLoad(IPluginContext context) => ContextSink.Held = context;
-
-    public PluginHookResult OnEnable() => throw new InvalidOperationException("故意在启用时抛出");
-
-    public PluginHookResult OnDisable() => PluginHookResult.Allow();
-
-    public void OnUnload()
+    public ValueTask OnLoad(IPluginContext context, CancellationToken cancellationToken)
     {
+        ContextSink.Held = context;
+        return ValueTask.CompletedTask;
     }
+
+    public ValueTask<PluginHookResult> OnEnable(CancellationToken cancellationToken) =>
+        throw new InvalidOperationException("故意在启用时抛出");
+
+    public ValueTask<PluginHookResult> OnDisable(CancellationToken cancellationToken) =>
+        ValueTask.FromResult(PluginHookResult.Allow());
+
+    public ValueTask OnUnload(CancellationToken cancellationToken) => ValueTask.CompletedTask;
 }

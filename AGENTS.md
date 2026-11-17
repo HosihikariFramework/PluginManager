@@ -28,8 +28,8 @@ do the same when changing the contract or native probing.
 
 ## Invariants
 
-- Public names follow ADR-0040. 1.x changes are additive (ADR-0041); do not add a Reload verb or
-  cascade unload.
+- Public names follow ADR-0040. 1.x changes are additive (ADR-0041) and carry no Reload verb; v2
+  adds `Reload` for the self-hosted set only (ADR-0062) and still never cascades unload.
 - Unload timeout is a failed unload and leaves the slot `Detached` (ADR-0042).
 - Operator-facing messages (logs, load reports, unload reasons) come from `src/Resources/CoreStrings.resx`
   (neutral English) and `CoreStrings.zh.resx`; exception messages are English (ADR-0050).

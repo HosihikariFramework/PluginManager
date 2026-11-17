@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "name": "Bar",
+  "entry": "Bar.dll",
+  "version": "1.0.0",
+  "loader": "assembly",
+  "kind": "plugin",
+  "apiVersion": 3,
+  "dependencies": [
+    {
+      "name": "Foo"
+    },
+    {
+      "name": "hosihikari"
+    }
+  ]
+}

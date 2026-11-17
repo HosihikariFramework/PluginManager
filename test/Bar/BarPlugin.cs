@@ -6,7 +6,7 @@ namespace Bar;
 
 public sealed class BarPlugin : IPlugin
 {
-    public void OnLoad(IPluginContext context)
+    public ValueTask OnLoad(IPluginContext context, CancellationToken cancellationToken)
     {
         Console.WriteLine($"[Bar] OnLoad   package={context.PackageDirectory}");
 
@@ -24,19 +24,24 @@ public sealed class BarPlugin : IPlugin
         File.WriteAllText(
             Path.Combine(context.DataDirectory, "lib.txt"),
             $"{lib.Location} | {System.Runtime.Loader.AssemblyLoadContext.GetLoadContext(lib)?.Name}");
+        return ValueTask.CompletedTask;
     }
 
-    public PluginHookResult OnEnable()
+    public ValueTask<PluginHookResult> OnEnable(CancellationToken cancellationToken)
     {
         Console.WriteLine("[Bar] OnEnable");
-        return PluginHookResult.Allow();
+        return ValueTask.FromResult(PluginHookResult.Allow());
     }
 
-    public PluginHookResult OnDisable()
+    public ValueTask<PluginHookResult> OnDisable(CancellationToken cancellationToken)
     {
         Console.WriteLine("[Bar] OnDisable");
-        return PluginHookResult.Allow();
+        return ValueTask.FromResult(PluginHookResult.Allow());
     }
 
-    public void OnUnload() => Console.WriteLine("[Bar] OnUnload");
+    public ValueTask OnUnload(CancellationToken cancellationToken)
+    {
+        Console.WriteLine("[Bar] OnUnload");
+        return ValueTask.CompletedTask;
+    }
 }

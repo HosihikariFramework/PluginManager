@@ -8,7 +8,7 @@ namespace Foo;
 
 public sealed class FooPlugin : IPlugin
 {
-    public void OnLoad(IPluginContext context)
+    public ValueTask OnLoad(IPluginContext context, CancellationToken cancellationToken)
     {
         context.Logger.LogInformation("OnLoad  package={Package}", context.PackageDirectory);
 
@@ -44,19 +44,24 @@ public sealed class FooPlugin : IPlugin
             File.WriteAllText(Path.Combine(context.DataDirectory, "scheduled.txt"), "ran"));
 
         // 这两个句柄**故意不保存、不退订**：框架应当在卸载时自己收回（ADR-0004）。
+        return ValueTask.CompletedTask;
     }
 
-    public PluginHookResult OnEnable()
+    public ValueTask<PluginHookResult> OnEnable(CancellationToken cancellationToken)
     {
         Console.WriteLine("[Foo] OnEnable");
-        return PluginHookResult.Allow();
+        return ValueTask.FromResult(PluginHookResult.Allow());
     }
 
-    public PluginHookResult OnDisable()
+    public ValueTask<PluginHookResult> OnDisable(CancellationToken cancellationToken)
     {
         Console.WriteLine("[Foo] OnDisable");
-        return PluginHookResult.Allow();
+        return ValueTask.FromResult(PluginHookResult.Allow());
     }
 
-    public void OnUnload() => Console.WriteLine("[Foo] OnUnload");
+    public ValueTask OnUnload(CancellationToken cancellationToken)
+    {
+        Console.WriteLine("[Foo] OnUnload");
+        return ValueTask.CompletedTask;
+    }
 }

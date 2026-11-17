@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <root>
   <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
   <resheader name="version"><value>2.0</value></resheader>
@@ -125,10 +125,25 @@
     <value>{0} was released, but reclamation verification failed; unload again to re-verify</value>
   </data>
   <data name="Manager_Fault" xml:space="preserve">
-    <value>{0}: fault - {1}</value>
+    <value>{0}: fault [{1}/{2}] - {3}</value>
   </data>
   <data name="Manager_FaultUnloadIncomplete" xml:space="preserve">
     <value>{0}: fault unload did not finish - {1}</value>
+  </data>
+  <data name="Manager_HookTimeout" xml:space="preserve">
+    <value>{0}: {1} hook timed out ({2}); not waiting for it</value>
+  </data>
+  <data name="Manager_ComponentThrew" xml:space="preserve">
+    <value>{0}: carrier component threw - {1}</value>
+  </data>
+  <data name="Manager_ComponentTimeout" xml:space="preserve">
+    <value>{0}: carrier component did not finish within {1}; not waiting</value>
+  </data>
+  <data name="Manager_ComponentAssemblyFailed" xml:space="preserve">
+    <value>carrier component assembly {0} could not be loaded - {1}</value>
+  </data>
+  <data name="Manager_ComponentTypeFailed" xml:space="preserve">
+    <value>carrier component type {0} is missing or does not implement ICarrierComponent</value>
   </data>
   <data name="Common_NoReason" xml:space="preserve">
     <value>no reason given</value>
@@ -185,10 +200,10 @@
     <value>undeclared</value>
   </data>
   <data name="Manifest_ApiMismatch" xml:space="preserve">
-    <value>{0}: api_version mismatch (manifest {1}, framework {2})</value>
+    <value>{0}: apiVersion mismatch (manifest {1}, framework {2})</value>
   </data>
   <data name="Manifest_ManifestVersionMismatch" xml:space="preserve">
-    <value>{0}: manifest_version mismatch (manifest {1}, framework {2})</value>
+    <value>{0}: schemaVersion mismatch (manifest {1}, framework {2})</value>
   </data>
   <data name="Manifest_DependencyName" xml:space="preserve">
     <value>{0}: dependencies must have a non-empty name</value>
@@ -249,5 +264,32 @@
   </data>
   <data name="Manager_AlreadyDisabled" xml:space="preserve">
     <value>{0} is already disabled</value>
+  </data>
+  <data name="Manifest_LegacyPackage" xml:space="preserve">
+    <value>{0}: legacy package (manifest.json only, api_version 2 or older) - run 'hosihikari-pack migrate {0}' and pack again</value>
+  </data>
+  <data name="Manager_ReloadParented" xml:space="preserve">
+    <value>{0}: reload is not offered while a parent owns the plugin set; the parent drives start and stop (ADR-0003)</value>
+  </data>
+  <data name="Manager_ReloadDisableFailed" xml:space="preserve">
+    <value>{0}: reload stopped at disable</value>
+  </data>
+  <data name="Manager_ReloadUnloadFailed" xml:space="preserve">
+    <value>{0}: reload stopped at unload</value>
+  </data>
+  <data name="Manager_ReloadLoadFailed" xml:space="preserve">
+    <value>{0}: reload stopped at reloading the package</value>
+  </data>
+  <data name="Manager_ReloadEnableFailed" xml:space="preserve">
+    <value>{0}: reload stopped at re-enable</value>
+  </data>
+  <data name="Manager_HookCanceled" xml:space="preserve">
+    <value>{0}: {1} hook was canceled; not waiting for it</value>
+  </data>
+  <data name="Manager_StatePublishFailed" xml:space="preserve">
+    <value>Publishing the state change of {0} failed</value>
+  </data>
+  <data name="Manager_LoaderInstanceGone" xml:space="preserve">
+    <value>{0}: this load was rolled back; loader registration is refused</value>
   </data>
 </root>

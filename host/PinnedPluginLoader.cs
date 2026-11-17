@@ -64,25 +64,30 @@ internal sealed class PinnedPlugin : IPlugin
 {
     private string? _dataDirectory;
 
-    public void OnLoad(IPluginContext context)
+    public ValueTask OnLoad(IPluginContext context, CancellationToken cancellationToken)
     {
         _dataDirectory = context.DataDirectory;
         Record("loaded");
+        return ValueTask.CompletedTask;
     }
 
-    public PluginHookResult OnEnable()
+    public ValueTask<PluginHookResult> OnEnable(CancellationToken cancellationToken)
     {
         Record("enabled");
-        return PluginHookResult.Allow();
+        return ValueTask.FromResult(PluginHookResult.Allow());
     }
 
-    public PluginHookResult OnDisable()
+    public ValueTask<PluginHookResult> OnDisable(CancellationToken cancellationToken)
     {
         Record("disabled");
-        return PluginHookResult.Allow();
+        return ValueTask.FromResult(PluginHookResult.Allow());
     }
 
-    public void OnUnload() => Record("unloaded");
+    public ValueTask OnUnload(CancellationToken cancellationToken)
+    {
+        Record("unloaded");
+        return ValueTask.CompletedTask;
+    }
 
     /// <summary>把最后一个到达的钩子写下来 —— 断言据此看"谁在驱动"（ADR-0003）。</summary>
     private void Record(string hook)

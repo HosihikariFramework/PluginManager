@@ -1,3 +1,6 @@
+﻿using Hosihikari;
+using Microsoft.Extensions.Logging;
+
 namespace Hosihikari.Bindings;
 
 /// <summary>
@@ -21,4 +24,49 @@ public sealed class StubCarrier(string name) : ICarrierInfo
 public static class ContextSink
 {
     public static object? Held { get; set; }
+}
+
+/// <summary>打包期载体组校验用的最小实现（ADR-0061）；运行时不会被装配。</summary>
+public sealed class StubCarrierComponent : ICarrierComponent
+{
+    public ValueTask StartAsync(ICarrierComponentContext context, CancellationToken token) =>
+        ValueTask.CompletedTask;
+
+    public ValueTask StopAsync(CancellationToken token) => ValueTask.CompletedTask;
+}
+
+/// <summary>抽象类：实现了接口但没有无参构造，不能作为组件装配。</summary>
+public abstract class AbstractCarrierComponent : ICarrierComponent
+{
+    public abstract ValueTask StartAsync(ICarrierComponentContext context, CancellationToken token);
+
+    public ValueTask StopAsync(CancellationToken token) => ValueTask.CompletedTask;
+}
+
+/// <summary>运行期组件阶段的检验：记录收到的是总线与日志，按需在启动/停止里挂住。</summary>
+public sealed class ProbeCarrierComponent : ICarrierComponent
+{
+    public static int Started;
+    public static int Stopped;
+    public static bool HangOnStop;
+    public static IEventBus? SeenBus;
+    public static IServiceProvider? SeenCarrierServices;
+
+    public ValueTask StartAsync(ICarrierComponentContext context, CancellationToken token)
+    {
+        SeenBus = context.Events;
+        SeenCarrierServices = context.CarrierServices;
+        context.Logger.LogInformation("probe component started");
+        Interlocked.Increment(ref Started);
+        return ValueTask.CompletedTask;
+    }
+
+    public async ValueTask StopAsync(CancellationToken token)
+    {
+        Interlocked.Increment(ref Stopped);
+        if (HangOnStop)
+        {
+            await Task.Delay(Timeout.InfiniteTimeSpan, token);
+        }
+    }
 }

@@ -1,4 +1,4 @@
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Reflection;
 using System.Reflection.Emit;
@@ -116,22 +116,26 @@ internal static class RegressionChecks
         Stage(manifestRoot, "NullDependencies");
         StageManifest(manifestRoot, "NullDependencies", """
             {
-              "name": "NullDependencies", "entry": "main", "type": "hosihikari",
+              "name": "NullDependencies", "entry": "main",
+              "schemaVersion": 1, "kind": "plugin", "apiVersion": 3,
               "dependencies": null,
-              "extraInfo": { "api_version": "2", "manifest_version": "1", "loader": "regression" }
+              "loader": "regression"
             }
             """);
         StageManifest(manifestRoot, "NullExtra", """
             {
-              "name": "NullExtra", "entry": "main", "type": "hosihikari",
-              "extraInfo": null
+              "name": "NullExtra", "entry": "main",
+              "schemaVersion": 1, "kind": "plugin", "apiVersion": 3,
+              "carrier": null,
+              "loader": "regression"
             }
             """);
         StageManifest(manifestRoot, "NullDependencyEntry", """
             {
-              "name": "NullDependencyEntry", "entry": "main", "type": "hosihikari",
+              "name": "NullDependencyEntry", "entry": "main",
+              "schemaVersion": 1, "kind": "plugin", "apiVersion": 3,
               "dependencies": [null],
-              "extraInfo": { "api_version": "2", "manifest_version": "1", "loader": "regression" }
+              "loader": "regression"
             }
             """);
         var manifestThrew = false;
@@ -159,7 +163,7 @@ internal static class RegressionChecks
         var legacySource = Path.Combine(legacyRoot, "source");
         Directory.CreateDirectory(legacySource);
         var legacyManifestPath = Path.Combine(legacyRoot, "Legacy.json");
-        File.WriteAllText(legacyManifestPath, File.ReadAllText(Path.Combine(legacyPackage, "manifest.json")));
+        File.WriteAllText(legacyManifestPath, File.ReadAllText(Path.Combine(legacyPackage, "hosihikari.json")));
         var legacyPack = Packager.Pack(legacySource, legacyManifestPath, Path.Combine(legacyRoot, "out"), []);
         yield return ("R20 旧清单键给出迁移错误",
             legacyRead is null
@@ -168,25 +172,60 @@ internal static class RegressionChecks
             && legacyPack.Problems.Any(problem => problem.Contains("已改名为 extraInfo.api_version", StringComparison.Ordinal)),
             legacyReports.FirstOrDefault() ?? string.Join(" | ", legacyPack.Problems));
 
+        // R24：migrate 把旧包搬成新清单：字段改名、删旧文件、打包设置搬进 pack（ADR-0058）。
+        var migrateRoot = Path.Combine(root, "migrate");
+        var migratePackage = Path.Combine(migrateRoot, "Old");
+        Directory.CreateDirectory(migratePackage);
+        File.WriteAllText(Path.Combine(migratePackage, "manifest.json"), """
+            {
+              "name": "Old", "entry": "Old.dll", "type": "hosihikari", "version": "1.2.3",
+              "dependencies": [ { "name": "hosihikari" } ],
+              "extraInfo": { "api_version": "2", "manifest_version": "1", "loader": "assembly", "packages": "A/1.0.0, B" }
+            }
+            """);
+        var migrated = Packager.Migrate(migratePackage);
+        var migratedJson = Path.Combine(migratePackage, "hosihikari.json");
+        using var migratedDocument = migrated.Succeeded
+            ? JsonDocument.Parse(File.ReadAllText(migratedJson))
+            : null;
+        var migratedRoot = migratedDocument?.RootElement;
+        var migratedAgain = Packager.Migrate(migratePackage);
+        yield return ("R24 migrate 生成新清单并删掉旧文件",
+            migrated.Succeeded
+            && !File.Exists(Path.Combine(migratePackage, "manifest.json"))
+            && migratedRoot is { } element
+            && element.GetProperty("kind").GetString() == "plugin"
+            && element.GetProperty("apiVersion").GetInt32() == 3
+            && element.GetProperty("schemaVersion").GetInt32() == 1
+            // 旧文件马上就删，打包设置必须已经搬进 pack；1.x 的逗号写法要拆成两项。
+            && element.GetProperty("pack").GetProperty("packages")[0].GetString() == "A/1.0.0"
+            && element.GetProperty("pack").GetProperty("packages")[1].GetString() == "B"
+            && migrated.Notes.Count == 0
+            && !migratedAgain.Succeeded,
+            migrated.Succeeded
+                ? string.Join(" | ", migrated.Notes)
+                : string.Join(" | ", migrated.Problems));
+
         // R21 起是 ADR-0006 / 0013 / 0042 的规则：每条都同时看读取期与打包期。
         var ruleRoot = Path.Combine(root, "manifest-rules");
         var ruleSource = Path.Combine(ruleRoot, "source");
         Directory.CreateDirectory(ruleSource);
         File.WriteAllText(Path.Combine(ruleSource, "main"), "entry placeholder");
-        string RuleManifest(string name, string extraInfo, string dependencies = """[ { "name": "hosihikari" } ]""")
+        string RuleManifest(string name, string extra, string dependencies = """[ { "name": "hosihikari" } ]""")
         {
             var path = Path.Combine(ruleRoot, name + ".json");
             File.WriteAllText(path, $$"""
                 {
-                  "name": "{{name}}", "entry": "main", "type": "hosihikari", "version": "1.0.0",
+                  "schemaVersion": 1, "name": "{{name}}", "entry": "main",
+                  "kind": "plugin", "apiVersion": 3, "version": "1.0.0",
                   "dependencies": {{dependencies}},
-                  "extraInfo": {{extraInfo}}
+                  {{extra}}
                 }
                 """);
             return path;
         }
 
-        var missingDependency = RuleManifest("NoFramework", """{ "api_version": "2", "manifest_version": "1", "loader": "regression" }""", "[]");
+        var missingDependency = RuleManifest("NoFramework", """ "loader": "regression" """, "[]");
         var missingDependencyReports = new List<string>();
         var missingDependencyRead = ManifestReader.Read(
             StageManifest(ruleRoot, "NoFramework", File.ReadAllText(missingDependency)), missingDependencyReports.Add);
@@ -200,14 +239,14 @@ internal static class RegressionChecks
 
         var carrierKind = RuleManifest(
             PluginContractInfo.ParentName,
-            """{ "api_version": "2", "manifest_version": "1", "loader": "regression", "packageKind": "carrier" }""",
+            """ "loader": "regression", "kind": "carrier" """,
             "[]");
         var unknownKind = RuleManifest(
             "UnknownKind",
-            """{ "api_version": "2", "manifest_version": "1", "loader": "regression", "packageKind": "pluginish" }""");
+            """ "loader": "regression", "kind": "pluginish" """);
         var carrierPack = Packager.Pack(ruleSource, carrierKind, Path.Combine(ruleRoot, "out-carrier"), []);
         var unknownPack = Packager.Pack(ruleSource, unknownKind, Path.Combine(ruleRoot, "out-unknown"), []);
-        yield return ("R22 packageKind 只认三个值，carrier 只给 hosihikari",
+        yield return ("R22 kind 只认三个值，carrier 只给 hosihikari",
             carrierPack.Succeeded
             && !unknownPack.Succeeded
             && unknownPack.Problems.Any(problem => problem.Contains("packageKind", StringComparison.Ordinal)),
@@ -218,17 +257,21 @@ internal static class RegressionChecks
         var prepackGood = Path.Combine(ruleRoot, "prepack-good.json");
         File.WriteAllText(prepackGood, $$"""
             {
-              "name": "Prepack", "entry": "main", "type": "hosihikari", "version": "1.0.0",
+              "schemaVersion": 1, "name": "Prepack", "entry": "main",
+              "kind": "plugin", "apiVersion": 3, "version": "1.0.0",
               "dependencies": [ { "name": "hosihikari" } ],
-              "extraInfo": { "api_version": "2", "manifest_version": "1", "loader": "regression", "prepack": "{{(OperatingSystem.IsWindows() ? "cmd" : "sh")}}" }
+              "loader": "regression",
+              "pack": { "prepack": "{{(OperatingSystem.IsWindows() ? "cmd" : "sh")}}" }
             }
             """);
         var prepackBad = Path.Combine(ruleRoot, "prepack-bad.json");
         File.WriteAllText(prepackBad, $$"""
             {
-              "name": "PrepackBad", "entry": "main", "type": "hosihikari", "version": "1.0.0",
+              "schemaVersion": 1, "name": "PrepackBad", "entry": "main",
+              "kind": "plugin", "apiVersion": 3, "version": "1.0.0",
               "dependencies": [ { "name": "hosihikari" } ],
-              "extraInfo": { "api_version": "2", "manifest_version": "1", "loader": "regression", "prepack": "hosihikari-no-such-program" }
+              "loader": "regression",
+              "pack": { "prepack": "hosihikari-no-such-program" }
             }
             """);
         var prepackGoodPack = Packager.Pack(prepackSource, prepackGood, Path.Combine(ruleRoot, "out-prepack"), []);
@@ -285,9 +328,9 @@ internal static class RegressionChecks
         var brokenPackage = Stage(rollbackRoot, "Broken");
         var ghostPackage = StageManifest(rollbackRoot, "GhostUser", """
             {
-              "name": "GhostUser", "entry": "main", "type": "hosihikari",
-              "dependencies": [ { "name": "hosihikari" } ],
-              "extraInfo": { "api_version": "2", "manifest_version": "1", "loader": "ghost" }
+              "schemaVersion": 1, "name": "GhostUser", "entry": "main",
+              "apiVersion": 3, "loader": "ghost", "kind": "plugin",
+              "dependencies": [ { "name": "hosihikari" } ]
             }
             """);
         var brokenLoaded = rollbackHost.Load(brokenPackage);
@@ -299,7 +342,7 @@ internal static class RegressionChecks
         var loaderRoot = Path.Combine(root, "loader-unload");
         var loaderHost = NewHost(loaderRoot);
         loaderHost.RegisterLoader(new FailingLoader("none") { RegisterLoader = true });
-        var loaderPackage = Stage(loaderRoot, "LoaderPackage");
+        var loaderPackage = Stage(loaderRoot, "LoaderPackage", kind: "loader");
         var loaderLoaded = loaderHost.Load(loaderPackage);
         var loaderUnload = loaderHost.Unload("LoaderPackage");
         yield return ("R11 显式卸载 Loader 包被拒绝",
@@ -313,7 +356,7 @@ internal static class RegressionChecks
             aclHost.RegisterLoader(new FailingLoader("none"));
             Stage(aclRoot, "Good");
             var lockedPackage = Stage(aclRoot, "Locked");
-            File.SetUnixFileMode(Path.Combine(lockedPackage, "manifest.json"), UnixFileMode.None);
+            File.SetUnixFileMode(Path.Combine(lockedPackage, "hosihikari.json"), UnixFileMode.None);
             var aclIsolated = true;
             try { aclHost.LoadAll(); }
             catch { aclIsolated = false; }
@@ -336,7 +379,7 @@ internal static class RegressionChecks
             message => Console.WriteLine($"[回归] {message}"),
             new SingleService(reuseLogger));
         reuseHost.RegisterLoader(new FailingLoader("none") { RegisterLoader = true });
-        var reusePackage = Stage(reuseRoot, "LoaderPackage");
+        var reusePackage = Stage(reuseRoot, "LoaderPackage", kind: "loader");
         var firstLoad = reuseHost.Load(reusePackage);
         UnloadResult? reuseUnload = null;
         var unloadThread = Task.Run(() =>
@@ -405,16 +448,18 @@ internal static class RegressionChecks
         var badVersionManifest = Path.Combine(packVersionRoot, "bad-version.json");
         File.WriteAllText(badVersionManifest, JsonSerializer.Serialize(new
         {
-            name = "BadVersion", entry = "main.dll", type = "hosihikari", version = "not-semver",
+            schemaVersion = 1, name = "BadVersion", entry = "main.dll", kind = "plugin",
+            apiVersion = int.Parse(PluginContractInfo.CurrentApiVersion), version = "not-semver",
             dependencies = new object[] { new { name = "hosihikari" } },
-            extraInfo = new { api_version = PluginContractInfo.CurrentApiVersion, manifest_version = "1", loader = "assembly" },
+            loader = "assembly",
         }));
         var badConstraintManifest = Path.Combine(packVersionRoot, "bad-constraint.json");
         File.WriteAllText(badConstraintManifest, JsonSerializer.Serialize(new
         {
-            name = "BadConstraint", entry = "main.dll", type = "hosihikari", version = "1.0.0",
+            schemaVersion = 1, name = "BadConstraint", entry = "main.dll", kind = "plugin",
+            apiVersion = int.Parse(PluginContractInfo.CurrentApiVersion), version = "1.0.0",
             dependencies = new object[] { new { name = "Lib", version = ">>1" }, new { name = "hosihikari" } },
-            extraInfo = new { api_version = PluginContractInfo.CurrentApiVersion, manifest_version = "1", loader = "assembly" },
+            loader = "assembly",
         }));
         var badVersionPack = Packager.Pack(
             packVersionSource, badVersionManifest, Path.Combine(packVersionRoot, "out-version"), []);
@@ -431,10 +476,12 @@ internal static class RegressionChecks
             {
               "name": "NullDependency",
               "entry": "main.dll",
-              "type": "hosihikari",
+              "schemaVersion": 1,
+              "kind": "plugin",
+              "apiVersion": 3,
               "version": "1.0.0",
               "dependencies": [ null ],
-              "extraInfo": { "api_version": 2, "manifest_version": "1", "loader": "assembly" }
+              "loader": "assembly"
             }
             """);
         PackResult? nullDependencyPack = null;
@@ -467,7 +514,7 @@ internal static class RegressionChecks
         {
             var directory = Path.Combine(fuzzRoot, "p" + i);
             Directory.CreateDirectory(directory);
-            File.WriteAllText(Path.Combine(directory, "manifest.json"), RandomManifest(fuzzRandom));
+            File.WriteAllText(Path.Combine(directory, "hosihikari.json"), RandomManifest(fuzzRandom));
             try
             {
                 ManifestReader.Read(directory, _ => { });
@@ -522,15 +569,19 @@ internal static class RegressionChecks
         Path.Combine(root, "plugins"), Path.Combine(root, "data"), Path.Combine(root, "config"),
         message => Console.WriteLine($"[回归] {message}"));
 
-    private static string Stage(string root, string name, string? dependency = null)
+    private static string Stage(string root, string name, string? dependency = null, string kind = "plugin")
     {
         var directory = Path.Combine(root, "plugins", name);
         Directory.CreateDirectory(directory);
-        File.WriteAllText(Path.Combine(directory, "manifest.json"), JsonSerializer.Serialize(new
+        File.WriteAllText(Path.Combine(directory, "hosihikari.json"), JsonSerializer.Serialize(new
         {
-            name, entry = "main", type = "hosihikari",
+            schemaVersion = 1,
+            name,
+            entry = "main",
+            apiVersion = 3,
+            loader = "regression",
+            kind,
             dependencies = dependency is null ? new object[] { new { name = "hosihikari" } } : new object[] { new { name = dependency }, new { name = "hosihikari" } },
-            extraInfo = new { api_version = PluginContractInfo.CurrentApiVersion, manifest_version = "1", loader = "regression" },
         }));
         return directory;
     }
@@ -539,7 +590,7 @@ internal static class RegressionChecks
     {
         var directory = Path.Combine(root, "plugins", name);
         Directory.CreateDirectory(directory);
-        File.WriteAllText(Path.Combine(directory, "manifest.json"), json);
+        File.WriteAllText(Path.Combine(directory, "hosihikari.json"), json);
         return directory;
     }
 
@@ -549,7 +600,7 @@ internal static class RegressionChecks
         [
             "{", "}", "[", "]", "\"name\"", ":", "\"p\"", "\"entry\"", "\"..\"", "\"main.dll\"",
             "\"type\"", "\"hosihikari\"", "\"version\"", "\"1.0.0\"", "\"dependencies\"",
-            "null", "0", ",", "\\", "\n", "\"extraInfo\"", "\"api_version\"", "\"2\"",
+            "null", "0", ",", "\\", "\n", "\"kind\"", "\"apiVersion\"", "3", "\"carrier\"",
         ];
         var builder = new StringBuilder();
         for (var i = 0; i < random.Next(1, 50); i++)
@@ -571,11 +622,13 @@ internal static class RegressionChecks
             entry = "main",
             type = "hosihikari",
             version,
+            schemaVersion = 1, kind = "plugin",
+            apiVersion = int.Parse(PluginContractInfo.CurrentApiVersion),
             dependencies = dependencies.Select(dependency => new { dependency.Name, dependency.Version })
                 .Cast<object>()
                 .Append(new { Name = "hosihikari", Version = (string?)null })
                 .ToArray(),
-            extraInfo = new { api_version = PluginContractInfo.CurrentApiVersion, manifest_version = "1", loader = "regression" },
+            loader = "regression",
         }));
 
     private static bool RejectsReleasedScope(PluginScope scope)
@@ -600,7 +653,7 @@ internal static class RegressionChecks
         method.GetILGenerator().Emit(OpCodes.Ret);
         var handler = method.CreateDelegate(typeof(Action<>).MakeGenericType(type));
         ((IDisposable)typeof(EventBus).GetMethod(nameof(EventBus.Subscribe))!
-            .MakeGenericMethod(type).Invoke(bus, [handler])!).Dispose();
+            .MakeGenericMethod(type).Invoke(bus, [handler, EventPriority.Normal])!).Dispose();
         return new WeakReference(type.Assembly);
     }
 
@@ -661,12 +714,13 @@ internal static class RegressionChecks
             public static class Entry { }
             """);
         File.WriteAllText(Path.Combine(source, "shared", "helper.cs"), "public static class Helper { }");
-        var manifest = Path.Combine(root, "manifest.json");
+        var manifest = Path.Combine(root, "hosihikari.json");
         File.WriteAllText(manifest, JsonSerializer.Serialize(new
         {
-            name = "OutputFixture", type = "hosihikari", entry = "src/main.cs",
+            schemaVersion = 1, name = "OutputFixture", entry = "src/main.cs", kind = "plugin",
+            apiVersion = int.Parse(PluginContractInfo.CurrentApiVersion),
             dependencies = new object[] { new { name = "hosihikari" } },
-            extraInfo = new { api_version = PluginContractInfo.CurrentApiVersion, manifest_version = "1", loader = "csharp" },
+            loader = "csharp",
         }));
         var result = Packager.Pack(source, manifest, Path.Combine(root, "packages"), []);
         return result.Succeeded
@@ -716,10 +770,12 @@ internal static class RegressionChecks
 
         private sealed class GhostPlugin : IPlugin
         {
-            public void OnLoad(IPluginContext context) { }
-            public PluginHookResult OnEnable() => PluginHookResult.Allow();
-            public PluginHookResult OnDisable() => PluginHookResult.Allow();
-            public void OnUnload() { }
+            public ValueTask OnLoad(IPluginContext context, CancellationToken cancellationToken) => ValueTask.CompletedTask;
+            public ValueTask<PluginHookResult> OnEnable(CancellationToken cancellationToken) =>
+                ValueTask.FromResult(PluginHookResult.Allow());
+            public ValueTask<PluginHookResult> OnDisable(CancellationToken cancellationToken) =>
+                ValueTask.FromResult(PluginHookResult.Allow());
+            public ValueTask OnUnload(CancellationToken cancellationToken) => ValueTask.CompletedTask;
         }
     }
 
@@ -776,30 +832,41 @@ internal static class RegressionChecks
         }
         private sealed class Plugin(FailingLoader owner, string name) : IPlugin
         {
-            public void OnLoad(IPluginContext context)
+            public ValueTask OnLoad(IPluginContext context, CancellationToken cancellationToken)
             {
                 owner.UseContext(context);
+                // 加载器包拿到的是 ILoaderContext（ADR-0059）；这里按接口取，普通上下文没有就跳过。
+                var loaderContext = context as ILoaderContext;
                 if (owner.RegisterLoader)
                 {
-                    context.RegisterLoader(new GhostLoader());
+                    loaderContext?.RegisterLoader(new GhostLoader());
                 }
                 if (name == "Broken" && owner._mode is "load" or "cleanup-throw")
                     throw new InvalidOperationException("load failure");
                 if (name == "Broken" && owner._mode == "fault-on-load")
-                    context.ReportFault("immediate death");
+                    context.ReportFault(PluginDiagnostic.Error("immediate-death", "immediate death"));
                 if (name == "Broken" && owner._mode == "loader-register-throw")
                 {
-                    context.RegisterLoader(new GhostLoader());
+                    loaderContext?.RegisterLoader(new GhostLoader());
                     throw new InvalidOperationException("loader registration then failure");
                 }
+
+                return ValueTask.CompletedTask;
             }
-            public PluginHookResult OnEnable() => name == "Broken" && owner._mode == "enable"
-                ? throw new InvalidOperationException("enable failure") : PluginHookResult.Allow();
-            public PluginHookResult OnDisable() { owner.Disables++; return PluginHookResult.Allow(); }
-            public void OnUnload()
+            public ValueTask<PluginHookResult> OnEnable(CancellationToken cancellationToken) =>
+                name == "Broken" && owner._mode == "enable"
+                    ? throw new InvalidOperationException("enable failure")
+                    : ValueTask.FromResult(PluginHookResult.Allow());
+            public ValueTask<PluginHookResult> OnDisable(CancellationToken cancellationToken)
+            {
+                owner.Disables++;
+                return ValueTask.FromResult(PluginHookResult.Allow());
+            }
+            public ValueTask OnUnload(CancellationToken cancellationToken)
             {
                 owner.Unloads++;
                 if (owner._mode == "cleanup-throw") throw new InvalidOperationException("unload failure");
+                return ValueTask.CompletedTask;
             }
         }
     }

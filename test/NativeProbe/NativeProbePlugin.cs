@@ -8,19 +8,20 @@ namespace NativeProbe;
 
 public sealed class NativeProbePlugin : IPlugin
 {
-    public void OnLoad(IPluginContext context)
+    public ValueTask OnLoad(IPluginContext context, CancellationToken cancellationToken)
     {
         var value = Probe.Value();
         File.WriteAllText(Path.Combine(context.DataDirectory, "native.txt"), value.ToString());
+        return ValueTask.CompletedTask;
     }
 
-    public PluginHookResult OnEnable() => PluginHookResult.Allow();
+    public ValueTask<PluginHookResult> OnEnable(CancellationToken cancellationToken) =>
+        ValueTask.FromResult(PluginHookResult.Allow());
 
-    public PluginHookResult OnDisable() => PluginHookResult.Allow();
+    public ValueTask<PluginHookResult> OnDisable(CancellationToken cancellationToken) =>
+        ValueTask.FromResult(PluginHookResult.Allow());
 
-    public void OnUnload()
-    {
-    }
+    public ValueTask OnUnload(CancellationToken cancellationToken) => ValueTask.CompletedTask;
 }
 
 internal static class Probe

@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
@@ -7,5 +7,16 @@
     <AssemblyName>Hosihikari.Bindings.Stub</AssemblyName>
     <RootNamespace>Hosihikari.Bindings</RootNamespace>
   </PropertyGroup>
+
+  <ItemGroup>
+    <!-- 组件校验的替身要看得见契约；运行时由共享层提供，包里不带副本。 -->
+    <ProjectReference Include="../../../Plugin.Abstractions/src/Hosihikari.Plugin.Abstractions.csproj"
+                      Condition="Exists('../../../Plugin.Abstractions/src/Hosihikari.Plugin.Abstractions.csproj')"
+                      Private="false"
+                      ExcludeAssets="runtime" />
+    <PackageReference Include="Hosihikari.Plugin.Abstractions" Version="[3.0.0]"
+                      Condition="!Exists('../../../Plugin.Abstractions/src/Hosihikari.Plugin.Abstractions.csproj')"
+                      ExcludeAssets="runtime" />
+  </ItemGroup>
 
 </Project>

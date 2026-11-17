@@ -27,7 +27,8 @@
   </ItemGroup>
 
   <ItemGroup Condition="!Exists('../../../Plugin.Abstractions/src/Hosihikari.Plugin.Abstractions.csproj')">
-    <PackageReference Include="Hosihikari.Plugin.Abstractions" Version="[1.2.0]" />
+    <!-- 契约 3 才有异步钩子与 ILoaderContext（ADR-0059）；无并列检出时按发布后的版本取。 -->
+    <PackageReference Include="Hosihikari.Plugin.Abstractions" Version="[3.0.0]" />
   </ItemGroup>
 
   <ItemGroup Condition="Exists('../../src/Hosihikari.PluginManager.csproj')">

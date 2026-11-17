@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <root>
   <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
   <resheader name="version"><value>2.0</value></resheader>
@@ -125,10 +125,25 @@
     <value>{0} освобождён, но проверка освобождения не удалась; выгрузите снова для повторной проверки</value>
   </data>
   <data name="Manager_Fault" xml:space="preserve">
-    <value>{0}: сбой — {1}</value>
+    <value>{0}: сбой [{1}/{2}] — {3}</value>
   </data>
   <data name="Manager_FaultUnloadIncomplete" xml:space="preserve">
     <value>{0}: аварийная выгрузка не завершилась — {1}</value>
+  </data>
+  <data name="Manager_HookTimeout" xml:space="preserve">
+    <value>{0}: время ожидания хука {1} истекло ({2}); ожидание прекращено</value>
+  </data>
+  <data name="Manager_ComponentThrew" xml:space="preserve">
+    <value>{0}: компонент носителя выбросил исключение - {1}</value>
+  </data>
+  <data name="Manager_ComponentTimeout" xml:space="preserve">
+    <value>{0}: компонент носителя не завершился за {1}; ожидание прекращено</value>
+  </data>
+  <data name="Manager_ComponentAssemblyFailed" xml:space="preserve">
+    <value>не удалось загрузить сборку компонента {0} - {1}</value>
+  </data>
+  <data name="Manager_ComponentTypeFailed" xml:space="preserve">
+    <value>тип компонента {0} отсутствует или не реализует ICarrierComponent</value>
   </data>
   <data name="Common_NoReason" xml:space="preserve">
     <value>причина не указана</value>
@@ -185,10 +200,10 @@
     <value>не объявлено</value>
   </data>
   <data name="Manifest_ApiMismatch" xml:space="preserve">
-    <value>{0}: несовпадение api_version (манифест {1}, платформа {2})</value>
+    <value>{0}: несовпадение apiVersion (манифест {1}, платформа {2})</value>
   </data>
   <data name="Manifest_ManifestVersionMismatch" xml:space="preserve">
-    <value>{0}: несовпадение manifest_version (манифест {1}, платформа {2})</value>
+    <value>{0}: несовпадение schemaVersion (манифест {1}, платформа {2})</value>
   </data>
   <data name="Manifest_DependencyName" xml:space="preserve">
     <value>{0}: зависимости должны иметь непустое имя</value>
@@ -249,5 +264,8 @@
   </data>
   <data name="Manager_AlreadyDisabled" xml:space="preserve">
     <value>{0} уже отключён</value>
+  </data>
+  <data name="Manifest_LegacyPackage" xml:space="preserve">
+    <value>{0}: старый пакет (только manifest.json) — выполните `hosihikari-pack migrate {0}` и упакуйте заново</value>
   </data>
 </root>

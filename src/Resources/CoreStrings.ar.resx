@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <root>
   <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
   <resheader name="version"><value>2.0</value></resheader>
@@ -125,10 +125,25 @@
     <value>{0} أُطلق، لكن فشل التحقق من الاسترداد؛ أعد إلغاء التحميل للتحقق مجددًا</value>
   </data>
   <data name="Manager_Fault" xml:space="preserve">
-    <value>{0}: عطل — {1}</value>
+    <value>{0}: عطل [{1}/{2}] — {3}</value>
   </data>
   <data name="Manager_FaultUnloadIncomplete" xml:space="preserve">
     <value>{0}: لم يكتمل إلغاء التحميل بسبب العطل — {1}</value>
+  </data>
+  <data name="Manager_HookTimeout" xml:space="preserve">
+    <value>{0}: انتهت مهلة خطاف {1} ({2})؛ لم يعد ينتظره</value>
+  </data>
+  <data name="Manager_ComponentThrew" xml:space="preserve">
+    <value>{0}: ألقى مكوّن الناقل استثناءً - {1}</value>
+  </data>
+  <data name="Manager_ComponentTimeout" xml:space="preserve">
+    <value>{0}: لم ينتهِ مكوّن الناقل خلال {1}؛ لم يعد ينتظره</value>
+  </data>
+  <data name="Manager_ComponentAssemblyFailed" xml:space="preserve">
+    <value>تعذّر تحميل تجميعة مكوّن الناقل {0} - {1}</value>
+  </data>
+  <data name="Manager_ComponentTypeFailed" xml:space="preserve">
+    <value>نوع مكوّن الناقل {0} مفقود أو لا ينفّذ ICarrierComponent</value>
   </data>
   <data name="Common_NoReason" xml:space="preserve">
     <value>دون سبب</value>
@@ -185,10 +200,10 @@
     <value>غير معلن</value>
   </data>
   <data name="Manifest_ApiMismatch" xml:space="preserve">
-    <value>{0}: عدم تطابق api_version (البيان {1}، الإطار {2})</value>
+    <value>{0}: عدم تطابق apiVersion (البيان {1}، الإطار {2})</value>
   </data>
   <data name="Manifest_ManifestVersionMismatch" xml:space="preserve">
-    <value>{0}: عدم تطابق manifest_version (البيان {1}، الإطار {2})</value>
+    <value>{0}: عدم تطابق schemaVersion (البيان {1}، الإطار {2})</value>
   </data>
   <data name="Manifest_DependencyName" xml:space="preserve">
     <value>{0}: يجب أن تحتوي التبعيات على اسم غير فارغ</value>
@@ -249,5 +264,8 @@
   </data>
   <data name="Manager_AlreadyDisabled" xml:space="preserve">
     <value>{0} معطّلة بالفعل</value>
+  </data>
+  <data name="Manifest_LegacyPackage" xml:space="preserve">
+    <value>{0}: حزمة قديمة (تحتوي manifest.json فقط) — شغّل ‎`hosihikari-pack migrate {0}` ثم أعد التغليف</value>
   </data>
 </root>
