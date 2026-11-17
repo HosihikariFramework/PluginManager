@@ -52,6 +52,7 @@ string[] sharedLayer =
 
 Stage("Foo", withConfig: true);
 Stage("Bar", withConfig: false);
+Stage("Reloadable", withConfig: false);
 StageBroken();
 StageScript();
 StageDiagnostic();
@@ -733,25 +734,13 @@ checks.Add((
 ));
 
 // A64：自持态能重载，父级态拒绝（ADR-0062）。
-// 用一个独立的包，免得动 Foo/Bar 的依赖图；父级态用一个不拥有插件集的管理器验证。
-var reloadPacked = Packager.Pack(
-    OutputDirectory("NativeProbe"),
-    Path.Combine(repoRoot, "test", "NativeProbe", "hosihikari.json"),
-    pluginsRoot,
-    sharedLayer);
-var reloadPackedOk = reloadPacked.PackageDirectory is not null;
-var reloadLoaded = reloadPackedOk && host.Load(reloadPacked.PackageDirectory!);
-var reloadOutcome = reloadLoaded ? host.Reload("NativeProbe") : default;
-var reloadedSelf = reloadLoaded && reloadOutcome.Reloaded && host.LoadedNames.Contains("NativeProbe");
-// 重载成功就把包还回去，A46 还要用同一个包。
-if (reloadedSelf)
-{
-    host.Unload("NativeProbe");
-}
+// Reloadable 没有任何依赖者，卸载不会撞上依赖图；父级态用一个不拥有插件集的管理器验证。
+var reloadOutcome = host.Reload("Reloadable");
+var reloadedSelf = reloadOutcome.Reloaded && host.LoadedNames.Contains("Reloadable");
 checks.Add((
     "A64 自持态 Reload 走完 Disable→Unload→Load→Enable",
     reloadedSelf,
-    reloadedSelf ? "已重载" : "重载失败"
+    reloadOutcome.Error ?? "已重载"
 ));
 
 var parentedManager = new PluginManager(
@@ -762,7 +751,7 @@ var parentedManager = new PluginManager(
     services,
     null,
     new PluginManagerOptions { OwnsPluginSet = false });
-var parentedReload = parentedManager.Reload("Foo");
+var parentedReload = parentedManager.Reload("Reloadable");
 checks.Add((
     "A65 父级态 Reload 返回 NotSupported",
     parentedReload.NotSupported && !parentedReload.Reloaded && parentedReload.Error is not null,
@@ -1458,6 +1447,7 @@ void StageEscapingEntry()
 
     var valueFile = Path.Combine(dataRoot, "NativeProbe", "native.txt");
     var value = File.Exists(valueFile) ? File.ReadAllText(valueFile).Trim() : "（没写出来）";
+    // 卸 NativeProbe 自己：它没有依赖者，测的是「本机库钉死不影响托管侧回收」。
     var unload = host.Unload("NativeProbe");
     return (value == "42" && unload.Released, $"value={value} released={unload.Released} {unload.Error}");
 }
