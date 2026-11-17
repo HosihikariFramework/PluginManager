@@ -31,6 +31,8 @@ public sealed class PluginManager
     // 所以在装载钩子里会用到的那两本账各有自己的锁，不与 _gate 相交。
     private readonly object _faultGate = new();
     private readonly object _loaderGate = new();
+    private readonly object _stateGate = new();
+    private Task _stateChain = Task.CompletedTask;
     private readonly ILoggerFactory _loggerFactory;
     private readonly IEventBus _events;
     private readonly IScheduler _scheduler;
@@ -38,6 +40,9 @@ public sealed class PluginManager
     private readonly Dictionary<string, Slot> _slots = new(StringComparer.Ordinal);
     private readonly Dictionary<Guid, string> _loading = [];
     private readonly Dictionary<Guid, PluginDiagnostic> _pendingFaults = [];
+
+    // 正在跑钩子的实例：插件在钩子里报故障时先记账，别去抢调用方（等钩子的那一方）握着的 _gate。
+    private readonly HashSet<Guid> _hooking = [];
     private readonly HashSet<Guid> _loaderIds = [];
     private readonly Dictionary<Guid, List<IPluginLoader>> _registeredLoaders = [];
     private readonly List<IPluginLoader> _loaders = [];
@@ -126,14 +131,37 @@ public sealed class PluginManager
     }
 
     /// <summary>
-    /// 把一次登记归到具体的装载实例上；重载时据此保留加载器，不保留普通子插件。
-    /// 在 <c>OnLoad</c> 里从钩子线程调用，而调用方正握着 <see cref="_gate"/> 等钩子 ——
-    /// 所以这里只碰 <see cref="_loaderGate"/>，<c>IsLoader</c> 到装载收尾时再按标记结算。
+    /// 加载器包在 <c>OnLoad</c> 里登记自己：查重、登记与记账在同一把锁里完成，
+    /// 回滚（<see cref="RemoveLoaders"/>）也在这把锁里撤销实例资格 —— 超时后被放弃的钩子
+    /// 即使迟到登记也会被拒，不会留下接管路由的幽灵加载器（Codex 指出）。
+    /// 调用方正握着 <see cref="_gate"/> 等钩子，所以这里只碰 <see cref="_loaderGate"/>。
     /// </summary>
-    internal void MarkLoader(Guid instanceId, IPluginLoader loader)
+    internal bool TryRegisterLoader(
+        Guid instanceId,
+        PluginContext context,
+        IPluginLoader loader,
+        out string? problem)
     {
         lock (_loaderGate)
         {
+            if (context.Revoked)
+            {
+                problem = CoreText.Get("Manager_LoaderInstanceGone", context.Name);
+                return false;
+            }
+
+            var existing = _loaders.FirstOrDefault(registered => registered.Id == loader.Id);
+            if (existing is not null)
+            {
+                problem = CoreText.Get(
+                    "Manager_LoaderDuplicate",
+                    loader.Id,
+                    existing.GetType().Name,
+                    loader.GetType().Name);
+                return false;
+            }
+
+            _loaders.Add(loader);
             _loaderIds.Add(instanceId);
             if (!_registeredLoaders.TryGetValue(instanceId, out var registered))
             {
@@ -141,14 +169,17 @@ public sealed class PluginManager
             }
 
             registered.Add(loader);
+            problem = null;
+            return true;
         }
     }
 
-    /// <summary>加载失败时撤掉本次装载登记过的加载器，别让死包继续接管路由。</summary>
-    private void RemoveLoaders(Guid instanceId)
+    /// <summary>加载失败时撤掉本次装载登记过的加载器，并吊销这个实例继续登记的资格。</summary>
+    private void RemoveLoaders(Guid instanceId, PluginContext? context)
     {
         lock (_loaderGate)
         {
+            context?.Revoke();
             _loaderIds.Remove(instanceId);
             if (_registeredLoaders.Remove(instanceId, out var registered))
             {
@@ -296,6 +327,8 @@ public sealed class PluginManager
         }
 
         var reports = new List<string>();
+        var started = new List<ICarrierComponent>();
+        var ok = true;
 
         // 组件类型住共享层（ADR-0026 / 0061），按约定名从默认上下文解析；载体包里的私有程序集按路径装。
         var assemblies = new Dictionary<string, System.Reflection.Assembly>(StringComparer.OrdinalIgnoreCase);
@@ -317,41 +350,69 @@ public sealed class PluginManager
                         "Manager_ComponentAssemblyFailed",
                         component.Assembly,
                         ex.Demystify()));
-                    continue;
+                    ok = false;
+                    break;
                 }
             }
 
-            if (assembly.GetType(component.Type, throwOnError: false) is not { } type
-                || Activator.CreateInstance(type) is not ICarrierComponent instance)
+            ICarrierComponent? instance;
+            try
+            {
+                var type = assembly.GetType(component.Type, throwOnError: false);
+                instance = type is null ? null : Activator.CreateInstance(type) as ICarrierComponent;
+            }
+            catch (Exception ex)
+            {
+                // 构造函数抛出与类型缺失同一种结局：记一笔、按启动失败处理（Codex 指出的漏网路径）。
+                _loggerFactory.CreateLogger("Hosihikari.Components")
+                    .LogDebug(ex, "{Message}", component.Type);
+                instance = null;
+            }
+
+            if (instance is null)
             {
                 reports.Add(CoreText.Get("Manager_ComponentTypeFailed", component.Type));
-                continue;
+                ok = false;
+                break;
             }
 
-            var context = new CarrierComponentContext(_events, _loggerFactory.CreateLogger(type.FullName ?? type.Name));
+            var context = new CarrierComponentContext(_events, _loggerFactory.CreateLogger(instance.GetType().FullName ?? instance.GetType().Name));
             if (!TryInvokeComponent(component.Type, token => instance.StartAsync(context, token), reports))
             {
-                continue;
+                ok = false;
+                break;
             }
 
-            lock (_gate)
+            started.Add(instance);
+        }
+
+        if (!ok)
+        {
+            // 启动失败就回滚已启动的那些：调用方按整次失败处理，重试时从干净的起点重来。
+            for (var i = started.Count - 1; i >= 0; i--)
             {
-                _components.Add(instance);
+                TryInvokeComponent(
+                    started[i].GetType().FullName ?? started[i].GetType().Name,
+                    started[i].StopAsync,
+                    reports);
             }
 
-            if (!_componentsStarted)
-            {
-                _componentsStarted = true;
-            }
+            started.Clear();
         }
 
         ReportAll(reports);
         lock (_gate)
         {
-            _componentsStarted = true;
+            if (ok)
+            {
+                _components.AddRange(started);
+            }
+
+            // 失败保持 false：下次调用会重新尝试，而不是把半启动当成已完成（Codex）。
+            _componentsStarted = ok;
         }
 
-        return reports.Count == 0;
+        return ok;
     }
 
     /// <summary>
@@ -381,8 +442,9 @@ public sealed class PluginManager
     }
 
     /// <summary>
-    /// 组件的启动/停止在服务端线程上调用，且调用方可能正是装 <c>SynchronizationContext</c> 的那个线程 ——
-    /// 与钩子同样投到线程池再阻塞等（ADR-0059 / 0061）。
+    /// 组件的启动/停止就在调用线程上发起 —— 装上服务端线程 <c>SynchronizationContext</c> 的组件，
+    /// 投到别的线程跑就装错了线程（ADR-0061）。组件要同步收尾：调用线程这里在等它，
+    /// 它自己的续体也得能在不再需要这个上下文的前提下完成。
     /// </summary>
     private bool TryInvokeComponent(
         string name,
@@ -395,20 +457,19 @@ public sealed class PluginManager
             budget.CancelAfter(_componentStopTimeout);
         }
 
-        var task = RunOffPool(() => call(budget.Token));
         try
         {
-            task.WaitAsync(budget.Token).GetAwaiter().GetResult();
+            call(budget.Token).AsTask().WaitAsync(budget.Token).GetAwaiter().GetResult();
             return true;
         }
-        catch (Exception ex) when (ex is not OperationCanceledException || !budget.IsCancellationRequested)
-        {
-            reports.Add(CoreText.Get("Manager_ComponentThrew", name, ex.Demystify()));
-            return false;
-        }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (budget.IsCancellationRequested)
         {
             reports.Add(CoreText.Get("Manager_ComponentTimeout", name, _componentStopTimeout));
+            return false;
+        }
+        catch (Exception ex)
+        {
+            reports.Add(CoreText.Get("Manager_ComponentThrew", name, ex.Demystify()));
             return false;
         }
     }
@@ -577,38 +638,59 @@ public sealed class PluginManager
     /// </summary>
     /// <returns>钩子在预算内返回为 <see langword="true"/>；超时（含钩子抛出取消）为 <see langword="false"/>。</returns>
     private bool TryInvokeHook<T>(
-        string name,
+        Slot slot,
         string hook,
         Func<CancellationToken, ValueTask<T>> call,
         List<string> reports,
         out T result)
         where T : struct
     {
-        // 预算用 CTS 的 CancelAfter 而不是 WaitAsync(TimeSpan)：后者的定时器要等 Task 完成才摘掉，
-        // 会把钩子闭包（进而把插件的 ALC）钉住一整个超时时长（ADR-0023）。
-        using var budget = CreateHookBudget();
-        var task = RunOffPool(() => call(budget.Token));
+        var name = slot.Manifest.Name;
+        // 钩子在别的线程上跑，插件在那里调 ReportFault 时不能去抢 _gate：调用方正握着它等这个钩子。
+        // 与装载期共用同一本待报账，钩子返回后由调用方取走（Codex 指出的死锁形状）。
+        lock (_faultGate)
+        {
+            _hooking.Add(slot.Id);
+        }
+
         try
         {
-            result = task.WaitAsync(budget.Token).GetAwaiter().GetResult();
-            return true;
+            // 预算用 CTS 的 CancelAfter 而不是 WaitAsync(TimeSpan)：后者的定时器要等 Task 完成才摘掉，
+            // 会把钩子闭包（进而把插件的 ALC）钉住一整个超时时长（ADR-0023）。
+            using var budget = CreateHookBudget();
+            var task = RunOffPool(() => call(budget.Token));
+            try
+            {
+                result = task.WaitAsync(budget.Token).GetAwaiter().GetResult();
+                return true;
+            }
+            catch (OperationCanceledException)
+            {
+                // 预算到点与钩子自己取消是同一种结局：不再等它（ADR-0059 / 0063）。
+                reports.Add(budget.IsCancellationRequested
+                    ? CoreText.Get("Manager_HookTimeout", name, hook, _hookTimeout)
+                    : CoreText.Get("Manager_HookCanceled", name, hook));
+                result = default;
+                return false;
+            }
         }
-        catch (OperationCanceledException) when (budget.IsCancellationRequested)
+        finally
         {
-            reports.Add(CoreText.Get("Manager_HookTimeout", name, hook, _hookTimeout));
-            result = default;
-            return false;
+            lock (_faultGate)
+            {
+                _hooking.Remove(slot.Id);
+            }
         }
     }
 
     /// <summary>无返回值的钩子；超时语义同上。</summary>
     private bool TryInvokeHook(
-        string name,
+        Slot slot,
         string hook,
         Func<CancellationToken, ValueTask> call,
         List<string> reports) =>
         TryInvokeHook<bool>(
-            name,
+            slot,
             hook,
             async token =>
             {
@@ -731,7 +813,17 @@ public sealed class PluginManager
             var reportList = reports ??= [];
             if (enable)
             {
-                if (!TryInvokeHook(name, "OnEnable", slot.Handle!.Plugin!.OnEnable, reportList, out var enableResult))
+                var enabled = TryInvokeHook(
+                    slot, "OnEnable", slot.Handle!.Plugin!.OnEnable, reportList, out var enableResult);
+                // 钩子里报的故障（本线程或别的线程）与抛错同级：交给调用方在锁外卸掉。
+                if (TakePendingFault(slot.Id) is { } enableFault)
+                {
+                    faulted = slot;
+                    fault = enableFault;
+                    return false;
+                }
+
+                if (!enabled)
                 {
                     // 超时与取消保持停用（ADR-0059）：没启用过，不必开闸门，账已记过。
                     return false;
@@ -760,7 +852,16 @@ public sealed class PluginManager
                 return true;
             }
 
-            if (!TryInvokeHook(name, "OnDisable", slot.Handle!.Plugin!.OnDisable, reportList, out var disableResult))
+            var stopped = TryInvokeHook(
+                slot, "OnDisable", slot.Handle!.Plugin!.OnDisable, reportList, out var disableResult);
+            if (TakePendingFault(slot.Id) is { } disableFault)
+            {
+                // 已经停下就继续按停用算账；故障本身交给调用方卸掉。
+                faulted = slot;
+                fault = disableFault;
+            }
+
+            if (!stopped)
             {
                 // 停用超时只是不再等它：闸门保持关闭，记账后按已停处理（ADR-0063）。
                 slot.Enabled = false;
@@ -1047,13 +1148,15 @@ public sealed class PluginManager
             {
                 return UnloadResult.Failed(
                     CoreText.Get("Manager_UnloadTimeoutRetry", name, _unloadVerificationTimeout),
-                    hookTimedOut ? UnloadFailure.HookAndReclamationTimedOut : UnloadFailure.ReclamationTimedOut);
+                    hookTimedOut ? UnloadFailure.HookAndReclamationTimedOut : UnloadFailure.ReclamationTimedOut,
+                    hookTimedOut);
             }
 
             // 说"回收"而不是"ALC"：释放句柄长什么样是 Loader 自己的事（ADR-0010）。
             return UnloadResult.Failed(
                 CoreText.Get("Manager_UnloadVerifyFailedRetry", name),
-                hookThrew ? UnloadFailure.HookThrew : UnloadFailure.ReclamationFailed);
+                hookThrew ? UnloadFailure.HookThrew : UnloadFailure.ReclamationFailed,
+                hookTimedOut);
         }
     }
 
@@ -1091,6 +1194,14 @@ public sealed class PluginManager
             if (_loading.TryGetValue(instanceId, out var loadingName) && loadingName == name)
             {
                 // 装载钩子还没跑完，实例尚未交给表。记下来，让 LoadOne 在回滚时一并报。
+                _pendingFaults[instanceId] = diagnostic;
+                return;
+            }
+
+            // 任何钩子跑到一半时报的故障都先记账：Enable / Disable / Detach 正握着 _gate 等这个钩子，
+            // 在这里抢 _gate 就是拿钩子预算换死锁（默认 30 秒，无限预算则永远）。
+            if (_hooking.Contains(instanceId))
+            {
                 _pendingFaults[instanceId] = diagnostic;
                 return;
             }
@@ -1152,7 +1263,12 @@ public sealed class PluginManager
 
         try
         {
-            if (!TryInvokeHook(name, "OnDisable", plugin.OnDisable, reportList, out var disableResult))
+            // 重载先停用再卸载：已经停过就不再调第二次 OnDisable（Codex 指出的重复停用）。
+            if (slot.Stopped)
+            {
+                // 闸门在世界里已经关了，作用域照常关闭即可。
+            }
+            else if (!TryInvokeHook(slot, "OnDisable", plugin.OnDisable, reportList, out var disableResult))
             {
                 // 超时只是不再等它：闸门保持关闭，停用按已发生记账，卸载继续（ADR-0063）。
                 hookTimedOut = true;
@@ -1173,9 +1289,15 @@ public sealed class PluginManager
             hookThrew = true;
         }
 
+        if (TakePendingFault(slot.Id) is { } disableFault)
+        {
+            // 卸载正在进行，故障只记账、不再触发第二次卸载。
+            reportList.Add(Describe("Manager_Fault", name, disableFault));
+        }
+
         try
         {
-            if (!TryInvokeHook(name, "OnUnload", plugin.OnUnload, reportList))
+            if (!TryInvokeHook(slot, "OnUnload", plugin.OnUnload, reportList))
             {
                 hookTimedOut = true;
             }
@@ -1184,6 +1306,11 @@ public sealed class PluginManager
         {
             reportList.Add(CoreText.Get("Manager_UnloadHookThrew", name, ex.Demystify()));
             hookThrew = true;
+        }
+
+        if (TakePendingFault(slot.Id) is { } unloadFault)
+        {
+            reportList.Add(Describe("Manager_Fault", name, unloadFault));
         }
 
         // 作者没退订的订阅、没释放的定时器，在这里一并收回 —— 否则它们把 ALC 钉在共享服务上。
@@ -1212,7 +1339,28 @@ public sealed class PluginManager
     private void PublishState(string name, PluginState previous, PluginState current)
     {
         var notification = new PluginStateChanged(name, previous, current);
-        _ = Task.Run(() => _events.Publish(notification));
+        // 串成一条链：每次一条独立的 Task.Run 会并发发布，订阅方可能先收到后一次迁移（Codex）。
+        lock (_stateGate)
+        {
+            _stateChain = _stateChain.ContinueWith(
+                _ =>
+                {
+                    try
+                    {
+                        _events.Publish(notification);
+                    }
+                    catch (Exception ex)
+                    {
+                        _loggerFactory.CreateLogger("Hosihikari.Events").LogError(
+                            ex,
+                            "{Message}",
+                            CoreText.Get("Manager_StatePublishFailed", name));
+                    }
+                },
+                CancellationToken.None,
+                TaskContinuationOptions.None,
+                TaskScheduler.Default);
+        }
     }
 
     /// <summary>回收验证：句柄只攥着 WeakReference，不钉住 ALC。</summary>
@@ -1243,6 +1391,7 @@ public sealed class PluginManager
             _loading[slot.Id] = manifest.Name;
         }
         PluginHandle? handle = null;
+        PluginContext? context = null;
         var loadStarted = false;
         var enableStarted = false;
         var enabled = false;
@@ -1286,7 +1435,7 @@ public sealed class PluginManager
             Directory.CreateDirectory(dataDirectory);
             // 普通包只给 IPluginContext；加载器包多一层 ILoaderContext（ADR-0059）。
             var isLoader = manifest.PackageKind == "loader";
-            var context = new PluginContext(
+            context = new PluginContext(
                 manifest.Name,
                 package.Directory,
                 dataDirectory,
@@ -1299,7 +1448,9 @@ public sealed class PluginManager
                 isLoader,
                 reports.Add);
 
-            handle = loader.Load(manifest, package.Directory, context.ForPlugin());
+            // 加载器与插件钩子拿到同一份视图：普通包的 OnLoad 也不能转成 ILoaderContext（ADR-0059）。
+            var pluginContext = context.ForPlugin();
+            handle = loader.Load(manifest, package.Directory, pluginContext);
             if (handle?.Plugin is null)
             {
                 reports.Add(CoreText.Get("Manager_LoadFailed", manifest.Name));
@@ -1309,9 +1460,9 @@ public sealed class PluginManager
             var plugin = handle.Plugin;
             loadStarted = true;
             if (!TryInvokeHook(
-                    manifest.Name,
+                    slot,
                     "OnLoad",
-                    token => plugin.OnLoad(context, token),
+                    token => plugin.OnLoad(pluginContext, token),
                     reports))
             {
                 // 取消或超时都按装载回滚处理（ADR-0059），下面的 finally 收起已经跑过的部分。
@@ -1328,7 +1479,7 @@ public sealed class PluginManager
             {
                 enableStarted = true;
                 if (!TryInvokeHook(
-                        manifest.Name,
+                        slot,
                         "OnEnable",
                         plugin.OnEnable,
                         reports,
@@ -1374,14 +1525,23 @@ public sealed class PluginManager
         }
         finally
         {
+            PluginDiagnostic? lateFault = null;
             lock (_faultGate)
             {
+                // 取账与退出装载账必须原子：否则 ReportFault 可能在这两步之间看到还在装载、
+                // 把故障存进来，随后被这里删掉（Codex 指出的丢账窗口）。
+                if (loaded && _pendingFaults.Remove(slot.Id, out var pending))
+                {
+                    lateFault = pending;
+                }
+
                 _loading.Remove(slot.Id);
                 _pendingFaults.Remove(slot.Id);
             }
+
             if (!loaded)
             {
-                RemoveLoaders(slot.Id);
+                RemoveLoaders(slot.Id, context);
             }
             else
             {
@@ -1408,13 +1568,26 @@ public sealed class PluginManager
                     Cleanup(handle.Unload);
                 }
             }
+
+            if (lateFault is { } late)
+            {
+                // 交付与退出装载账之间报的故障：实例已在表里，按正常故障路径卸掉。
+                try
+                {
+                    ReportFault(manifest.Name, slot.Id, late);
+                }
+                catch (Exception ex)
+                {
+                    reports.Add(CoreText.Get("Manager_LoadRollbackThrew", manifest.Name, ex.Demystify()));
+                }
+            }
         }
 
         void CleanupHook(string hook, Func<CancellationToken, ValueTask> cleanup)
         {
             try
             {
-                TryInvokeHook(manifest.Name, hook, cleanup, reports);
+                TryInvokeHook(slot, hook, cleanup, reports);
             }
             catch (Exception ex)
             {

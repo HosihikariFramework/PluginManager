@@ -507,12 +507,44 @@ var loaderPackage = Path.Combine(stage, "parented", "LoaderKind");
 var plainLoaded = kindHost.Load(plainPackage);
 var loaderLoaded = kindHost.Load(loaderPackage);
 checks.Add((
-    "A56 普通包拿不到 ILoaderContext，加载器包拿得到",
+    "A56 普通包拿不到 ILoaderContext，加载器包拿得到（装载与 OnLoad 都算）",
     plainLoaded && loaderLoaded
         && contextKindLoader.SawLoaderContext.GetValueOrDefault("Awaiting") == false
-        && contextKindLoader.SawLoaderContext.GetValueOrDefault("LoaderKind") == true,
-    $"plain={contextKindLoader.SawLoaderContext.GetValueOrDefault("Awaiting")} "
-        + $"loader={contextKindLoader.SawLoaderContext.GetValueOrDefault("LoaderKind")}"
+        && contextKindLoader.SawLoaderContext.GetValueOrDefault("LoaderKind") == true
+        && contextKindLoader.SawLoaderContextInHook.GetValueOrDefault("Awaiting") == false
+        && contextKindLoader.SawLoaderContextInHook.GetValueOrDefault("LoaderKind") == true,
+    $"plain={contextKindLoader.SawLoaderContext.GetValueOrDefault("Awaiting")}/"
+        + $"{contextKindLoader.SawLoaderContextInHook.GetValueOrDefault("Awaiting")} "
+        + $"loader={contextKindLoader.SawLoaderContext.GetValueOrDefault("LoaderKind")}/"
+        + $"{contextKindLoader.SawLoaderContextInHook.GetValueOrDefault("LoaderKind")}"
+));
+
+// A66：钩子里报的故障不能在 _gate 上等死（Codex 指出的死锁形状）——
+// Enable 期间 _gate 被握着，插件线程 ReportFault 必须先进待报账，钩子返回后立刻卸掉。
+var faultReports = new List<string>();
+var faultLoader = new HookPluginLoader();
+faultLoader.ReportFaultOnEnable.Add("Awaiting");
+var faultHost = new PluginManager(
+    pluginsRoot,
+    Path.Combine(stage, "faults", "data"),
+    Path.Combine(stage, "faults", "config"),
+    faultReports.Add,
+    services,
+    null,
+    new PluginManagerOptions { HookTimeout = TimeSpan.FromSeconds(5) });
+faultHost.RegisterLoader(faultLoader);
+var faultLoaded = faultHost.Load(Path.Combine(stage, "parented", "Awaiting"));
+var faultWatch = System.Diagnostics.Stopwatch.StartNew();
+var faultEnable = faultHost.Enable("Awaiting");
+var faultElapsed = faultWatch.Elapsed;
+Thread.Sleep(100);
+checks.Add((
+    "A66 钩子里的故障先进待报账，不在 _gate 上等到超时",
+    faultLoaded && !faultEnable && !faultHost.LoadedNames.Contains("Awaiting")
+        && faultElapsed < TimeSpan.FromSeconds(2)
+        && faultReports.Any(report => report.Contains("故障", StringComparison.Ordinal)),
+    $"loaded={faultLoaded} enable={faultEnable} elapsed={faultElapsed.TotalMilliseconds:0}ms "
+        + $"names=[{string.Join(", ", faultHost.LoadedNames)}]"
 ));
 
 // A59：状态迁移事件照实发出 —— 装载成功发 →Loaded，放下发 Loaded→Detached（ADR-0062 / 0062 的接线）。
@@ -737,10 +769,14 @@ checks.Add((
 // Reloadable 没有任何依赖者，卸载不会撞上依赖图；父级态用一个不拥有插件集的管理器验证。
 var reloadOutcome = host.Reload("Reloadable");
 var reloadedSelf = reloadOutcome.Reloaded && host.LoadedNames.Contains("Reloadable");
+var disableLog = Path.Combine(dataRoot, "Reloadable", "disable.log");
+var disableCalls = File.Exists(disableLog)
+    ? File.ReadAllLines(disableLog).Count(line => line.Length > 0)
+    : 0;
 checks.Add((
-    "A64 自持态 Reload 走完 Disable→Unload→Load→Enable",
-    reloadedSelf,
-    reloadOutcome.Error ?? "已重载"
+    "A64 自持态 Reload 走完 Disable→Unload→Load→Enable，停用只调一次",
+    reloadedSelf && disableCalls == 1,
+    $"{reloadOutcome.Error ?? "已重载"} disableCalls={disableCalls}"
 ));
 
 var parentedManager = new PluginManager(

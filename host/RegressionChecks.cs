@@ -172,7 +172,7 @@ internal static class RegressionChecks
             && legacyPack.Problems.Any(problem => problem.Contains("已改名为 extraInfo.api_version", StringComparison.Ordinal)),
             legacyReports.FirstOrDefault() ?? string.Join(" | ", legacyPack.Problems));
 
-        // R24：migrate 把旧包搬成新清单：字段改名、删旧文件、旧键列进待补清单（ADR-0058）。
+        // R24：migrate 把旧包搬成新清单：字段改名、删旧文件、打包设置搬进 pack（ADR-0058）。
         var migrateRoot = Path.Combine(root, "migrate");
         var migratePackage = Path.Combine(migrateRoot, "Old");
         Directory.CreateDirectory(migratePackage);
@@ -197,7 +197,9 @@ internal static class RegressionChecks
             && element.GetProperty("kind").GetString() == "plugin"
             && element.GetProperty("apiVersion").GetInt32() == 3
             && element.GetProperty("schemaVersion").GetInt32() == 1
-            && migrated.Notes.Count > 0
+            // 旧文件马上就删，打包设置必须已经搬进 pack；搬完就不留"请手动复制"的提示。
+            && element.GetProperty("pack").GetProperty("packages")[0].GetString() == "A/1.0.0"
+            && migrated.Notes.Count == 0
             && !migratedAgain.Succeeded,
             migrated.Succeeded
                 ? string.Join(" | ", migrated.Notes)

@@ -125,7 +125,7 @@
     <value>{0} освобождён, но проверка освобождения не удалась; выгрузите снова для повторной проверки</value>
   </data>
   <data name="Manager_Fault" xml:space="preserve">
-    <value>{0}: сбой — {1}</value>
+    <value>{0}: сбой [{1}/{2}] — {3}</value>
   </data>
   <data name="Manager_FaultUnloadIncomplete" xml:space="preserve">
     <value>{0}: аварийная выгрузка не завершилась — {1}</value>

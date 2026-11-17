@@ -125,7 +125,7 @@
     <value>{0} a été libéré, mais la vérification de récupération a échoué ; déchargez à nouveau pour revérifier</value>
   </data>
   <data name="Manager_Fault" xml:space="preserve">
-    <value>{0} : défaillance — {1}</value>
+    <value>{0} : défaillance [{1}/{2}] — {3}</value>
   </data>
   <data name="Manager_FaultUnloadIncomplete" xml:space="preserve">
     <value>{0} : le déchargement après défaillance ne s&#x27;est pas terminé — {1}</value>

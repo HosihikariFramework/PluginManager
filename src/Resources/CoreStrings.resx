@@ -269,18 +269,27 @@
     <value>{0}: legacy package (manifest.json only, api_version 2 or older) - run 'hosihikari-pack migrate {0}' and pack again</value>
   </data>
   <data name="Manager_ReloadParented" xml:space="preserve">
-    <value>{0}: 父级在场时不提供重载；插件的启停由父级驱动（ADR-0003）</value>
+    <value>{0}: reload is not offered while a parent owns the plugin set; the parent drives start and stop (ADR-0003)</value>
   </data>
   <data name="Manager_ReloadDisableFailed" xml:space="preserve">
-    <value>{0}: 重载停在停用这一步</value>
+    <value>{0}: reload stopped at disable</value>
   </data>
   <data name="Manager_ReloadUnloadFailed" xml:space="preserve">
-    <value>{0}: 重载停在卸载这一步</value>
+    <value>{0}: reload stopped at unload</value>
   </data>
   <data name="Manager_ReloadLoadFailed" xml:space="preserve">
-    <value>{0}: 重载停在重新装载这一步</value>
+    <value>{0}: reload stopped at reloading the package</value>
   </data>
   <data name="Manager_ReloadEnableFailed" xml:space="preserve">
-    <value>{0}: 重载停在重新启用这一步</value>
+    <value>{0}: reload stopped at re-enable</value>
+  </data>
+  <data name="Manager_HookCanceled" xml:space="preserve">
+    <value>{0}: {1} hook was canceled; not waiting for it</value>
+  </data>
+  <data name="Manager_StatePublishFailed" xml:space="preserve">
+    <value>Publishing the state change of {0} failed</value>
+  </data>
+  <data name="Manager_LoaderInstanceGone" xml:space="preserve">
+    <value>{0}: this load was rolled back; loader registration is refused</value>
   </data>
 </root>

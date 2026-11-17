@@ -66,7 +66,7 @@ internal sealed class PluginContext(
     /// <summary>Loader 是个插件包，装载时用这个把自己交出去（ADR-0002）。</summary>
     public bool RegisterLoader(IPluginLoader loader)
     {
-        if (!host.TryAddLoader(loader, out var problem))
+        if (!host.TryRegisterLoader(instanceId, this, loader, out var problem))
         {
             if (problem is not null)
             {
@@ -76,9 +76,15 @@ internal sealed class PluginContext(
             return false;
         }
 
-        host.MarkLoader(instanceId, loader);
         return true;
     }
+
+    /// <summary>装载回滚后吊销登记资格；被放弃的迟到钩子再调 <see cref="RegisterLoader"/> 会被拒。</summary>
+    private volatile bool revoked;
+
+    internal bool Revoked => revoked;
+
+    internal void Revoke() => revoked = true;
 
     private sealed class EmptyServices : IServiceProvider
     {

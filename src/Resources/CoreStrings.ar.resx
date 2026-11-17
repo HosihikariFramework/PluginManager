@@ -125,7 +125,7 @@
     <value>{0} أُطلق، لكن فشل التحقق من الاسترداد؛ أعد إلغاء التحميل للتحقق مجددًا</value>
   </data>
   <data name="Manager_Fault" xml:space="preserve">
-    <value>{0}: عطل — {1}</value>
+    <value>{0}: عطل [{1}/{2}] — {3}</value>
   </data>
   <data name="Manager_FaultUnloadIncomplete" xml:space="preserve">
     <value>{0}: لم يكتمل إلغاء التحميل بسبب العطل — {1}</value>

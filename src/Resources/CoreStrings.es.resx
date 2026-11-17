@@ -125,7 +125,7 @@
     <value>{0} se liberó, pero falló la verificación de recuperación; vuelve a descargar para verificar de nuevo</value>
   </data>
   <data name="Manager_Fault" xml:space="preserve">
-    <value>{0}: fallo — {1}</value>
+    <value>{0}: fallo [{1}/{2}] — {3}</value>
   </data>
   <data name="Manager_FaultUnloadIncomplete" xml:space="preserve">
     <value>{0}: la descarga por fallo no terminó — {1}</value>

@@ -212,9 +212,8 @@ public static class Packager
                 File.Copy(file, target, overwrite: true);
             }
 
-            // 作者清单原样进包（语义消费者是我们），父级要的信封另外生成（ADR-0058）。
-            var manifestName = Path.GetFileName(manifestPath);
-            File.Copy(manifestPath, Path.Combine(staging, manifestName), overwrite: true);
+            // 作者清单永远落成规范名：运行时只认 hosihikari.json，别的名字打出来的包装不上（Codex）。
+            File.Copy(manifestPath, Path.Combine(staging, ManifestFileName), overwrite: true);
             File.WriteAllText(Path.Combine(staging, LegacyEnvelopeFileName), BuildEnvelope(manifest));
 
             // 清单里声明的第三方包在**这里**还原 —— 供应链留在打包那一刻，服务端加载时不联网。
@@ -765,10 +764,18 @@ public static class Packager
 
             writer.WriteStartArray("dependencies");
             // 父级靠这条把垫片排在插件前面；载体包就是垫片自己，不依赖自己。
+            // 作者可能约束了框架版本（要求更新的垫片），信封里必须原样带上，否则这会变成无约束依赖。
             if (manifest.PackageKind != "carrier")
             {
                 writer.WriteStartObject();
                 writer.WriteString("name", PluginContractInfo.ParentName);
+                if (manifest.Dependencies.FirstOrDefault(dependency =>
+                        string.Equals(dependency?.Name, PluginContractInfo.ParentName, StringComparison.Ordinal))
+                    is { VersionRange: { Length: > 0 } parentRange })
+                {
+                    writer.WriteString("version", parentRange);
+                }
+
                 writer.WriteEndObject();
             }
 
@@ -814,7 +821,14 @@ public static class Packager
 
         foreach (var assembly in carrier.SharedAssemblies)
         {
-            if (!string.IsNullOrWhiteSpace(assembly) && !File.Exists(Path.Combine(sourceDirectory, assembly)))
+            if (string.IsNullOrWhiteSpace(assembly) || !IsInsidePackage(sourceDirectory, assembly))
+            {
+                // 绝对路径与 ../ 在包目录外，staging 只复制包内文件，打出来的包会缺这一份（Copilot）。
+                problems.Add(PackText.Get("CarrierSharedMissing", assembly));
+                continue;
+            }
+
+            if (!File.Exists(Path.Combine(sourceDirectory, assembly)))
             {
                 problems.Add(PackText.Get("CarrierSharedMissing", assembly));
             }
@@ -842,6 +856,12 @@ public static class Packager
                 continue;
             }
 
+            if (!IsInsidePackage(sourceDirectory, component.Assembly))
+            {
+                problems.Add(PackText.Get("CarrierAssemblyMissing", component.Assembly));
+                continue;
+            }
+
             var assemblyPath = Path.Combine(sourceDirectory, component.Assembly);
             if (!File.Exists(assemblyPath))
             {
@@ -854,6 +874,79 @@ public static class Packager
                 // DeclaresCarrierComponent 自己填了原因
             }
         }
+    }
+
+    /// <summary>1.x 的 extraInfo 里还留着值的键；空值按没有处理。</summary>
+    private static JsonElement? ExtraElement(PluginManifest manifest, string key) =>
+        manifest.ExtraInfo.TryGetValue(key, out var value)
+        && value.ValueKind is not (JsonValueKind.Null or JsonValueKind.Undefined)
+            ? value
+            : null;
+
+    /// <summary>1.x 的 extraInfo.packages：字符串或 {{id, version}} 都收，认不出的记一笔。</summary>
+    private static List<string> ExtraPackages(PluginManifest manifest, out bool skipped)
+    {
+        var anySkipped = false;
+        var packages = new List<string>();
+        if (ExtraElement(manifest, "packages") is not { } value)
+        {
+            skipped = false;
+            return packages;
+        }
+
+        void Take(JsonElement item)
+        {
+            if (item.ValueKind == JsonValueKind.String)
+            {
+                if (item.GetString() is { Length: > 0 } text)
+                {
+                    packages.Add(text);
+                    return;
+                }
+            }
+            else if (item.ValueKind == JsonValueKind.Object
+                     && item.TryGetProperty("id", out var id)
+                     && id.ValueKind == JsonValueKind.String
+                     && id.GetString() is { Length: > 0 } name)
+            {
+                var version = item.TryGetProperty("version", out var raw) && raw.ValueKind == JsonValueKind.String
+                    ? raw.GetString()
+                    : null;
+                packages.Add(string.IsNullOrEmpty(version) ? name : $"{name}/{version}");
+                return;
+            }
+
+            anySkipped = true;
+        }
+
+        if (value.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var item in value.EnumerateArray())
+            {
+                Take(item);
+            }
+        }
+        else
+        {
+            Take(value);
+        }
+
+        skipped = anySkipped;
+        return packages;
+    }
+
+    /// <summary>声明里的相对路径必须落在包目录内：staging 只复制包内文件，包外的一律带不走。</summary>
+    private static bool IsInsidePackage(string sourceDirectory, string relative)
+    {
+        if (Path.IsPathRooted(relative))
+        {
+            return false;
+        }
+
+        var root = Path.GetFullPath(sourceDirectory);
+        var full = Path.GetFullPath(Path.Combine(root, relative));
+        return full.StartsWith(root + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)
+               || string.Equals(full, root, StringComparison.OrdinalIgnoreCase);
     }
 
     private static bool DeclaresCarrierComponent(
@@ -880,6 +973,16 @@ public static class Packager
             if (!type.IsClass || type.IsAbstract || !ImplementsCarrierComponent(type))
             {
                 problems.Add(PackText.Get("CarrierTypeNotComponent", component.Type));
+                return false;
+            }
+
+            // 核心用无参构造函数装配：开泛型与没有公开无参构造的类型到运行期必然起不来（Copilot）。
+            if (type.ContainsGenericParameters
+                || type.GetConstructor(
+                    System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance,
+                    Type.EmptyTypes) is null)
+            {
+                problems.Add(PackText.Get("CarrierTypeNotCreatable", component.Type));
                 return false;
             }
 
@@ -941,6 +1044,11 @@ public static class Packager
             problems.Add(PackText.Get("ReadManifest", ex.Message));
             return new MigrateResult(false, problems, notes);
         }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            problems.Add(PackText.Get("ReadManifest", ex.Message));
+            return new MigrateResult(false, problems, notes);
+        }
 
         if (manifest is null || string.IsNullOrWhiteSpace(manifest.Name))
         {
@@ -964,6 +1072,7 @@ public static class Packager
     /// <summary>把旧清单的语义搬进新文件。打包期设置与载体组在 1.x 里不存在，只可能来自手写。</summary>
     private static string BuildManifest(PluginManifest manifest, List<string> notes)
     {
+        var packagesSkipped = false;
         using var buffer = new MemoryStream();
         using (var writer = new Utf8JsonWriter(buffer, new JsonWriterOptions { Indented = true }))
         {
@@ -1010,13 +1119,46 @@ public static class Packager
                 writer.WriteEndArray();
             }
 
+            // 打包期设置：旧文件马上就删，值必须先搬进来，不能只留一条"请手动复制"的提示（Copilot）。
+            var packPackages = manifest.Pack is { Packages.Count: > 0 } declared
+                ? declared.Packages
+                : ExtraPackages(manifest, out packagesSkipped);
+            var command = manifest.Pack?.Command ?? ExtraElement(manifest, "command");
+            var prepack = manifest.Pack?.Prepack ?? ExtraElement(manifest, "prepack");
+            if (command is not null || prepack is not null || packPackages.Count > 0)
+            {
+                writer.WriteStartObject("pack");
+                if (command is { } commandValue)
+                {
+                    writer.WritePropertyName("command");
+                    commandValue.WriteTo(writer);
+                }
+
+                if (packPackages.Count > 0)
+                {
+                    writer.WriteStartArray("packages");
+                    foreach (var package in packPackages)
+                    {
+                        writer.WriteStringValue(package);
+                    }
+
+                    writer.WriteEndArray();
+                }
+
+                if (prepack is { } prepackValue)
+                {
+                    writer.WritePropertyName("prepack");
+                    prepackValue.WriteTo(writer);
+                }
+
+                writer.WriteEndObject();
+            }
+
             writer.WriteEndObject();
         }
 
-        // 1.x 的 extraInfo 里只剩打包期设置还有语义；值是原始 JSON，照搬即可。
-        if (manifest.ExtraInfo.TryGetValue("packages", out var packages)
-            || manifest.ExtraInfo.TryGetValue("prepack", out var prepack)
-            || manifest.ExtraInfo.TryGetValue("command", out var command))
+        // 有搬不动的东西（未知形状的 packages 项）才提示人工补。
+        if (packagesSkipped)
         {
             notes.Add(PackText.Get("MigratePack"));
         }

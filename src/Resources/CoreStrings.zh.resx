@@ -268,4 +268,28 @@
   <data name="Manifest_LegacyPackage" xml:space="preserve">
     <value>{0}: 这是旧包（只有 manifest.json，api_version 2 或更早）—— 跑 `hosihikari-pack migrate {0}` 再重新打包</value>
   </data>
+  <data name="Manager_ReloadParented" xml:space="preserve">
+    <value>{0}: 父级在场时不提供重载；插件的启停由父级驱动（ADR-0003）</value>
+  </data>
+  <data name="Manager_ReloadDisableFailed" xml:space="preserve">
+    <value>{0}: 重载停在停用这一步</value>
+  </data>
+  <data name="Manager_ReloadUnloadFailed" xml:space="preserve">
+    <value>{0}: 重载停在卸载这一步</value>
+  </data>
+  <data name="Manager_ReloadLoadFailed" xml:space="preserve">
+    <value>{0}: 重载停在重新装载这一步</value>
+  </data>
+  <data name="Manager_ReloadEnableFailed" xml:space="preserve">
+    <value>{0}: 重载停在重新启用这一步</value>
+  </data>
+  <data name="Manager_HookCanceled" xml:space="preserve">
+    <value>{0}: {1} 钩子取消 —— 不再等它</value>
+  </data>
+  <data name="Manager_StatePublishFailed" xml:space="preserve">
+    <value>发布 {0} 的状态迁移失败</value>
+  </data>
+  <data name="Manager_LoaderInstanceGone" xml:space="preserve">
+    <value>{0}: 这次装载已经回滚，登记的加载器不予接受</value>
+  </data>
 </root>
