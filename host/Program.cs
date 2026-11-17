@@ -646,6 +646,33 @@ var carrierRealType = Packager.Pack(
     CarrierManifest("""[ { "assembly": "probe.dll", "type": "Hosihikari.Bindings.StubCarrierComponent" } ]"""),
     Path.Combine(stage, "carrier-real"),
     sharedLayer);
+// 引导（ADR-0064）：同样要在打包期校验——不是配置器、类型不存在都要拒。
+string BootstrapManifest(string bootstrap) => WriteManifest("carrier-" + Guid.NewGuid().ToString("N"), $$"""
+    {
+      "schemaVersion": 1,
+      "name": "hosihikari",
+      "entry": "entry.dll",
+      "loader": "stub",
+      "kind": "carrier",
+      "apiVersion": 3,
+      "carrier": { "bootstrap": {{bootstrap}} }
+    }
+    """);
+var bootstrapNotConfigurator = Packager.Pack(
+    carrierSource,
+    BootstrapManifest("""{ "assembly": "probe.dll", "type": "Hosihikari.Bindings.StubCarrierComponent" }"""),
+    Path.Combine(stage, "carrier-bootstrap-wrong"),
+    sharedLayer);
+var bootstrapMissingType = Packager.Pack(
+    carrierSource,
+    BootstrapManifest("""{ "assembly": "probe.dll", "type": "Hosihikari.NoSuchConfigurator" }"""),
+    Path.Combine(stage, "carrier-bootstrap-missing"),
+    sharedLayer);
+var bootstrapRealType = Packager.Pack(
+    carrierSource,
+    BootstrapManifest("""{ "assembly": "probe.dll", "type": "Hosihikari.Bindings.ProbeConfigurator" }"""),
+    Path.Combine(stage, "carrier-bootstrap-real"),
+    sharedLayer);
 checks.Add((
     "A58 carrier 组校验程序集与类型",
     !carrierMissingType.Succeeded
@@ -653,11 +680,19 @@ checks.Add((
         && !carrierMissingAssembly.Succeeded
         && carrierMissingAssembly.Problems.Any(problem => problem.Contains("nope.dll"))
         && !carrierAbstract.Succeeded
-        && carrierRealType.Succeeded,
+        && carrierRealType.Succeeded
+        && !bootstrapNotConfigurator.Succeeded
+        && bootstrapNotConfigurator.Problems.Any(problem => problem.Contains("ICarrierServicesConfigurator"))
+        && !bootstrapMissingType.Succeeded
+        && bootstrapMissingType.Problems.Any(problem => problem.Contains("NoSuchConfigurator"))
+        && bootstrapRealType.Succeeded,
     string.Join(" | ", carrierMissingType.Problems
         .Concat(carrierMissingAssembly.Problems)
         .Concat(carrierAbstract.Problems)
-        .Concat(carrierRealType.Problems))
+        .Concat(carrierRealType.Problems)
+        .Concat(bootstrapNotConfigurator.Problems)
+        .Concat(bootstrapMissingType.Problems)
+        .Concat(bootstrapRealType.Problems))
 ));
 
 // A61：组件阶段按清单装配、逆序停止，且拿到的是总线与日志（ADR-0061）。
@@ -772,6 +807,103 @@ checks.Add((
         && !AssemblyPluginLoader.SharedLayerFor(Path.Combine(stage, "no-such-carrier"))
             .Contains("Hosihikari.Bindings.Stub.dll"),
     string.Join(", ", mergedLayer)
+));
+
+// A67：载体启动装配（ADR-0064）——读清单、并共享层、跑配置器，句柄原样交到服务里，
+// 组件再从载体服务里取到配置器注册的东西。A68：没有载体目录时照常启动。
+var startupHome = Path.Combine(stage, "carrier-startup");
+Directory.CreateDirectory(startupHome);
+File.Copy(
+    Path.Combine(AppContext.BaseDirectory, "Hosihikari.Bindings.Stub.dll"),
+    Path.Combine(startupHome, "probe.dll"),
+    overwrite: true);
+File.WriteAllText(Path.Combine(startupHome, "hosihikari.json"), """
+    {
+      "schemaVersion": 1, "name": "hosihikari", "entry": "hosihikari.dll", "version": "2.0.0",
+      "loader": "assembly", "kind": "carrier", "apiVersion": 3,
+      "dependencies": [],
+      "carrier": {
+        "sharedAssemblies": [ "probe.dll" ],
+        "components": [ { "assembly": "probe.dll", "type": "Hosihikari.Bindings.ProbeCarrierComponent" } ],
+        "bootstrap": { "assembly": "probe.dll", "type": "Hosihikari.Bindings.ProbeConfigurator" }
+      }
+    }
+    """);
+var startupLoggerFactory = Microsoft.Extensions.Logging.LoggerFactory.Create(builder => builder.AddSimpleConsole());
+var carrierStartup = CarrierStartup.Create(startupHome, 0x2A, startupLoggerFactory, out var startupError);
+var startupService = carrierStartup.Services.GetService(typeof(ProbeCarrierService)) as ProbeCarrierService;
+var startupHost = new PluginManager(
+    pluginsRoot,
+    Path.Combine(stage, "carrier-startup", "data"),
+    Path.Combine(stage, "carrier-startup", "config"),
+    _ => { },
+    carrierStartup.Services);
+var startupComponents = startupHost.StartComponents(startupHome, carrierStartup.Components);
+var componentService = ProbeCarrierComponent.SeenCarrierServices?.GetService(typeof(ProbeCarrierService))
+    as ProbeCarrierService;
+startupHost.StopComponents();
+ProbeCarrierComponent.HangOnStop = false;
+checks.Add((
+    "A67 载体启动装配：清单、共享层、配置器与原生句柄",
+    startupError is null
+        && carrierStartup.Components.Count == 1
+        && carrierStartup.SharedAssemblies.Count == 1
+        && startupService?.HostHandle == 0x2A
+        && ProbeConfigurator.LastHost == 0x2A
+        && startupComponents
+        && componentService?.HostHandle == 0x2A,
+    $"error={startupError ?? "无"} components={carrierStartup.Components.Count} "
+        + $"shared={carrierStartup.SharedAssemblies.Count} handle={startupService?.HostHandle} "
+        + $"hook={componentService?.HostHandle}"
+));
+
+// A69：父级重载后换代载体服务——组件重新启动时看到的必须是新的提供器（ADR-0065）。
+var republishOld = new Microsoft.Extensions.DependencyInjection.ServiceCollection()
+    .AddSingleton(startupLoggerFactory)
+    .AddSingleton<DisposableProbe>()
+    .AddSingleton<AsyncDisposableProbe>()
+    .BuildServiceProvider();
+var oldProbe = republishOld.GetRequiredService<DisposableProbe>();
+var oldAsyncProbe = republishOld.GetRequiredService<AsyncDisposableProbe>();
+var republishNew = new Microsoft.Extensions.DependencyInjection.ServiceCollection()
+    .AddSingleton(startupLoggerFactory)
+    .AddSingleton(new ProbeCarrierService(7))
+    .BuildServiceProvider();
+var republishHost = new PluginManager(
+    pluginsRoot,
+    Path.Combine(stage, "carrier-republish", "data"),
+    Path.Combine(stage, "carrier-republish", "config"),
+    _ => { },
+    republishOld);
+republishHost.RepublishCarrierServices(republishNew);
+var republishStarted = republishHost.StartComponents(
+    startupHome,
+    [new ManifestCarrierComponent
+    {
+        Assembly = "probe.dll",
+        Type = "Hosihikari.Bindings.ProbeCarrierComponent",
+    }]);
+var republishedService = ProbeCarrierComponent.SeenCarrierServices?.GetService(typeof(ProbeCarrierService))
+    as ProbeCarrierService;
+republishHost.StopComponents();
+checks.Add((
+    "A69 重载后换代的载体服务对组件可见，旧容器被收掉",
+    republishStarted && ReferenceEquals(ProbeCarrierComponent.SeenCarrierServices, republishNew)
+        && republishedService?.HostHandle == 7
+        && oldProbe.Disposed
+        && oldAsyncProbe.Disposed,
+    $"started={republishStarted} handle={republishedService?.HostHandle} "
+        + $"oldDisposed={oldProbe.Disposed}/{oldAsyncProbe.Disposed}"
+));
+
+var emptyStartup = CarrierStartup.Create(null, 0, startupLoggerFactory, out var emptyError);
+checks.Add((
+    "A68 没有载体目录时照常启动",
+    emptyError is null
+        && emptyStartup.Components.Count == 0
+        && emptyStartup.SharedAssemblies.Count == 0
+        && emptyStartup.Services.GetService(typeof(Microsoft.Extensions.Logging.ILoggerFactory)) is not null,
+    $"error={emptyError ?? "无"} components={emptyStartup.Components.Count}"
 ));
 
 // A64：自持态能重载，父级态拒绝（ADR-0062）。

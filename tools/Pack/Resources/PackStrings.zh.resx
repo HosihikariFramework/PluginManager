@@ -166,4 +166,10 @@
   <data name="CarrierReadFailed" xml:space="preserve">
     <value>读不了载体组件程序集 {0}：{1}</value>
   </data>
+  <data name="CarrierBootstrapShape" xml:space="preserve">
+    <value>carrier.bootstrap 的 assembly 与 type 都要写</value>
+  </data>
+  <data name="CarrierTypeNotConfigurator" xml:space="preserve">
+    <value>载体引导类型 {0} 没有实现 ICarrierServicesConfigurator</value>
+  </data>
 </root>

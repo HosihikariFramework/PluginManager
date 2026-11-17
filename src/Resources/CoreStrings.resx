@@ -292,4 +292,31 @@
   <data name="Manager_LoaderInstanceGone" xml:space="preserve">
     <value>{0}: this load was rolled back; loader registration is refused</value>
   </data>
+  <data name="Native_CarrierManifestInvalid" xml:space="preserve">
+    <value>Carrier manifest {0} is unusable: {1}</value>
+  </data>
+  <data name="Native_CarrierManifestKind" xml:space="preserve">
+    <value>the manifest declares kind {0}, not carrier</value>
+  </data>
+  <data name="Native_CarrierSharedMissing" xml:space="preserve">
+    <value>The carrier declares shared assembly {0}, but it cannot be loaded</value>
+  </data>
+  <data name="Native_CarrierAssemblyFailed" xml:space="preserve">
+    <value>Loading carrier assembly {0} failed</value>
+  </data>
+  <data name="Native_CarrierStage" xml:space="preserve">
+    <value>Carrier {0}: {1} component(s), bootstrap {2}</value>
+  </data>
+  <data name="Native_CarrierBootstrapMissing" xml:space="preserve">
+    <value>The carrier bootstrap {1} in {0} is not an ICarrierServicesConfigurator with a public parameterless constructor</value>
+  </data>
+  <data name="Native_CarrierBootstrapFailed" xml:space="preserve">
+    <value>The carrier bootstrap {0} threw - {1}</value>
+  </data>
+  <data name="Native_ComponentsFailed" xml:space="preserve">
+    <value>Carrier components failed to start; startup stops - {0}</value>
+  </data>
+  <data name="Common_None" xml:space="preserve">
+    <value>none</value>
+  </data>
 </root>

@@ -834,7 +834,27 @@ public static class Packager
             }
         }
 
-        if (carrier.Components.Count == 0)
+        var bootstrap = carrier.Bootstrap;
+        var hasBootstrap = bootstrap is not null
+                           && (bootstrap.Assembly.Length > 0 || bootstrap.Type.Length > 0);
+        if (hasBootstrap
+            && (string.IsNullOrWhiteSpace(bootstrap!.Assembly) || string.IsNullOrWhiteSpace(bootstrap.Type)))
+        {
+            problems.Add(PackText.Get("CarrierBootstrapShape"));
+            hasBootstrap = false;
+        }
+        else if (hasBootstrap && !IsInsidePackage(sourceDirectory, bootstrap!.Assembly))
+        {
+            problems.Add(PackText.Get("CarrierAssemblyMissing", bootstrap.Assembly));
+            hasBootstrap = false;
+        }
+        else if (hasBootstrap && !File.Exists(Path.Combine(sourceDirectory, bootstrap!.Assembly)))
+        {
+            problems.Add(PackText.Get("CarrierAssemblyMissing", bootstrap.Assembly));
+            hasBootstrap = false;
+        }
+
+        if (carrier.Components.Count == 0 && !hasBootstrap)
         {
             return;
         }
@@ -846,6 +866,11 @@ public static class Packager
             .Concat(((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(Path.PathSeparator));
 
         using var metadata = new MetadataLoadContext(new PathAssemblyResolver(references));
+        if (hasBootstrap)
+        {
+            DeclaresCarrierBootstrap(metadata, Path.Combine(sourceDirectory, bootstrap!.Assembly), bootstrap, problems);
+        }
+
         foreach (var component in carrier.Components)
         {
             if (component is null
@@ -953,6 +978,50 @@ public static class Packager
         return full.StartsWith(root + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)
                || string.Equals(full, root, StringComparison.OrdinalIgnoreCase);
     }
+
+    private static bool DeclaresCarrierBootstrap(
+        MetadataLoadContext metadata,
+        string assemblyPath,
+        ManifestBootstrap bootstrap,
+        List<string> problems)
+    {
+        try
+        {
+            var type = metadata.LoadFromAssemblyPath(Path.GetFullPath(assemblyPath))
+                .GetType(bootstrap.Type, throwOnError: false);
+            if (type is null)
+            {
+                problems.Add(PackText.Get("CarrierTypeMissing", bootstrap.Type, bootstrap.Assembly));
+                return false;
+            }
+
+            if (!type.IsClass || type.IsAbstract || !ImplementsConfigurator(type))
+            {
+                problems.Add(PackText.Get("CarrierTypeNotConfigurator", bootstrap.Type));
+                return false;
+            }
+
+            if (type.ContainsGenericParameters
+                || type.GetConstructor(
+                    System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance,
+                    Type.EmptyTypes) is null)
+            {
+                problems.Add(PackText.Get("CarrierTypeNotCreatable", bootstrap.Type));
+                return false;
+            }
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            problems.Add(PackText.Get("CarrierReadFailed", bootstrap.Assembly, ex.Message));
+            return false;
+        }
+    }
+
+    private static bool ImplementsConfigurator(Type type) =>
+        type.GetInterfaces().Any(candidate =>
+            candidate.FullName == typeof(ICarrierServicesConfigurator).FullName);
 
     private static bool DeclaresCarrierComponent(
         MetadataLoadContext metadata,

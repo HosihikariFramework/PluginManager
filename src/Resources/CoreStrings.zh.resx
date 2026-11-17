@@ -292,4 +292,31 @@
   <data name="Manager_LoaderInstanceGone" xml:space="preserve">
     <value>{0}: 这次装载已经回滚，登记的加载器不予接受</value>
   </data>
+  <data name="Native_CarrierManifestInvalid" xml:space="preserve">
+    <value>载体清单 {0} 不可用：{1}</value>
+  </data>
+  <data name="Native_CarrierManifestKind" xml:space="preserve">
+    <value>清单声明的 kind 是 {0}，不是 carrier</value>
+  </data>
+  <data name="Native_CarrierSharedMissing" xml:space="preserve">
+    <value>载体声明的共享层程序集 {0} 加载不了</value>
+  </data>
+  <data name="Native_CarrierAssemblyFailed" xml:space="preserve">
+    <value>载体程序集 {0} 加载失败</value>
+  </data>
+  <data name="Native_CarrierStage" xml:space="preserve">
+    <value>载体 {0}：{1} 个组件，引导 {2}</value>
+  </data>
+  <data name="Native_CarrierBootstrapMissing" xml:space="preserve">
+    <value>载体引导 {0} 里的 {1} 不是带公开无参构造的 ICarrierServicesConfigurator</value>
+  </data>
+  <data name="Native_CarrierBootstrapFailed" xml:space="preserve">
+    <value>载体引导 {0} 抛出 —— {1}</value>
+  </data>
+  <data name="Native_ComponentsFailed" xml:space="preserve">
+    <value>载体组件启动失败，启动中止 —— {0}</value>
+  </data>
+  <data name="Common_None" xml:space="preserve">
+    <value>无</value>
+  </data>
 </root>
