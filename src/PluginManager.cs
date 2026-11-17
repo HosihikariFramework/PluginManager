@@ -1597,6 +1597,12 @@ public sealed class PluginManager
                 reports.Add(
                     CoreText.Get("Manager_LoadRollbackThrew", manifest.Name, ex.Demystify()));
             }
+
+            // 回滚钩子里报的故障同样进待报账；这里不取就再没人取（Codex 指出）。
+            if (TakePendingFault(slot.Id) is { } cleanupFault)
+            {
+                reports.Add(Describe("Manager_Fault", manifest.Name, cleanupFault));
+            }
         }
 
         void Cleanup(Action cleanup)
