@@ -98,7 +98,9 @@ var host = new PluginManager(
     {
         removed.Add(name);
         Console.WriteLine($"[框架] 已移除 {name}");
-    });
+    },
+    // 验证宿主模拟自持态：管理器拥有插件集，Reload 可用（ADR-0062）。
+    new PluginManagerOptions { OwnsPluginSet = true });
 var pinnedLoader = new PinnedPluginLoader();
 var guardedLoader = new GuardedPluginLoader();
 host.RegisterLoader(new AssemblyPluginLoader(typeof(StubCarrier).Assembly));
@@ -728,6 +730,43 @@ checks.Add((
         && !AssemblyPluginLoader.SharedLayerFor(Path.Combine(stage, "no-such-carrier"))
             .Contains("Hosihikari.Bindings.Stub.dll"),
     string.Join(", ", mergedLayer)
+));
+
+// A64：自持态能重载，父级态拒绝（ADR-0062）。
+// 用一个独立的包，免得动 Foo/Bar 的依赖图；父级态用一个不拥有插件集的管理器验证。
+var reloadPacked = Packager.Pack(
+    OutputDirectory("NativeProbe"),
+    Path.Combine(repoRoot, "test", "NativeProbe", "hosihikari.json"),
+    pluginsRoot,
+    sharedLayer);
+var reloadPackedOk = reloadPacked.PackageDirectory is not null;
+var reloadLoaded = reloadPackedOk && host.Load(reloadPacked.PackageDirectory!);
+var reloadOutcome = reloadLoaded ? host.Reload("NativeProbe") : default;
+var reloadedSelf = reloadLoaded && reloadOutcome.Reloaded && host.LoadedNames.Contains("NativeProbe");
+// 重载成功就把包还回去，A46 还要用同一个包。
+if (reloadedSelf)
+{
+    host.Unload("NativeProbe");
+}
+checks.Add((
+    "A64 自持态 Reload 走完 Disable→Unload→Load→Enable",
+    reloadedSelf,
+    reloadedSelf ? "已重载" : "重载失败"
+));
+
+var parentedManager = new PluginManager(
+    pluginsRoot,
+    dataRoot,
+    configRoot,
+    _ => { },
+    services,
+    null,
+    new PluginManagerOptions { OwnsPluginSet = false });
+var parentedReload = parentedManager.Reload("Foo");
+checks.Add((
+    "A65 父级态 Reload 返回 NotSupported",
+    parentedReload.NotSupported && !parentedReload.Reloaded && parentedReload.Error is not null,
+    parentedReload.Error ?? "（没给原因）"
 ));
 
 // A29：拒绝启用留在册、未启用（ADR-0030）

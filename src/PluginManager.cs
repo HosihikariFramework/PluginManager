@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using Hocon.Extensions.Configuration;
@@ -22,6 +22,7 @@ public sealed class PluginManager
     private readonly TimeSpan _hookTimeout;
     private readonly TimeSpan _unloadVerificationTimeout;
     private readonly TimeSpan _componentStopTimeout;
+    private readonly bool _ownsPluginSet;
     private readonly Action<string> _reportFault;
     private readonly IServiceProvider? _carrierServices;
     private readonly Action<string>? _onRemoved;
@@ -78,6 +79,7 @@ public sealed class PluginManager
             options.UnloadVerificationTimeout, nameof(options), "UnloadVerificationTimeout");
         _componentStopTimeout = ValidateTimeout(
             options.ComponentStopTimeout, nameof(options), "ComponentStopTimeout");
+        _ownsPluginSet = options.OwnsPluginSet;
 
         _pluginsRoot = pluginsRoot;
         _dataRoot = dataRoot;
@@ -822,6 +824,51 @@ public sealed class PluginManager
         return result;
     }
 
+    /// <summary>
+    /// 重载：Disable → Unload → Load → Enable（ADR-0062）。只在管理器拥有插件集时提供；
+    /// 父级在场时返回 NotSupported，插件的启停归父级驱动（ADR-0003）。
+    /// 每一步失败就停在那一步并如实回报，不做假成功。
+    /// </summary>
+    /// <param name="name">插件名，等于包目录名。</param>
+    public ReloadResult Reload(string name)
+    {
+        if (!_ownsPluginSet)
+        {
+            return ReloadResult.Unsupported(CoreText.Get("Manager_ReloadParented", name));
+        }
+
+        lock (_gate)
+        {
+            if (!_slots.TryGetValue(name, out var slot) || slot.State != PluginState.Loaded)
+            {
+                return ReloadResult.Failed(CoreText.Get("Manager_NotLoaded", name));
+            }
+        }
+
+        if (!Disable(name))
+        {
+            return ReloadResult.Failed(CoreText.Get("Manager_ReloadDisableFailed", name));
+        }
+
+        var unloaded = Unload(name);
+        if (!unloaded.Released)
+        {
+            return ReloadResult.Failed(unloaded.Error ?? CoreText.Get("Manager_ReloadUnloadFailed", name));
+        }
+
+        if (!Load(Path.Combine(_pluginsRoot, name)))
+        {
+            return ReloadResult.Failed(CoreText.Get("Manager_ReloadLoadFailed", name));
+        }
+
+        if (!Enable(name))
+        {
+            return ReloadResult.Failed(CoreText.Get("Manager_ReloadEnableFailed", name));
+        }
+
+        return ReloadResult.Ok();
+    }
+
     /// <summary>父级态下的依赖检查：目标已在场，且版本满足清单约束（ADR-0039）。</summary>
     private string? DependencyProblem(PluginManifest manifest)
     {
@@ -1240,6 +1287,7 @@ public sealed class PluginManager
             Directory.CreateDirectory(dataDirectory);
             // 普通包只给 IPluginContext；加载器包多一层 ILoaderContext（ADR-0059）。
             var isLoader = manifest.PackageKind == "loader";
+            File.AppendAllText(Path.Combine(Path.GetTempPath(), "kind-debug.log"), $"{manifest.Name} json-kind={manifest.Kind} effective={manifest.PackageKind}" + Environment.NewLine);
             var context = new PluginContext(
                 manifest.Name,
                 package.Directory,

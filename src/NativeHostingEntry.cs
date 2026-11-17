@@ -328,7 +328,9 @@ public static class NativeHostingEntry
                 Path.Combine(root, "config", "hosihikari"),
                 entry => logger.LogError("{Message}", CoreText.Get("Native_LoadProblem", entry)),
                 services,
-                ForwardRemoval);
+                ForwardRemoval,
+                // 自持态扫描并拥有插件集；父级态由父级驱动启停（ADR-0003 / 0062）。
+                new PluginManagerOptions { OwnsPluginSet = scanPlugins });
             s_host.RegisterLoader(new AssemblyPluginLoader());
 
             if (scanPlugins)

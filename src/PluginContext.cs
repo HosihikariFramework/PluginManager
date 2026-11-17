@@ -44,7 +44,13 @@ internal sealed class PluginContext(
     /// 交给插件的那一份：加载器包拿到 <see cref="ILoaderContext"/>（可转），普通包拿到一个只实现
     /// <see cref="IPluginContext"/> 的视图（ADR-0059）—— 转不回 <see cref="ILoaderContext"/> 就是运行期的分流。
     /// </summary>
-    public IPluginContext ForPlugin() => isLoader ? this : new PlainContext(this);
+    public IPluginContext ForPlugin()
+    {
+        IPluginContext result = isLoader ? this : new PlainContext(this);
+        File.AppendAllText(Path.Combine(Path.GetTempPath(), "kind-debug.log"),
+            $"ForPlugin name={name} isLoader={isLoader} result={result.GetType().Name}" + Environment.NewLine);
+        return result;
+    }
 
     private sealed class PlainContext(PluginContext inner) : IPluginContext
     {

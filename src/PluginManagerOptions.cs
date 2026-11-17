@@ -25,4 +25,10 @@ public sealed class PluginManagerOptions
     /// 与上两项互不相干：组件是进程级收尾，不该被某个插件的慢钩子混进同一个数。
     /// </summary>
     public TimeSpan ComponentStopTimeout { get; init; } = TimeSpan.FromSeconds(30);
+
+    /// <summary>
+    /// 管理器是否拥有插件集。自持态为 <see langword="true"/>，父级在场时为 <see langword="false"/>：
+    /// 那时插件的启停由父级的注册表驱动（ADR-0003），<see cref="PluginManager.Reload"/> 会拒绝执行（ADR-0062）。
+    /// </summary>
+    public bool OwnsPluginSet { get; init; }
 }
