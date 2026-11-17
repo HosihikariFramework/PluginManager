@@ -84,7 +84,6 @@ public sealed class PluginManager
         _pluginsRoot = pluginsRoot;
         _dataRoot = dataRoot;
         _configRoot = configRoot;
-        _unloadVerificationTimeout = options.UnloadVerificationTimeout;
         _reportFault = reportFault;
         _carrierServices = carrierServices;
         _onRemoved = onRemoved;
