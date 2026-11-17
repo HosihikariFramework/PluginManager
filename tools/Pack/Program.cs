@@ -158,14 +158,19 @@ static int PackLoader(string sourceDirectory, string manifestPath, string output
     try
     {
         // 输出目录就在源码树下时（`pack-plugin . <清单> ./dist`），上一轮的包不能再被装进来，
-        // 否则每打一次就多嵌一层（Codex 指出）。
+        // 否则每打一次就多嵌一层（Codex 指出）。输出是源码的祖先（从 bin 目录打整个项目）时不剔，
+        // 否则会把源码全跳过（Codex 指出的另一面）。
         var comparison = OperatingSystem.IsWindows()
             ? StringComparison.OrdinalIgnoreCase
             : StringComparison.Ordinal;
-        var skipRoot = Path.TrimEndingDirectorySeparator(Path.GetFullPath(outputRoot)) + Path.DirectorySeparatorChar;
+        var sourceRoot = Path.TrimEndingDirectorySeparator(Path.GetFullPath(sourceDirectory)) + Path.DirectorySeparatorChar;
+        var outputFull = Path.TrimEndingDirectorySeparator(Path.GetFullPath(outputRoot));
+        var skipRoot = outputFull.StartsWith(sourceRoot, comparison)
+            ? outputFull + Path.DirectorySeparatorChar
+            : null;
         foreach (var file in Directory.EnumerateFiles(sourceDirectory, "*", SearchOption.AllDirectories))
         {
-            if (Path.GetFullPath(file).StartsWith(skipRoot, comparison))
+            if (skipRoot is not null && Path.GetFullPath(file).StartsWith(skipRoot, comparison))
             {
                 continue;
             }
