@@ -310,27 +310,34 @@ public static class NativeHostingEntry
             // 但载体服务与组件攥着上一个宿主句柄（新模块的 Plugin* 换了），必须按新参数重装。
             var reuseLogger = s_loggerFactory?.CreateLogger("Hosihikari");
             reuseLogger?.LogInformation("{Message}", CoreText.Get("Native_ReuseCore"));
-            var restarted = CarrierStartup.Create(
-                args.CarrierDirectory, args.Host, s_loggerFactory!, out var restartError);
-            if (restartError is not null)
+            // 与首次启动同一个边界：这条入口跨过 [UnmanagedCallersOnly]，异常漏出去会把宿主拖下水。
+            try
             {
-                reuseLogger?.LogError("{Message}", restartError);
-                return 1;
-            }
+                var restarted = CarrierStartup.Create(
+                    args.CarrierDirectory, args.Host, s_loggerFactory!, out var restartError);
+                if (restartError is not null)
+                {
+                    reuseLogger?.LogError("{Message}", restartError);
+                    return 1;
+                }
 
-            reused.RepublishCarrierServices(restarted.Services);
-            if (restarted.Directory is { Length: > 0 } reusedDirectory && restarted.Components.Count > 0)
-            {
-                if (!reused.StartComponents(reusedDirectory, restarted.Components))
+                reused.RepublishCarrierServices(restarted.Services);
+                if (restarted.Directory is { Length: > 0 } reusedDirectory && restarted.Components.Count > 0
+                    && !reused.StartComponents(reusedDirectory, restarted.Components))
                 {
                     reuseLogger?.LogError(
                         "{Message}",
                         CoreText.Get("Native_ComponentsFailed", string.Join(" | ", restarted.Components)));
                     return 1;
                 }
-            }
 
-            return 0;
+                return 0;
+            }
+            catch (Exception ex)
+            {
+                reuseLogger?.LogError(ex, "{Message}", CoreText.Get("Native_StartFailed"));
+                return 1;
+            }
         }
 
         // 有父级的出口就转发过去；没有（自持态、验证宿主）才落到控制台。
@@ -388,6 +395,7 @@ public static class NativeHostingEntry
                 if (!host.StartComponents(carrierDirectory, startup.Components))
                 {
                     logger.LogError("{Message}", CoreText.Get("Native_ComponentsFailed", string.Join(" | ", startup.Components)));
+                    (startup.Services as IDisposable)?.Dispose();
                     return 1;
                 }
             }

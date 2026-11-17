@@ -314,7 +314,16 @@ public sealed class PluginManager
     /// 父级重载后换一份载体服务（ADR-0065）：新装的插件与新启动的组件看到新的提供器；
     /// 已装载的插件仍攥着装载时那一份，它们本来就会随父级重载被卸掉。
     /// </summary>
-    internal void RepublishCarrierServices(IServiceProvider services) => _carrierServices = services;
+    internal void RepublishCarrierServices(IServiceProvider services)
+    {
+        var previous = _carrierServices;
+        _carrierServices = services;
+        // 上一代的容器由我们自己建（托管入口），换掉时把它收掉：注册进来的单例可能攥着计时器之类的东西。
+        if (previous is IDisposable disposable && !ReferenceEquals(previous, services))
+        {
+            disposable.Dispose();
+        }
+    }
 
     /// <summary>
     /// 启动载体包声明的进程级组件（ADR-0061）。在事件分发对插件开启**之前**、由载体在服务端线程上调用。

@@ -62,6 +62,14 @@ public sealed class ProbeConfigurator : ICarrierServicesConfigurator
     }
 }
 
+/// <summary>一次性服务：断言换代载体容器时旧单例被释放。</summary>
+public sealed class DisposableProbe : IDisposable
+{
+    public bool Disposed { get; private set; }
+
+    public void Dispose() => Disposed = true;
+}
+
 /// <summary>运行期组件阶段的检验：记录收到的是总线与日志，按需在启动/停止里挂住。</summary>
 public sealed class ProbeCarrierComponent : ICarrierComponent
 {

@@ -860,7 +860,9 @@ checks.Add((
 // A69：父级重载后换代载体服务——组件重新启动时看到的必须是新的提供器（ADR-0065）。
 var republishOld = new Microsoft.Extensions.DependencyInjection.ServiceCollection()
     .AddSingleton(startupLoggerFactory)
+    .AddSingleton<DisposableProbe>()
     .BuildServiceProvider();
+var oldProbe = republishOld.GetRequiredService<DisposableProbe>();
 var republishNew = new Microsoft.Extensions.DependencyInjection.ServiceCollection()
     .AddSingleton(startupLoggerFactory)
     .AddSingleton(new ProbeCarrierService(7))
@@ -883,10 +885,11 @@ var republishedService = ProbeCarrierComponent.SeenCarrierServices?.GetService(t
     as ProbeCarrierService;
 republishHost.StopComponents();
 checks.Add((
-    "A69 重载后换代的载体服务对组件可见",
+    "A69 重载后换代的载体服务对组件可见，旧容器被收掉",
     republishStarted && ReferenceEquals(ProbeCarrierComponent.SeenCarrierServices, republishNew)
-        && republishedService?.HostHandle == 7,
-    $"started={republishStarted} handle={republishedService?.HostHandle}"
+        && republishedService?.HostHandle == 7
+        && oldProbe.Disposed,
+    $"started={republishStarted} handle={republishedService?.HostHandle} oldDisposed={oldProbe.Disposed}"
 ));
 
 var emptyStartup = CarrierStartup.Create(null, 0, startupLoggerFactory, out var emptyError);
