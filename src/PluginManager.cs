@@ -377,13 +377,14 @@ public sealed class PluginManager
             }
 
             var context = new CarrierComponentContext(_events, _loggerFactory.CreateLogger(instance.GetType().FullName ?? instance.GetType().Name));
+            // 先记账再启动：启动失败的那一个也可能已经订阅了事件或拿了原生资源，
+            // 回滚同样要给它一次 StopAsync（Codex 指出）。
+            started.Add(instance);
             if (!TryInvokeComponent(component.Type, token => instance.StartAsync(context, token), reports))
             {
                 ok = false;
                 break;
             }
-
-            started.Add(instance);
         }
 
         if (!ok)
@@ -445,6 +446,8 @@ public sealed class PluginManager
     /// 组件的启动/停止就在调用线程上发起 —— 装上服务端线程 <c>SynchronizationContext</c> 的组件，
     /// 投到别的线程跑就装错了线程（ADR-0061）。组件要同步收尾：调用线程这里在等它，
     /// 它自己的续体也得能在不再需要这个上下文的前提下完成。
+    /// 代价：组件若在返回 <see cref="ValueTask"/> 之前同步阻塞，令牌收不到它，预算只能等它自己返回。
+    /// 这是「在服务端线程上调用」换来的边界，组件要把阻塞挪进可取消的异步部分。
     /// </summary>
     private bool TryInvokeComponent(
         string name,
