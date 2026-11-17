@@ -1,4 +1,5 @@
 ﻿using Hosihikari;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace Hosihikari.Bindings;
@@ -41,6 +42,24 @@ public abstract class AbstractCarrierComponent : ICarrierComponent
     public abstract ValueTask StartAsync(ICarrierComponentContext context, CancellationToken token);
 
     public ValueTask StopAsync(CancellationToken token) => ValueTask.CompletedTask;
+}
+
+/// <summary>配置器注册的探针服务：断言从组件上下文的载体服务里取得到，且带着原生句柄。</summary>
+public sealed class ProbeCarrierService(nint hostHandle)
+{
+    public nint HostHandle { get; } = hostHandle;
+}
+
+/// <summary>载体包的服务配置器（ADR-0064）：记下句柄并往容器里注册一个探针服务。</summary>
+public sealed class ProbeConfigurator : ICarrierServicesConfigurator
+{
+    public static nint LastHost;
+
+    public void Configure(IServiceCollection services, nint hostHandle)
+    {
+        LastHost = hostHandle;
+        services.AddSingleton(new ProbeCarrierService(hostHandle));
+    }
 }
 
 /// <summary>运行期组件阶段的检验：记录收到的是总线与日志，按需在启动/停止里挂住。</summary>

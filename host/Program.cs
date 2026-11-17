@@ -774,6 +774,64 @@ checks.Add((
     string.Join(", ", mergedLayer)
 ));
 
+// A67：载体启动装配（ADR-0064）——读清单、并共享层、跑配置器，句柄原样交到服务里，
+// 组件再从载体服务里取到配置器注册的东西。A68：没有载体目录时照常启动。
+var startupHome = Path.Combine(stage, "carrier-startup");
+Directory.CreateDirectory(startupHome);
+File.Copy(
+    Path.Combine(AppContext.BaseDirectory, "Hosihikari.Bindings.Stub.dll"),
+    Path.Combine(startupHome, "probe.dll"),
+    overwrite: true);
+File.WriteAllText(Path.Combine(startupHome, "hosihikari.json"), """
+    {
+      "schemaVersion": 1, "name": "hosihikari", "entry": "hosihikari.dll", "version": "2.0.0",
+      "loader": "assembly", "kind": "carrier", "apiVersion": 3,
+      "dependencies": [],
+      "carrier": {
+        "sharedAssemblies": [ "probe.dll" ],
+        "components": [ { "assembly": "probe.dll", "type": "Hosihikari.Bindings.ProbeCarrierComponent" } ],
+        "bootstrap": { "assembly": "probe.dll", "type": "Hosihikari.Bindings.ProbeConfigurator" }
+      }
+    }
+    """);
+var startupLoggerFactory = Microsoft.Extensions.Logging.LoggerFactory.Create(builder => builder.AddSimpleConsole());
+var carrierStartup = CarrierStartup.Create(startupHome, 0x2A, startupLoggerFactory, out var startupError);
+var startupService = carrierStartup.Services.GetService(typeof(ProbeCarrierService)) as ProbeCarrierService;
+var startupHost = new PluginManager(
+    pluginsRoot,
+    Path.Combine(stage, "carrier-startup", "data"),
+    Path.Combine(stage, "carrier-startup", "config"),
+    _ => { },
+    carrierStartup.Services);
+var startupComponents = startupHost.StartComponents(startupHome, carrierStartup.Components);
+var componentService = ProbeCarrierComponent.SeenCarrierServices?.GetService(typeof(ProbeCarrierService))
+    as ProbeCarrierService;
+startupHost.StopComponents();
+ProbeCarrierComponent.HangOnStop = false;
+checks.Add((
+    "A67 载体启动装配：清单、共享层、配置器与原生句柄",
+    startupError is null
+        && carrierStartup.Components.Count == 1
+        && carrierStartup.SharedAssemblies.Count == 1
+        && startupService?.HostHandle == 0x2A
+        && ProbeConfigurator.LastHost == 0x2A
+        && startupComponents
+        && componentService?.HostHandle == 0x2A,
+    $"error={startupError ?? "无"} components={carrierStartup.Components.Count} "
+        + $"shared={carrierStartup.SharedAssemblies.Count} handle={startupService?.HostHandle} "
+        + $"hook={componentService?.HostHandle}"
+));
+
+var emptyStartup = CarrierStartup.Create(null, 0, startupLoggerFactory, out var emptyError);
+checks.Add((
+    "A68 没有载体目录时照常启动",
+    emptyError is null
+        && emptyStartup.Components.Count == 0
+        && emptyStartup.SharedAssemblies.Count == 0
+        && emptyStartup.Services.GetService(typeof(Microsoft.Extensions.Logging.ILoggerFactory)) is not null,
+    $"error={emptyError ?? "无"} components={emptyStartup.Components.Count}"
+));
+
 // A64：自持态能重载，父级态拒绝（ADR-0062）。
 // Reloadable 没有任何依赖者，卸载不会撞上依赖图；父级态用一个不拥有插件集的管理器验证。
 var reloadOutcome = host.Reload("Reloadable");

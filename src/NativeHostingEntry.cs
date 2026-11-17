@@ -29,8 +29,11 @@ public static class NativeHostingEntry
     /// <summary>
     /// 原生垫片与托管核心之间的入口契约版本。入口方法集合、回调布局或生命周期约定
     /// 发生不兼容变化时递增；垫片启动时先读这个值。
+    ///
+    /// 2：<see cref="Start"/> / <see cref="StartUnderParent"/> 的参数改为
+    /// <c>{ const char* carrier_directory; void* host; }</c>（ADR-0065）。
     /// </summary>
-    public const int HostingContractVersion = 1;
+    public const int HostingContractVersion = 2;
 
     /// <summary>给原生垫片读取的契约版本入口。</summary>
     [UnmanagedCallersOnly]
@@ -83,19 +86,37 @@ public static class NativeHostingEntry
     ///
     /// **不抛异常**：在别人的进程里，托管异常越过这条边界等于把宿主一起拖下水（ADR-0009）。
     /// </summary>
-    /// <param name="arg">扩展位，当前未用。</param>
-    /// <param name="argSizeInBytes">上面那块的大小，当前未用。</param>
+    /// <param name="arg">指向 <c>{ const char* carrier_directory; void* host; }</c>；可以为零。</param>
+    /// <param name="argSizeInBytes">上面那块的大小。</param>
     [UnmanagedCallersOnly]
-    public static int Start(IntPtr arg, int argSizeInBytes) => StartCore(scanPlugins: true);
+    public static int Start(IntPtr arg, int argSizeInBytes) =>
+        StartCore(scanPlugins: true, ReadStartArgs(arg, argSizeInBytes));
 
     /// <summary>
     /// 父级态入口：插件集归父级注册表所有（ADR-0003），我们等父级把插件交过来。
     /// 枚举 <c>plugins/</c> 会把父级自己的模组一并收编，所以这里不扫目录。
     /// </summary>
-    /// <param name="arg">扩展位，当前未用。</param>
-    /// <param name="argSizeInBytes">上面那块的大小，当前未用。</param>
+    /// <param name="arg">指向 <c>{ const char* carrier_directory; void* host; }</c>；可以为零。</param>
+    /// <param name="argSizeInBytes">上面那块的大小。</param>
     [UnmanagedCallersOnly]
-    public static int StartUnderParent(IntPtr arg, int argSizeInBytes) => StartCore(scanPlugins: false);
+    public static int StartUnderParent(IntPtr arg, int argSizeInBytes) =>
+        StartCore(scanPlugins: false, ReadStartArgs(arg, argSizeInBytes));
+
+    /// <summary>
+    /// 读启动参数：载体包目录与不透明宿主句柄。字符串只在这次调用里有效，立刻复制；
+    /// 没有参数（验证宿主、旧行为）时目录为空、句柄为零。
+    /// </summary>
+    private static (string? CarrierDirectory, nint Host) ReadStartArgs(IntPtr arg, int argSizeInBytes)
+    {
+        if (arg == IntPtr.Zero || argSizeInBytes < IntPtr.Size * 2)
+        {
+            return (null, 0);
+        }
+
+        var directory = Marshal.ReadIntPtr(arg);
+        var host = Marshal.ReadIntPtr(arg, IntPtr.Size);
+        return (directory == IntPtr.Zero ? null : Marshal.PtrToStringUTF8(directory), host);
+    }
 
     /// <summary>
     /// 父级要重载自己（Endstone 的 <c>/reload</c>）：把子插件全部收回，保留核心与 Loader。
@@ -115,6 +136,8 @@ public static class NativeHostingEntry
                 return 0;
             }
 
+            // 组件停止在分发停止之前（ADR-0061）；超时只记账，不拖住退出。
+            host.StopComponents();
             host.UnloadChildren();
             for (var i = 0; i < 10; i++)
             {
@@ -279,7 +302,7 @@ public static class NativeHostingEntry
         }
     }
 
-    private static int StartCore(bool scanPlugins)
+    private static int StartCore(bool scanPlugins, (string? CarrierDirectory, nint Host) args)
     {
         if (s_host is not null)
         {
@@ -318,20 +341,34 @@ public static class NativeHostingEntry
             var root = Directory.GetCurrentDirectory();
             // 宿主从 services 里取 ILoggerFactory；不传的话插件拿到的是 NullLogger ——
             // 它们的每一行都会消失，而且不会有人报错。
-            var services = new ServiceCollection()
-                .AddSingleton(s_loggerFactory!)
-                .BuildServiceProvider();
+            // 载体包在容器建成之前配置它自己的服务（ADR-0064）。
+            var startup = CarrierStartup.Create(args.CarrierDirectory, args.Host, s_loggerFactory!, out var startupError);
+            if (startupError is not null)
+            {
+                logger.LogError("{Message}", startupError);
+                return 1;
+            }
 
             s_host = new PluginManager(
                 Path.Combine(root, "plugins"),
                 Path.Combine(root, "data", "hosihikari"),
                 Path.Combine(root, "config", "hosihikari"),
                 entry => logger.LogError("{Message}", CoreText.Get("Native_LoadProblem", entry)),
-                services,
+                startup.Services,
                 ForwardRemoval,
                 // 自持态扫描并拥有插件集；父级态由父级驱动启停（ADR-0003 / 0062）。
                 new PluginManagerOptions { OwnsPluginSet = scanPlugins });
-            s_host.RegisterLoader(new AssemblyPluginLoader());
+            s_host.RegisterLoader(new AssemblyPluginLoader([.. startup.SharedAssemblies]));
+
+            // 组件在事件分发对插件开启之前启动；任何一个失败都中止整次启动（ADR-0061）。
+            if (startup.Directory is { Length: > 0 } carrierDirectory && startup.Components.Count > 0)
+            {
+                if (!s_host.StartComponents(carrierDirectory, startup.Components))
+                {
+                    logger.LogError("{Message}", CoreText.Get("Native_ComponentsFailed", string.Join(" | ", startup.Components)));
+                    return 1;
+                }
+            }
 
             if (scanPlugins)
             {
