@@ -46,10 +46,7 @@ internal sealed class PluginContext(
     /// </summary>
     public IPluginContext ForPlugin()
     {
-        IPluginContext result = isLoader ? this : new PlainContext(this);
-        File.AppendAllText(Path.Combine(Path.GetTempPath(), "kind-debug.log"),
-            $"ForPlugin name={name} isLoader={isLoader} result={result.GetType().Name}" + Environment.NewLine);
-        return result;
+        return isLoader ? this : new PlainContext(this);
     }
 
     private sealed class PlainContext(PluginContext inner) : IPluginContext

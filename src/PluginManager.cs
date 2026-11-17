@@ -1287,7 +1287,6 @@ public sealed class PluginManager
             Directory.CreateDirectory(dataDirectory);
             // 普通包只给 IPluginContext；加载器包多一层 ILoaderContext（ADR-0059）。
             var isLoader = manifest.PackageKind == "loader";
-            File.AppendAllText(Path.Combine(Path.GetTempPath(), "kind-debug.log"), $"{manifest.Name} json-kind={manifest.Kind} effective={manifest.PackageKind}" + Environment.NewLine);
             var context = new PluginContext(
                 manifest.Name,
                 package.Directory,
