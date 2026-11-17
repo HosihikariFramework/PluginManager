@@ -883,7 +883,7 @@ public static class Packager
             ? value
             : null;
 
-    /// <summary>1.x 的 extraInfo.packages：字符串或 {{id, version}} 都收，认不出的记一笔。</summary>
+    /// <summary>1.x 的 extraInfo.packages：逗号分隔的字符串或 {{id, version}} 都收，认不出的记一笔。</summary>
     private static List<string> ExtraPackages(PluginManifest manifest, out bool skipped)
     {
         var anySkipped = false;
@@ -898,9 +898,14 @@ public static class Packager
         {
             if (item.ValueKind == JsonValueKind.String)
             {
-                if (item.GetString() is { Length: > 0 } text)
+                if (item.GetString() is { } text)
                 {
-                    packages.Add(text);
+                    // 1.x 允许一条字符串里写好几项：拆开、去空白、丢空项（Codex 指出）。
+                    foreach (var part in text.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
+                    {
+                        packages.Add(part);
+                    }
+
                     return;
                 }
             }

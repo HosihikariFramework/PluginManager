@@ -180,7 +180,7 @@ internal static class RegressionChecks
             {
               "name": "Old", "entry": "Old.dll", "type": "hosihikari", "version": "1.2.3",
               "dependencies": [ { "name": "hosihikari" } ],
-              "extraInfo": { "api_version": "2", "manifest_version": "1", "loader": "assembly", "packages": "A/1.0.0" }
+              "extraInfo": { "api_version": "2", "manifest_version": "1", "loader": "assembly", "packages": "A/1.0.0, B" }
             }
             """);
         var migrated = Packager.Migrate(migratePackage);
@@ -197,8 +197,9 @@ internal static class RegressionChecks
             && element.GetProperty("kind").GetString() == "plugin"
             && element.GetProperty("apiVersion").GetInt32() == 3
             && element.GetProperty("schemaVersion").GetInt32() == 1
-            // 旧文件马上就删，打包设置必须已经搬进 pack；搬完就不留"请手动复制"的提示。
+            // 旧文件马上就删，打包设置必须已经搬进 pack；1.x 的逗号写法要拆成两项。
             && element.GetProperty("pack").GetProperty("packages")[0].GetString() == "A/1.0.0"
+            && element.GetProperty("pack").GetProperty("packages")[1].GetString() == "B"
             && migrated.Notes.Count == 0
             && !migratedAgain.Succeeded,
             migrated.Succeeded
