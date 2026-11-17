@@ -157,8 +157,19 @@ static int PackLoader(string sourceDirectory, string manifestPath, string output
     Directory.CreateDirectory(staging);
     try
     {
+        // 输出目录就在源码树下时（`pack-plugin . <清单> ./dist`），上一轮的包不能再被装进来，
+        // 否则每打一次就多嵌一层（Codex 指出）。
+        var comparison = OperatingSystem.IsWindows()
+            ? StringComparison.OrdinalIgnoreCase
+            : StringComparison.Ordinal;
+        var skipRoot = Path.TrimEndingDirectorySeparator(Path.GetFullPath(outputRoot)) + Path.DirectorySeparatorChar;
         foreach (var file in Directory.EnumerateFiles(sourceDirectory, "*", SearchOption.AllDirectories))
         {
+            if (Path.GetFullPath(file).StartsWith(skipRoot, comparison))
+            {
+                continue;
+            }
+
             if (sharedBases.Contains(Path.GetFileNameWithoutExtension(file)))
             {
                 continue;
