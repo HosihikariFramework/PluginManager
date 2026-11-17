@@ -481,6 +481,7 @@ public sealed class PluginManager
     public void LoadAll()
     {
         var reports = new List<string>();
+        var lateFaults = new List<(string Name, Guid Id, PluginDiagnostic Fault)>();
         try
         {
             lock (_gate)
@@ -507,13 +508,22 @@ public sealed class PluginManager
                         continue;
                     }
 
-                    LoadOne(package, enable: true, reports);
+                    if (LoadOne(package, enable: true, reports, out var late) && late is { } lateFault)
+                    {
+                        lateFaults.Add(lateFault);
+                    }
                 }
             }
         }
         finally
         {
             ReportAll(reports);
+        }
+
+        // 迟到故障在 _gate 之外处理：装载路径的回调不能握着管理器的锁重新进管理器（Codex）。
+        foreach (var (lateName, lateId, lateFault) in lateFaults)
+        {
+            ReportFault(lateName, lateId, lateFault);
         }
     }
 
@@ -530,6 +540,7 @@ public sealed class PluginManager
         var reports = new List<string>();
         var result = false;
         string? reusedLoader = null;
+        (string Name, Guid Id, PluginDiagnostic Fault)? lateFault = null;
         try
         {
             lock (_gate)
@@ -561,13 +572,19 @@ public sealed class PluginManager
                 }
                 else
                 {
-                    result = LoadOne(package, enable: false, reports);
+                    result = LoadOne(package, enable: false, reports, out lateFault);
                 }
             }
         }
         finally
         {
             ReportAll(reports);
+        }
+
+        // 交付与退出装载账之间报的故障：出了 _gate 再按正常故障路径卸（Codex）。
+        if (lateFault is { } late)
+        {
+            ReportFault(late.Name, late.Id, late.Fault);
         }
 
         // 父级的日志回调可能拿父级的锁；出了 _gate 再写，避免与卸载路径互相等。
@@ -1283,6 +1300,12 @@ public sealed class PluginManager
                     scope.Open();
                 }
 
+                // 拒绝前先把这次 OnDisable 里报的故障取走，否则它会一直留在待报账里（Codex）。
+                if (TakePendingFault(slot.Id) is { } refusedFault)
+                {
+                    reportList.Add(Describe("Manager_Fault", name, refusedFault));
+                }
+
                 return disableResult.Reason ?? CoreText.Get("Common_NoReason");
             }
         }
@@ -1383,8 +1406,13 @@ public sealed class PluginManager
             .AddEnvironmentVariables()
             .Build();
 
-    private bool LoadOne(PluginPackage package, bool enable, List<string> reports)
+    private bool LoadOne(
+        PluginPackage package,
+        bool enable,
+        List<string> reports,
+        out (string Name, Guid Id, PluginDiagnostic Fault)? lateFault)
     {
+        lateFault = null;
         var manifest = package.Manifest;
         var scope = new PluginScope(_events, _scheduler, _registry);
         // 先建这一格，让上下文报告故障时认的是本次装载，而不是后面可能顶替它的同名实例。
@@ -1528,14 +1556,14 @@ public sealed class PluginManager
         }
         finally
         {
-            PluginDiagnostic? lateFault = null;
+            PluginDiagnostic? pending = null;
             lock (_faultGate)
             {
                 // 取账与退出装载账必须原子：否则 ReportFault 可能在这两步之间看到还在装载、
                 // 把故障存进来，随后被这里删掉（Codex 指出的丢账窗口）。
-                if (loaded && _pendingFaults.Remove(slot.Id, out var pending))
+                if (loaded && _pendingFaults.Remove(slot.Id, out var recorded))
                 {
-                    lateFault = pending;
+                    pending = recorded;
                 }
 
                 _loading.Remove(slot.Id);
@@ -1572,17 +1600,11 @@ public sealed class PluginManager
                 }
             }
 
-            if (lateFault is { } late)
+            if (pending is { } late)
             {
-                // 交付与退出装载账之间报的故障：实例已在表里，按正常故障路径卸掉。
-                try
-                {
-                    ReportFault(manifest.Name, slot.Id, late);
-                }
-                catch (Exception ex)
-                {
-                    reports.Add(CoreText.Get("Manager_LoadRollbackThrew", manifest.Name, ex.Demystify()));
-                }
+                // 交付与退出装载账之间报的故障：实例已在表里。调用方仍握着 _gate，
+                // 这里只交出去，由它在锁外走正常故障路径（Codex 指出的回调死锁）。
+                lateFault = (manifest.Name, slot.Id, late);
             }
         }
 
