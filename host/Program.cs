@@ -646,6 +646,33 @@ var carrierRealType = Packager.Pack(
     CarrierManifest("""[ { "assembly": "probe.dll", "type": "Hosihikari.Bindings.StubCarrierComponent" } ]"""),
     Path.Combine(stage, "carrier-real"),
     sharedLayer);
+// 引导（ADR-0064）：同样要在打包期校验——不是配置器、类型不存在都要拒。
+string BootstrapManifest(string bootstrap) => WriteManifest("carrier-" + Guid.NewGuid().ToString("N"), $$"""
+    {
+      "schemaVersion": 1,
+      "name": "hosihikari",
+      "entry": "entry.dll",
+      "loader": "stub",
+      "kind": "carrier",
+      "apiVersion": 3,
+      "carrier": { "bootstrap": {{bootstrap}} }
+    }
+    """);
+var bootstrapNotConfigurator = Packager.Pack(
+    carrierSource,
+    BootstrapManifest("""{ "assembly": "probe.dll", "type": "Hosihikari.Bindings.StubCarrierComponent" }"""),
+    Path.Combine(stage, "carrier-bootstrap-wrong"),
+    sharedLayer);
+var bootstrapMissingType = Packager.Pack(
+    carrierSource,
+    BootstrapManifest("""{ "assembly": "probe.dll", "type": "Hosihikari.NoSuchConfigurator" }"""),
+    Path.Combine(stage, "carrier-bootstrap-missing"),
+    sharedLayer);
+var bootstrapRealType = Packager.Pack(
+    carrierSource,
+    BootstrapManifest("""{ "assembly": "probe.dll", "type": "Hosihikari.Bindings.ProbeConfigurator" }"""),
+    Path.Combine(stage, "carrier-bootstrap-real"),
+    sharedLayer);
 checks.Add((
     "A58 carrier 组校验程序集与类型",
     !carrierMissingType.Succeeded
@@ -653,11 +680,19 @@ checks.Add((
         && !carrierMissingAssembly.Succeeded
         && carrierMissingAssembly.Problems.Any(problem => problem.Contains("nope.dll"))
         && !carrierAbstract.Succeeded
-        && carrierRealType.Succeeded,
+        && carrierRealType.Succeeded
+        && !bootstrapNotConfigurator.Succeeded
+        && bootstrapNotConfigurator.Problems.Any(problem => problem.Contains("ICarrierServicesConfigurator"))
+        && !bootstrapMissingType.Succeeded
+        && bootstrapMissingType.Problems.Any(problem => problem.Contains("NoSuchConfigurator"))
+        && bootstrapRealType.Succeeded,
     string.Join(" | ", carrierMissingType.Problems
         .Concat(carrierMissingAssembly.Problems)
         .Concat(carrierAbstract.Problems)
-        .Concat(carrierRealType.Problems))
+        .Concat(carrierRealType.Problems)
+        .Concat(bootstrapNotConfigurator.Problems)
+        .Concat(bootstrapMissingType.Problems)
+        .Concat(bootstrapRealType.Problems))
 ));
 
 // A61：组件阶段按清单装配、逆序停止，且拿到的是总线与日志（ADR-0061）。

@@ -166,4 +166,10 @@
   <data name="CarrierReadFailed" xml:space="preserve">
     <value>Cannot read carrier assembly {0}: {1}</value>
   </data>
+  <data name="CarrierBootstrapShape" xml:space="preserve">
+    <value>carrier.bootstrap needs both assembly and type</value>
+  </data>
+  <data name="CarrierTypeNotConfigurator" xml:space="preserve">
+    <value>The carrier bootstrap type {0} does not implement ICarrierServicesConfigurator</value>
+  </data>
 </root>
