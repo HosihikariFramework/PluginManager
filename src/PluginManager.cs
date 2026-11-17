@@ -376,7 +376,10 @@ public sealed class PluginManager
                 break;
             }
 
-            var context = new CarrierComponentContext(_events, _loggerFactory.CreateLogger(instance.GetType().FullName ?? instance.GetType().Name));
+            var context = new CarrierComponentContext(
+                _events,
+                _loggerFactory.CreateLogger(instance.GetType().FullName ?? instance.GetType().Name),
+                _carrierServices ?? PluginContext.Empty);
             // 先记账再启动：启动失败的那一个也可能已经订阅了事件或拿了原生资源，
             // 回滚同样要给它一次 StopAsync（Codex 指出）。
             started.Add(instance);

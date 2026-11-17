@@ -165,8 +165,15 @@ var heardFile = Path.Combine(dataRoot, "Foo", "heard.txt");
 var heard = File.Exists(heardFile) ? File.ReadAllText(heardFile) : "（没收到）";
 checks.Add(("A9 handler 抛出不影响其余 handler", heard == "ping", heard));
 
-// A10：调度器的一次性任务真的跑了（ADR-0007）
+// A10：调度器的一次性任务真的跑了（ADR-0007）。50ms 的定时器在忙机器上会晚到，
+// 所以等一会儿再判，判的是"最终跑了"而不是"到这一行时已跑"。
 var scheduledFile = Path.Combine(dataRoot, "Foo", "scheduled.txt");
+var scheduledDeadline = System.Diagnostics.Stopwatch.StartNew();
+while (!File.Exists(scheduledFile) && scheduledDeadline.Elapsed < TimeSpan.FromSeconds(5))
+{
+    Thread.Sleep(50);
+}
+
 checks.Add(("A10 调度器的一次性任务执行", File.Exists(scheduledFile), File.Exists(scheduledFile) ? "已执行" : "没跑"));
 
 // A40：停用关闭作用域闸门，事件不再投递；启用后恢复（ADR-0035）
@@ -660,7 +667,7 @@ var componentHost = new PluginManager(
     Path.Combine(stage, "components", "data"),
     Path.Combine(stage, "components", "config"),
     _ => { },
-    null,
+    services,
     null,
     new PluginManagerOptions { ComponentStopTimeout = TimeSpan.FromMilliseconds(200) });
 var componentSource = Path.Combine(stage, "component-source");
@@ -677,16 +684,18 @@ var componentStarted = componentHost.StartComponents(
         Type = "Hosihikari.Bindings.ProbeCarrierComponent",
     }]);
 var componentSawBus = ProbeCarrierComponent.SeenBus is not null;
+// 载体服务出口与插件侧同一份：组件从它取宿主句柄（Endstone 的 Plugin/Server）。
+var componentSawCarrierServices = ReferenceEquals(ProbeCarrierComponent.SeenCarrierServices, services);
 ProbeCarrierComponent.HangOnStop = true;
 var componentStopWatch = System.Diagnostics.Stopwatch.StartNew();
 componentHost.StopComponents();
 componentStopWatch.Stop();
 checks.Add((
-    "A61 组件按清单启动并拿到总线，停止超时不拖住退出",
-    componentStarted && componentSawBus
+    "A61 组件按清单启动并拿到总线与载体服务，停止超时不拖住退出",
+    componentStarted && componentSawBus && componentSawCarrierServices
         && ProbeCarrierComponent.Started == 1 && ProbeCarrierComponent.Stopped >= 1
         && componentStopWatch.Elapsed < TimeSpan.FromSeconds(5),
-    $"started={componentStarted} sawBus={componentSawBus} "
+    $"started={componentStarted} sawBus={componentSawBus} sawCarrierServices={componentSawCarrierServices} "
         + $"starts={ProbeCarrierComponent.Started} stops={ProbeCarrierComponent.Stopped} "
         + $"elapsed={componentStopWatch.ElapsedMilliseconds}ms"
 ));

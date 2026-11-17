@@ -50,10 +50,12 @@ public sealed class ProbeCarrierComponent : ICarrierComponent
     public static int Stopped;
     public static bool HangOnStop;
     public static IEventBus? SeenBus;
+    public static IServiceProvider? SeenCarrierServices;
 
     public ValueTask StartAsync(ICarrierComponentContext context, CancellationToken token)
     {
         SeenBus = context.Events;
+        SeenCarrierServices = context.CarrierServices;
         context.Logger.LogInformation("probe component started");
         Interlocked.Increment(ref Started);
         return ValueTask.CompletedTask;
