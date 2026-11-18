@@ -53,6 +53,11 @@ internal sealed class CarrierStartup
     {
         error = null;
         var logger = loggerFactory.CreateLogger("Hosihikari");
+        // 目录一律绝对：配置器要拿它装包内文件，相对路径会随进程工作目录漂。
+        if (carrierDirectory is { Length: > 0 })
+        {
+            carrierDirectory = Path.GetFullPath(carrierDirectory);
+        }
         var services = new ServiceCollection().AddSingleton(loggerFactory);
         var shared = new List<Assembly>();
 
@@ -149,7 +154,7 @@ internal sealed class CarrierStartup
                 return false;
             }
 
-            configurator.Configure(services, hostHandle);
+            configurator.Configure(new CarrierServiceContext(services, carrierDirectory, hostHandle));
             return true;
         }
         catch (Exception ex)
@@ -157,6 +162,18 @@ internal sealed class CarrierStartup
             problem = CoreText.Get("Native_CarrierBootstrapFailed", bootstrap.Type, ex.Demystify());
             return false;
         }
+    }
+
+    private sealed class CarrierServiceContext(
+        IServiceCollection services,
+        string carrierDirectory,
+        nint hostHandle) : ICarrierServiceContext
+    {
+        public IServiceCollection Services => services;
+
+        public string CarrierDirectory => carrierDirectory;
+
+        public nint HostHandle => hostHandle;
     }
 
     /// <summary>先按包内文件装，再按简单名从默认上下文找（契约这类共享层就在默认上下文里）。</summary>
