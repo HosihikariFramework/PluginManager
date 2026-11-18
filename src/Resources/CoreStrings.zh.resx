@@ -305,7 +305,7 @@
     <value>载体程序集 {0} 加载失败</value>
   </data>
   <data name="Native_CarrierStage" xml:space="preserve">
-    <value>载体 {0}：{1} 个组件，引导 {2}</value>
+    <value>载体 {0}：{1} 个组件，引导 {2}，宿主句柄 {3}</value>
   </data>
   <data name="Native_CarrierBootstrapMissing" xml:space="preserve">
     <value>载体引导 {0} 里的 {1} 不是带公开无参构造的 ICarrierServicesConfigurator</value>
@@ -317,6 +317,9 @@
     <value>载体组件启动失败，启动中止 —— {0}</value>
   </data>
   <data name="Common_None" xml:space="preserve">
+    <value>无</value>
+  </data>
+  <data name="Common_No" xml:space="preserve">
     <value>无</value>
   </data>
 </root>
