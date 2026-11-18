@@ -305,7 +305,7 @@
     <value>Loading carrier assembly {0} failed</value>
   </data>
   <data name="Native_CarrierStage" xml:space="preserve">
-    <value>Carrier {0}: {1} component(s), bootstrap {2}</value>
+    <value>Carrier {0}: {1} component(s), bootstrap {2}, host handle {3}</value>
   </data>
   <data name="Native_CarrierBootstrapMissing" xml:space="preserve">
     <value>The carrier bootstrap {1} in {0} is not an ICarrierServicesConfigurator with a public parameterless constructor</value>
@@ -317,6 +317,9 @@
     <value>Carrier components failed to start; startup stops - {0}</value>
   </data>
   <data name="Common_None" xml:space="preserve">
+    <value>none</value>
+  </data>
+  <data name="Common_No" xml:space="preserve">
     <value>none</value>
   </data>
 </root>

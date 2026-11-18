@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Globalization;
 using System.Reflection;
 using System.Text.Json;
 using Hosihikari.Internal;
@@ -114,7 +115,8 @@ internal sealed class CarrierStartup
                             "Native_CarrierStage",
                             carrierDirectory,
                             carrier.Components.Count,
-                            carrier.Bootstrap?.Type is { Length: > 0 } type ? type : CoreText.Get("Common_None")));
+                            carrier.Bootstrap?.Type is { Length: > 0 } type ? type : CoreText.Get("Common_None"),
+                            hostHandle == 0 ? CoreText.Get("Common_No") : hostHandle.ToString("X", CultureInfo.InvariantCulture)));
 
                     return new CarrierStartup(
                         services.BuildServiceProvider(),
