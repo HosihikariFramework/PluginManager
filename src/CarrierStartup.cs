@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Globalization;
 using System.Reflection;
+using System.Runtime.Loader;
 using System.Text.Json;
 using Hosihikari.Internal;
 using Microsoft.Extensions.DependencyInjection;
@@ -93,7 +94,7 @@ internal sealed class CarrierStartup
                 {
                     foreach (var name in carrier.SharedAssemblies)
                     {
-                        if (TryResolveAssembly(carrierDirectory, name, logger) is { } assembly)
+                        if (ResolveAssembly(carrierDirectory, name, logger) is { } assembly)
                         {
                             shared.Add(assembly);
                         }
@@ -146,7 +147,7 @@ internal sealed class CarrierStartup
         problem = null;
         try
         {
-            var assembly = TryResolveAssembly(carrierDirectory, bootstrap.Assembly, logger);
+            var assembly = ResolveAssembly(carrierDirectory, bootstrap.Assembly, logger);
             var type = assembly?.GetType(bootstrap.Type, throwOnError: false);
             if (type is null || Activator.CreateInstance(type) is not ICarrierServicesConfigurator configurator)
             {
@@ -176,20 +177,38 @@ internal sealed class CarrierStartup
         public nint HostHandle => hostHandle;
     }
 
-    /// <summary>先按包内文件装，再按简单名从默认上下文找（契约这类共享层就在默认上下文里）。</summary>
-    private static Assembly? TryResolveAssembly(string carrierDirectory, string fileName, ILogger logger)
+    /// <summary>先认已经装着的同身份程序集，再按包内文件装过去，最后按简单名找。</summary>
+    /// <remarks>
+    /// 装进**核心自己所在的那个上下文**，不用默认上下文：原生宿主经 hostfxr 的组件方式起
+    /// 托管核心，核心落在 <c>IsolatedComponentLoadContext</c> 里，契约这些依赖只在那张表上；
+    /// 装进默认上下文的话，bootstrap 对契约的引用解析不到（真机验收：GetType 抛
+    /// FileNotFoundException）。也不用 <see cref="Assembly.LoadFrom(string)"/>：它挂的是包目录
+    /// 探测，会把已在上下文里的契约**再装一份**，同名类型于是有两个类型对象，转型失败。
+    /// </remarks>
+    internal static Assembly? ResolveAssembly(string carrierDirectory, string fileName, ILogger logger)
     {
         if (string.IsNullOrWhiteSpace(fileName))
         {
             return null;
         }
 
+        var simpleName = Path.GetFileNameWithoutExtension(fileName);
+        var context = AssemblyLoadContext.GetLoadContext(typeof(CarrierStartup).Assembly)
+            ?? AssemblyLoadContext.Default;
         try
         {
+            // 同一份程序集只装一次：bootstrap 与组件都要先查共享层里已经装进来的那份。
+            if (context.Assemblies.FirstOrDefault(
+                    loaded => string.Equals(loaded.GetName().Name, simpleName, StringComparison.OrdinalIgnoreCase))
+                is { } existing)
+            {
+                return existing;
+            }
+
             var path = Path.Combine(carrierDirectory, fileName);
             return File.Exists(path)
-                ? Assembly.LoadFrom(path)
-                : Assembly.Load(new AssemblyName(Path.GetFileNameWithoutExtension(fileName)));
+                ? context.LoadFromAssemblyPath(Path.GetFullPath(path))
+                : Assembly.Load(new AssemblyName(simpleName));
         }
         catch (Exception ex) when (ex is FileNotFoundException or FileLoadException or BadImageFormatException)
         {

@@ -370,13 +370,15 @@ public sealed class PluginManager
         {
             if (!assemblies.TryGetValue(component.Assembly, out var assembly))
             {
-                var path = Path.Combine(carrierPackageDirectory, component.Assembly);
                 try
                 {
-                    assemblies[component.Assembly] = assembly = File.Exists(path)
-                        ? System.Reflection.Assembly.LoadFrom(path)
-                        : System.Reflection.Assembly.Load(new System.Reflection.AssemblyName(
-                            Path.GetFileNameWithoutExtension(component.Assembly)));
+                    // 与载体装配同一条解析规则：共享层里装过一次的那份就复用，
+                    // 否则按包内路径装（LoadFrom 会为同一个类型再装一份，别用）。
+                    assemblies[component.Assembly] = assembly = CarrierStartup.ResolveAssembly(
+                        carrierPackageDirectory,
+                        component.Assembly,
+                        _loggerFactory.CreateLogger("Hosihikari.Components"))
+                        ?? throw new FileNotFoundException(component.Assembly);
                 }
                 catch (Exception ex)
                 {
