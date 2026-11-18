@@ -9,6 +9,23 @@ jobs:
   assertions:
     runs-on: ubuntu-latest
     steps:
+      # 并列检出：依赖仓若也有同名分支就用它（同批改动），否则跟目标分支。
+      - name: 解析依赖仓的 ref
+        id: depref
+        env:
+          BRANCH: ${{ github.head_ref || '' }}
+          FALLBACK: ${{ github.base_ref || github.ref_name }}
+        run: |
+          set -euo pipefail
+          resolve() {
+            if [ -n "$BRANCH" ] && git ls-remote --exit-code --heads "https://github.com/$1.git" "$BRANCH" >/dev/null 2>&1; then
+              printf '%s' "$BRANCH"
+            else
+              printf '%s' "$FALLBACK"
+            fi
+          }
+          echo "PluginAbstractions=$(resolve HosihikariFramework/PluginAbstractions)" >> "$GITHUB_OUTPUT"
+          echo "DotNetCorePlugins=$(resolve HosihikariFramework/DotNetCorePlugins)" >> "$GITHUB_OUTPUT"
       - name: 本仓
         uses: actions/checkout@v7
         with:
@@ -20,9 +37,8 @@ jobs:
         with:
           repository: HosihikariFramework/PluginAbstractions
           path: Plugin.Abstractions
-          # 跨仓并列检出跟 PR 目标分支；合并顺序固定为契约 → 核心 → 加载器，
-          # 否则同批改动里的另一方还停在默认分支上。
-          ref: ${{ github.base_ref || github.ref_name }}
+          # ref 由上一步按「依赖仓有没有同名分支」解析（见 depref）。
+          ref: ${{ steps.depref.outputs.PluginAbstractions }}
 
       # 本机库的 RID 优先解析需要 fork；核心按 ../.. 找它。
       - name: McMaster fork
@@ -30,7 +46,7 @@ jobs:
         with:
           repository: HosihikariFramework/DotNetCorePlugins
           path: DotNetCorePlugins
-          ref: ${{ github.base_ref || github.ref_name }}
+          ref: ${{ steps.depref.outputs.DotNetCorePlugins }}
 
       - uses: actions/setup-dotnet@v6
         with:
