@@ -844,17 +844,21 @@ var componentService = ProbeCarrierComponent.SeenCarrierServices?.GetService(typ
 startupHost.StopComponents();
 ProbeCarrierComponent.HangOnStop = false;
 checks.Add((
-    "A67 载体启动装配：清单、共享层、配置器与原生句柄",
+    "A67 载体启动装配：清单、共享层、配置器（目录+句柄，先于组件）",
     startupError is null
         && carrierStartup.Components.Count == 1
         && carrierStartup.SharedAssemblies.Count == 1
         && startupService?.HostHandle == 0x2A
         && ProbeConfigurator.LastHost == 0x2A
+        && ProbeConfigurator.LastDirectory is { } seenDirectory
+        && string.Equals(Path.GetFullPath(seenDirectory), Path.GetFullPath(startupHome), StringComparison.OrdinalIgnoreCase)
+        && ProbeCarrierComponent.SawBootstrap
         && startupComponents
         && componentService?.HostHandle == 0x2A,
     $"error={startupError ?? "无"} components={carrierStartup.Components.Count} "
         + $"shared={carrierStartup.SharedAssemblies.Count} handle={startupService?.HostHandle} "
-        + $"hook={componentService?.HostHandle}"
+        + $"hook={componentService?.HostHandle} dir={ProbeConfigurator.LastDirectory} "
+        + $"bootstrapFirst={ProbeCarrierComponent.SawBootstrap}"
 ));
 
 // A69：父级重载后换代载体服务——组件重新启动时看到的必须是新的提供器（ADR-0065）。

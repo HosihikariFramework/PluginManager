@@ -50,15 +50,19 @@ public sealed class ProbeCarrierService(nint hostHandle)
     public nint HostHandle { get; } = hostHandle;
 }
 
-/// <summary>载体包的服务配置器（ADR-0064）：记下句柄并往容器里注册一个探针服务。</summary>
+/// <summary>载体包的服务配置器（ADR-0064）：记下句柄与包目录，并往容器里注册一个探针服务。</summary>
 public sealed class ProbeConfigurator : ICarrierServicesConfigurator
 {
     public static nint LastHost;
+    public static string? LastDirectory;
+    public static bool BootstrapRan;
 
-    public void Configure(IServiceCollection services, nint hostHandle)
+    public void Configure(ICarrierServiceContext context)
     {
-        LastHost = hostHandle;
-        services.AddSingleton(new ProbeCarrierService(hostHandle));
+        LastHost = context.HostHandle;
+        LastDirectory = context.CarrierDirectory;
+        BootstrapRan = true;
+        context.Services.AddSingleton(new ProbeCarrierService(context.HostHandle));
     }
 }
 
@@ -89,11 +93,13 @@ public sealed class ProbeCarrierComponent : ICarrierComponent
     public static int Stopped;
     public static bool HangOnStop;
     public static IEventBus? SeenBus;
+    public static bool SawBootstrap;
     public static IServiceProvider? SeenCarrierServices;
 
     public ValueTask StartAsync(ICarrierComponentContext context, CancellationToken token)
     {
         SeenBus = context.Events;
+        SawBootstrap = ProbeConfigurator.BootstrapRan;
         SeenCarrierServices = context.CarrierServices;
         context.Logger.LogInformation("probe component started");
         Interlocked.Increment(ref Started);
