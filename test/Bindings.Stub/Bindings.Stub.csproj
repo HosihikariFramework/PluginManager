@@ -14,7 +14,7 @@
                       Condition="Exists('../../../Plugin.Abstractions/src/Hosihikari.Plugin.Abstractions.csproj')"
                       Private="false"
                       ExcludeAssets="runtime" />
-    <PackageReference Include="Hosihikari.Plugin.Abstractions" Version="[3.0.0]"
+    <PackageReference Include="Hosihikari.Plugin.Abstractions" Version="[2.0.0]"
                       Condition="!Exists('../../../Plugin.Abstractions/src/Hosihikari.Plugin.Abstractions.csproj')"
                       ExcludeAssets="runtime" />
   </ItemGroup>
