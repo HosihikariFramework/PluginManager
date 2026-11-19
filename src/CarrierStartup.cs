@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Globalization;
 using System.Reflection;
+using System.Runtime.Loader;
 using System.Text.Json;
 using Hosihikari.Internal;
 using Microsoft.Extensions.DependencyInjection;
@@ -14,6 +15,9 @@ namespace Hosihikari;
 /// </summary>
 internal sealed class CarrierStartup
 {
+    private static readonly object ResolverGate = new();
+    private static string? s_resolvedDirectory;
+
     private CarrierStartup(
         IServiceProvider services,
         IReadOnlyList<Assembly> sharedAssemblies,
@@ -63,6 +67,7 @@ internal sealed class CarrierStartup
 
         if (carrierDirectory is { Length: > 0 })
         {
+            EnsurePackageResolver(carrierDirectory, logger);
             var manifestPath = Path.Combine(carrierDirectory, "hosihikari.json");
             if (File.Exists(manifestPath))
             {
@@ -93,7 +98,7 @@ internal sealed class CarrierStartup
                 {
                     foreach (var name in carrier.SharedAssemblies)
                     {
-                        if (TryResolveAssembly(carrierDirectory, name, logger) is { } assembly)
+                        if (ResolveAssembly(carrierDirectory, name, logger) is { } assembly)
                         {
                             shared.Add(assembly);
                         }
@@ -146,7 +151,7 @@ internal sealed class CarrierStartup
         problem = null;
         try
         {
-            var assembly = TryResolveAssembly(carrierDirectory, bootstrap.Assembly, logger);
+            var assembly = ResolveAssembly(carrierDirectory, bootstrap.Assembly, logger);
             var type = assembly?.GetType(bootstrap.Type, throwOnError: false);
             if (type is null || Activator.CreateInstance(type) is not ICarrierServicesConfigurator configurator)
             {
@@ -176,20 +181,85 @@ internal sealed class CarrierStartup
         public nint HostHandle => hostHandle;
     }
 
-    /// <summary>先按包内文件装，再按简单名从默认上下文找（契约这类共享层就在默认上下文里）。</summary>
-    private static Assembly? TryResolveAssembly(string carrierDirectory, string fileName, ILogger logger)
+    /// <summary>载体包自己的依赖也从包目录解析：只在正常解析失败后才轮到它。</summary>
+    /// <remarks>
+    /// 按路径装程序集不会为它挂上包目录探测（那正是 <see cref="Assembly.LoadFrom(string)"/>
+    /// 干的事，也是同名类型装成两份的来源）。但包里的私有依赖确实只住在包目录：
+    /// 在核心所在的上下文上补一个解析器，命中包内文件才装，其余交回原路径——已装着的
+    /// 契约因此仍是一份。
+    /// </remarks>
+    private static void EnsurePackageResolver(string carrierDirectory, ILogger logger)
+    {
+        var context = AssemblyLoadContext.GetLoadContext(typeof(CarrierStartup).Assembly)
+            ?? AssemblyLoadContext.Default;
+
+        lock (ResolverGate)
+        {
+            if (string.Equals(s_resolvedDirectory, carrierDirectory, StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            context.Resolving += (loadContext, name) =>
+            {
+                if (string.IsNullOrEmpty(name.Name))
+                {
+                    return null;
+                }
+
+                var candidate = Path.Combine(carrierDirectory, name.Name + ".dll");
+                if (!File.Exists(candidate))
+                {
+                    return null;
+                }
+
+                try
+                {
+                    return loadContext.LoadFromAssemblyPath(candidate);
+                }
+                catch (Exception ex) when (ex is FileLoadException or BadImageFormatException)
+                {
+                    logger.LogError(ex, "{Message}", CoreText.Get("Native_CarrierAssemblyFailed", name.Name + ".dll"));
+                    return null;
+                }
+            };
+
+            s_resolvedDirectory = carrierDirectory;
+        }
+    }
+
+    /// <summary>先认已经装着的同身份程序集，再按包内文件装过去，最后按简单名找。</summary>
+    /// <remarks>
+    /// 装进**核心自己所在的那个上下文**，不用默认上下文：原生宿主经 hostfxr 的组件方式起
+    /// 托管核心，核心落在 <c>IsolatedComponentLoadContext</c> 里，契约这些依赖只在那张表上；
+    /// 装进默认上下文的话，bootstrap 对契约的引用解析不到（真机验收：GetType 抛
+    /// FileNotFoundException）。也不用 <see cref="Assembly.LoadFrom(string)"/>：它挂的是包目录
+    /// 探测，会把已在上下文里的契约**再装一份**，同名类型于是有两个类型对象，转型失败。
+    /// </remarks>
+    internal static Assembly? ResolveAssembly(string carrierDirectory, string fileName, ILogger logger)
     {
         if (string.IsNullOrWhiteSpace(fileName))
         {
             return null;
         }
 
+        var simpleName = Path.GetFileNameWithoutExtension(fileName);
+        var context = AssemblyLoadContext.GetLoadContext(typeof(CarrierStartup).Assembly)
+            ?? AssemblyLoadContext.Default;
         try
         {
+            // 同一份程序集只装一次：bootstrap 与组件都要先查共享层里已经装进来的那份。
+            if (context.Assemblies.FirstOrDefault(
+                    loaded => string.Equals(loaded.GetName().Name, simpleName, StringComparison.OrdinalIgnoreCase))
+                is { } existing)
+            {
+                return existing;
+            }
+
             var path = Path.Combine(carrierDirectory, fileName);
             return File.Exists(path)
-                ? Assembly.LoadFrom(path)
-                : Assembly.Load(new AssemblyName(Path.GetFileNameWithoutExtension(fileName)));
+                ? context.LoadFromAssemblyPath(Path.GetFullPath(path))
+                : Assembly.Load(new AssemblyName(simpleName));
         }
         catch (Exception ex) when (ex is FileNotFoundException or FileLoadException or BadImageFormatException)
         {
