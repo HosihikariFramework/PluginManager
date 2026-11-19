@@ -52,7 +52,7 @@ cat > "$plugin/TestPlugin.csproj" <<'EOF'
     <RootNamespace>TestPlugin</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Hosihikari.Plugin.Abstractions" Version="[2.0.0,3.0.0)" ExcludeAssets="runtime" />
+    <PackageReference Include="Hosihikari.Plugin.Abstractions" Version="[2.0.1,3.0.0)" ExcludeAssets="runtime" />
     <PackageReference Include="Hosihikari.Plugin.Build" Version="1.2.0" PrivateAssets="all" />
   </ItemGroup>
 </Project>
