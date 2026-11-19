@@ -43,7 +43,7 @@ var configRoot = Path.Combine(stage, "config", "hosihikari");
 var reported = new List<string>();
 
 // 目标载体的共享层清单。基地清单与运行期同源（ADR-0021 / 0026）；这个宿主再追加替身载体的绑定。
-// 模型程序集是基地清单的一员（ADR-0059），A2 因此能抓到漏进包里的 Hosihikari.Plugin.Model.dll。
+// 模型程序集是基地清单的一员（ADR-0059），A2 因此能抓到漏进包里的 Hosihikari.Plugin.Models.dll。
 string[] sharedLayer =
 [
     .. AssemblyPluginLoader.SharedAssemblyFileNames,

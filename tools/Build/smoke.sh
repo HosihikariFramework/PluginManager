@@ -10,7 +10,7 @@ dotnet pack "$here/Hosihikari.Plugin.Build.csproj" -c Release -o "$work/packages
 
 # 契约按并列检出取本地包：冒烟验的是 NuGet 打包路径，但契约本身还没发布（ADR-0059）。
 contract="$here/../../../Plugin.Abstractions"
-dotnet pack "$contract/model/Hosihikari.Plugin.Model.csproj" -c Release -o "$work/packages" --nologo
+dotnet pack "$contract/model/Hosihikari.Plugin.Models.csproj" -c Release -o "$work/packages" --nologo
 dotnet pack "$contract/src/Hosihikari.Plugin.Abstractions.csproj" -c Release -o "$work/packages" --nologo
 
 if command -v cygpath >/dev/null 2>&1; then
@@ -30,7 +30,7 @@ cat > "$work/NuGet.config" <<EOF
     <packageSource key="local">
       <package pattern="Hosihikari.Plugin.Build" />
       <package pattern="Hosihikari.Plugin.Abstractions" />
-      <package pattern="Hosihikari.Plugin.Model" />
+      <package pattern="Hosihikari.Plugin.Models" />
     </packageSource>
     <packageSource key="nuget">
       <package pattern="*" />
