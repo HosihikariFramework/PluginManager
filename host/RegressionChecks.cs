@@ -172,7 +172,7 @@ internal static class RegressionChecks
             && legacyPack.Problems.Any(problem => problem.Contains("已改名为 extraInfo.api_version", StringComparison.Ordinal)),
             legacyReports.FirstOrDefault() ?? string.Join(" | ", legacyPack.Problems));
 
-        // R24：migrate 把旧包搬成新清单：字段改名、删旧文件、打包设置搬进 pack（ADR-0058）。
+        // R24：migrate 把旧包搬成新清单：字段改名、删旧文件、打包设置搬进 pack（FX-0058）。
         var migrateRoot = Path.Combine(root, "migrate");
         var migratePackage = Path.Combine(migrateRoot, "Old");
         Directory.CreateDirectory(migratePackage);
@@ -206,7 +206,7 @@ internal static class RegressionChecks
                 ? string.Join(" | ", migrated.Notes)
                 : string.Join(" | ", migrated.Problems));
 
-        // R21 起是 ADR-0006 / 0013 / 0042 的规则：每条都同时看读取期与打包期。
+        // R21 起是 FX-0006 / 0013 / 0042 的规则：每条都同时看读取期与打包期。
         var ruleRoot = Path.Combine(root, "manifest-rules");
         var ruleSource = Path.Combine(ruleRoot, "source");
         Directory.CreateDirectory(ruleSource);
@@ -835,7 +835,7 @@ internal static class RegressionChecks
             public ValueTask OnLoad(IPluginContext context, CancellationToken cancellationToken)
             {
                 owner.UseContext(context);
-                // 加载器包拿到的是 ILoaderContext（ADR-0059）；这里按接口取，普通上下文没有就跳过。
+                // 加载器包拿到的是 ILoaderContext（FX-0059）；这里按接口取，普通上下文没有就跳过。
                 var loaderContext = context as ILoaderContext;
                 if (owner.RegisterLoader)
                 {

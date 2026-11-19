@@ -3,7 +3,7 @@ using Hosihikari;
 namespace Hosihikari.Spike;
 
 /// <summary>
-/// ADR-0002 的检验：一个**完全不碰 ALC** 的插件类型，用的还是同一套 <see cref="IPluginLoader"/>。
+/// FX-0002 的检验：一个**完全不碰 ALC** 的插件类型，用的还是同一套 <see cref="IPluginLoader"/>。
 /// 真实的脚本加载器归 ScriptManager 仓，这里只为证明核心对类型是真中立的。
 /// </summary>
 public sealed class ScriptPluginLoader : IPluginLoader

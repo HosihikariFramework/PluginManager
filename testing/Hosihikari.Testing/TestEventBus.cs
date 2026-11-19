@@ -4,7 +4,7 @@ namespace Hosihikari.Testing;
 
 /// <summary>
 /// 同步事件总线，handler 异常被捕获到 <see cref="HandlerErrors"/>，不中断其余 handler。
-/// 分档照生产实现（ADR-0060）：六桶、按档从低到高、同档按订阅顺序；越界档位在这里也抛。
+/// 分档照生产实现（FX-0060）：六桶、按档从低到高、同档按订阅顺序；越界档位在这里也抛。
 /// </summary>
 public sealed class TestEventBus : IEventBus
 {

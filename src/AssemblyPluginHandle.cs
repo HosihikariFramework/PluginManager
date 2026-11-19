@@ -2,7 +2,7 @@ using McMaster.NETCore.Plugins;
 
 namespace Hosihikari.Internal;
 
-/// <summary>内置加载器交出的句柄：放下插件并观察 collectible ALC 的回收（ADR-0010 / 0023）。</summary>
+/// <summary>内置加载器交出的句柄：放下插件并观察 collectible ALC 的回收（FX-0010 / 0023）。</summary>
 internal sealed class AssemblyPluginHandle(IPlugin plugin, PluginLoader loader) : PluginHandle(plugin)
 {
     private WeakReference? _weakContext;

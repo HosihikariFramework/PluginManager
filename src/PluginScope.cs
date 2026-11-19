@@ -2,10 +2,10 @@ namespace Hosihikari.Internal;
 
 /// <summary>
 /// 交给单个插件的宿主服务作用域。插件忘了退订的订阅、忘了释放的定时器，由它在卸载时一并收回。
-/// 启用闸门（ADR-0035）：未启用或停用时，事件与定时器回调不再交给插件；订阅本身保留到卸载。
+/// 启用闸门（FX-0035）：未启用或停用时，事件与定时器回调不再交给插件；订阅本身保留到卸载。
 ///
 /// 不收回的后果是实测出来的：挂在一个<em>共享</em>总线上的 handler 会把插件的 ALC 钉死，
-/// 卸载验证永远过不去 —— 而且订阅当时毫无异样，只有卸载时才暴露（ADR-0004）。
+/// 卸载验证永远过不去 —— 而且订阅当时毫无异样，只有卸载时才暴露（FX-0004）。
 /// 框架知道是哪一次订阅属于哪个插件，就不该把这件事留给作者自觉。
 /// </summary>
 internal sealed class PluginScope(IEventBus events, IScheduler scheduler, PluginServiceRegistry registry)
@@ -95,7 +95,7 @@ internal sealed class PluginScope(IEventBus events, IScheduler scheduler, Plugin
 
     public T? Get<T>() where T : class => registry.Get<T>();
 
-    /// <summary>打开闸门：之后到达的事件与定时器回调才会交给插件（ADR-0035）。</summary>
+    /// <summary>打开闸门：之后到达的事件与定时器回调才会交给插件（FX-0035）。</summary>
     internal void Open()
     {
         lock (_gate)

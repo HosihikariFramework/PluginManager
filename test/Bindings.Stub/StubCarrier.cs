@@ -5,8 +5,8 @@ using Microsoft.Extensions.Logging;
 namespace Hosihikari.Bindings;
 
 /// <summary>
-/// 载体绑定的替身：真实的那份由星光产出（ADR-0021），这里只为验证
-/// <b>共享层能不能同时吃下契约之外的第二个来源</b>（ADR-0019）。
+/// 载体绑定的替身：真实的那份由星光产出（FX-0021），这里只为验证
+/// <b>共享层能不能同时吃下契约之外的第二个来源</b>（FX-0019）。
 /// </summary>
 public interface ICarrierInfo
 {
@@ -27,7 +27,7 @@ public static class ContextSink
     public static object? Held { get; set; }
 }
 
-/// <summary>打包期载体组校验用的最小实现（ADR-0061）；运行时不会被装配。</summary>
+/// <summary>打包期载体组校验用的最小实现（FX-0061）；运行时不会被装配。</summary>
 public sealed class StubCarrierComponent : ICarrierComponent
 {
     public ValueTask StartAsync(ICarrierComponentContext context, CancellationToken token) =>
@@ -50,7 +50,7 @@ public sealed class ProbeCarrierService(nint hostHandle)
     public nint HostHandle { get; } = hostHandle;
 }
 
-/// <summary>载体包的服务配置器（ADR-0064）：记下句柄与包目录，并往容器里注册一个探针服务。</summary>
+/// <summary>载体包的服务配置器（FX-0064）：记下句柄与包目录，并往容器里注册一个探针服务。</summary>
 public sealed class ProbeConfigurator : ICarrierServicesConfigurator
 {
     public static nint LastHost;

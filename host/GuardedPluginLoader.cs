@@ -3,7 +3,7 @@ using Hosihikari;
 namespace Hosihikari.Spike;
 
 /// <summary>
-/// 检验拒绝与故障两条路径（ADR-0030）：拒绝是值，异常与钩子之外的死亡是故障。
+/// 检验拒绝与故障两条路径（FX-0030）：拒绝是值，异常与钩子之外的死亡是故障。
 /// 三个包共用这一个加载器，按名字选行为：Guarded 拒绝、Faulty 抛出、Vanishing 异步死亡。
 /// </summary>
 public sealed class GuardedPluginLoader : IPluginLoader

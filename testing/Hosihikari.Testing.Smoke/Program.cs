@@ -36,7 +36,7 @@ using (var host = new PluginTestHost(probe, "Probe"))
     host.Context.TestEvents.Publish("after-dispose");
     checks.Add(("事件总线订阅与退订", seen == 2, $"seen={seen}"));
 
-    // 跨档：Lowest → Low → Normal → High → Highest → Monitor，同档按订阅顺序（ADR-0060）。
+    // 跨档：Lowest → Low → Normal → High → Highest → Monitor，同档按订阅顺序（FX-0060）。
     var order = new List<string>();
     foreach (var (priority, label) in new[]
              {

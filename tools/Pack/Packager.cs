@@ -22,7 +22,7 @@ public readonly record struct MigrateResult(bool Succeeded, IReadOnlyList<string
 
 /// <summary>
 /// 把一份构建输出 + 一份清单装配成插件包，并在这里检查那些**报错点离病因很远**的规则。
-/// 作者手写清单仍然可以跑得起来，但会在运行期以难以归因的方式失败（ADR-0004 / 0006 / 0008 / 0012）。
+/// 作者手写清单仍然可以跑得起来，但会在运行期以难以归因的方式失败（FX-0004 / 0006 / 0008 / 0012）。
 /// </summary>
 public static class Packager
 {
@@ -30,7 +30,7 @@ public static class Packager
     /// 装配一个包。
     ///
     /// <paramref name="sharedLayer"/> 是目标载体的共享层程序集名清单，与运行期
-    /// <c>AssemblyPluginLoader</c> 拿到的那份必须同源（ADR-0021 / 0026）。这里要的是文件名，
+    /// <c>AssemblyPluginLoader</c> 拿到的那份必须同源（FX-0021 / 0026）。这里要的是文件名，
     /// 因为打包期只看得见构建输出里的文件名。
     /// </summary>
     public static PackResult Pack(
@@ -78,10 +78,10 @@ public static class Packager
             problems.Add(versionProblem!);
         }
 
-        // 包目录名就是插件名 —— 目录名与清单 name 一致这条由这里保证（ADR-0006）。
+        // 包目录名就是插件名 —— 目录名与清单 name 一致这条由这里保证（FX-0006）。
         var packageDirectory = Path.Combine(outputRoot, manifest.Name);
 
-        // 递归复制（ADR-0034）要求输出与构建输出不相交；否则复制会把自己再枚举进来。
+        // 递归复制（FX-0034）要求输出与构建输出不相交；否则复制会把自己再枚举进来。
         var sourceRoot = Path.GetFullPath(sourceDirectory);
         var packageRoot = Path.GetFullPath(packageDirectory);
         if (IsSameOrUnder(packageRoot, sourceRoot) || IsSameOrUnder(sourceRoot, packageRoot))
@@ -90,7 +90,7 @@ public static class Packager
             return new PackResult(false, null, problems);
         }
 
-        // 契约主版本（ADR-0012）。
+        // 契约主版本（FX-0012）。
         if (manifest.EffectiveApiVersion?.ToString(CultureInfo.InvariantCulture)
             != PluginContractInfo.CurrentApiVersion)
         {
@@ -101,7 +101,7 @@ public static class Packager
                 PluginContractInfo.CurrentApiVersion));
         }
 
-        // 清单 schema 版本（ADR-0012）。
+        // 清单 schema 版本（FX-0012）。
         if (manifest.EffectiveSchemaVersion?.ToString(CultureInfo.InvariantCulture)
             != PluginContractInfo.CurrentManifestVersion)
         {
@@ -112,7 +112,7 @@ public static class Packager
                 PluginContractInfo.CurrentManifestVersion));
         }
 
-        // type 是父级的路由键（ADR-0006）。写错的包在父级态下根本到不了我们手里，
+        // type 是父级的路由键（FX-0006）。写错的包在父级态下根本到不了我们手里，
         // 而且失败点离病因很远 —— 所以在这里就拦下。hosihikari.json 里可以省略。
         if (!string.IsNullOrWhiteSpace(manifest.ParentName)
             && manifest.ParentName != PluginContractInfo.ParentName)
@@ -123,7 +123,7 @@ public static class Packager
                 manifest.ParentName));
         }
 
-        // 包类型（ADR-0006）：写错的在加载期会被当成插件，也在打包期拦。
+        // 包类型（FX-0006）：写错的在加载期会被当成插件，也在打包期拦。
         var kind = manifest.PackageKind;
         if (kind is not ("plugin" or "loader" or "carrier"))
         {
@@ -134,7 +134,7 @@ public static class Packager
             problems.Add(PackText.Get("CarrierNotNamed", manifest.Name));
         }
 
-        // 对框架的依赖（ADR-0006）：缺了父级会把包排到垫片前面，判成 Unknown mod type。
+        // 对框架的依赖（FX-0006）：缺了父级会把包排到垫片前面，判成 Unknown mod type。
         // 载体包就是垫片自己，不依赖自己。
         if (kind != "carrier"
             && !manifest.Dependencies.Any(dependency =>
@@ -143,7 +143,7 @@ public static class Packager
             problems.Add(PackText.Get("MissingFrameworkDependency"));
         }
 
-        // prepack 先跑（ADR-0031）：它会往包目录里装 node_modules / venv，
+        // prepack 先跑（FX-0031）：它会往包目录里装 node_modules / venv，
         // 之后共享层扫描与递归复制看到的就是最终产物。
         Prepack(manifest, sourceDirectory, problems);
         if (problems.Count > 0)
@@ -151,7 +151,7 @@ public static class Packager
             return new PackResult(false, null, problems);
         }
 
-        // 共享层副本（ADR-0004 / 0019）—— 这条是静默失败的那条，所以放在打包期拦。
+        // 共享层副本（FX-0004 / 0019）—— 这条是静默失败的那条，所以放在打包期拦。
         // 注意它可能是**传递**来的：作者只直接引用契约，而契约又牵进别的共享层程序集时
         // 一样会出现在构建输出里，所以这里对整份输出逐文件比对，不看是谁带进来的。
         var offenders = Directory
@@ -164,13 +164,13 @@ public static class Packager
             problems.Add(PackText.Get("SharedLayer", string.Join(", ", offenders)));
         }
 
-        // 入口必须在包内（ADR-0006）。出界时后面的存在性与入口声明检查都不做 ——
+        // 入口必须在包内（FX-0006）。出界时后面的存在性与入口声明检查都不做 ——
         // 它们会去读包外的文件。
         if (!ManifestReader.IsEntryContained(sourceDirectory, manifest.EntryPath))
         {
             problems.Add(PackText.Get("EntryOutside", manifest.EntryPath));
         }
-        // 入口（ADR-0008）。编译器已经保证它与 IPlugin 和有无参构造是一致的，这里只确认它存在。
+        // 入口（FX-0008）。编译器已经保证它与 IPlugin 和有无参构造是一致的，这里只确认它存在。
         else if (manifest.Loader == "assembly")
         {
             var entryPath = Path.Combine(sourceDirectory, manifest.EntryPath);
@@ -184,7 +184,7 @@ public static class Packager
             }
         }
 
-        // 载体组（ADR-0061）：声明的程序集与类型必须真的在包里、且实现 ICarrierComponent。
+        // 载体组（FX-0061）：声明的程序集与类型必须真的在包里、且实现 ICarrierComponent。
         // 核心在启动阶段按名字装配，等到那时候才发现就太晚了。
         if (kind == "carrier")
         {
@@ -282,7 +282,7 @@ public static class Packager
 
     /// <summary>
     /// 跑 <c>pack.prepack</c>。字符串与数组都收（与 <c>command</c> 同形）：字符串按单个程序名处理，
-    /// 在包目录里执行，5 分钟不结束算失败（ADR-0031）。装的是 node_modules、venv 这类构建期依赖。
+    /// 在包目录里执行，5 分钟不结束算失败（FX-0031）。装的是 node_modules、venv 这类构建期依赖。
     /// </summary>
     private static void Prepack(PluginManifest manifest, string sourceDirectory, List<string> problems)
     {
@@ -636,8 +636,8 @@ public static class Packager
                 return false;
             }
 
-            // 共享层的程序集不随包走（ADR-0004）；restore 工程自己那份也没有意义。
-            // 递归复制是为了保留 runtimes/<rid>/native 的本机资产（ADR-0034）。
+            // 共享层的程序集不随包走（FX-0004）；restore 工程自己那份也没有意义。
+            // 递归复制是为了保留 runtimes/<rid>/native 的本机资产（FX-0034）。
             var restoreArtifacts = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
             {
                 "restore.dll", "restore.exe", "restore", "restore.pdb",
@@ -726,8 +726,8 @@ public static class Packager
     }
 
     /// <summary>
-    /// 信封的文件名。父级的 <c>ModRegistrar</c> 硬编码读它（ADR-0006），
-    /// 这里是唯一写它的地方（ADR-0058）。
+    /// 信封的文件名。父级的 <c>ModRegistrar</c> 硬编码读它（FX-0006），
+    /// 这里是唯一写它的地方（FX-0058）。
     /// </summary>
     internal const string LegacyEnvelopeFileName = "manifest.json";
 
@@ -736,7 +736,7 @@ public static class Packager
 
     /// <summary>
     /// 生成给父级看的信封：只有路由与展示用得上的字段。父级照旧读 <c>manifest.json</c>，
-    /// 但它从作者的元数据里派生，作者不再维护两份（ADR-0058）。
+    /// 但它从作者的元数据里派生，作者不再维护两份（FX-0058）。
     /// </summary>
     private static string BuildEnvelope(PluginManifest manifest)
     {
@@ -1084,7 +1084,7 @@ public static class Packager
     }
 
     /// <summary>
-    /// 把旧包目录里的 <c>manifest.json</c> 迁成 <c>hosihikari.json</c>，并删掉旧文件（ADR-0058）。
+    /// 把旧包目录里的 <c>manifest.json</c> 迁成 <c>hosihikari.json</c>，并删掉旧文件（FX-0058）。
     /// 只做形状转换；1.x 里没有对应语义的字段列进 <see cref="MigrateResult.Notes"/> 交给人补。
     /// </summary>
     public static MigrateResult Migrate(string packageDirectory)
@@ -1160,7 +1160,7 @@ public static class Packager
 
             writer.WriteString("entry", manifest.EntryPath);
             writer.WriteString("loader", manifest.Loader);
-            // 1.x 的 packageKind 改名成 kind（ADR-0058）。
+            // 1.x 的 packageKind 改名成 kind（FX-0058）。
             writer.WriteString("kind", manifest.PackageKind);
             writer.WriteNumber("apiVersion", int.Parse(
                 PluginContractInfo.CurrentApiVersion, CultureInfo.InvariantCulture));

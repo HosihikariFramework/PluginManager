@@ -3,7 +3,7 @@ using NuGet.Versioning;
 
 namespace Hosihikari.Internal;
 
-/// <summary>清单版本与依赖约束的解析（ADR-0039）。</summary>
+/// <summary>清单版本与依赖约束的解析（FX-0039）。</summary>
 internal static class DependencyVersion
 {
     /// <summary>校验清单里的版本与每条依赖约束的语法；缺失版本按“任意版本”处理。</summary>

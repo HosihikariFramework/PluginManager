@@ -9,7 +9,7 @@ using Hosihikari.Internal;
 
 namespace Hosihikari;
 
-/// <summary>核心：发现、依赖图、加载器选型、生命周期驱动、失败隔离（ADR-0009 / 0010）。</summary>
+/// <summary>核心：发现、依赖图、加载器选型、生命周期驱动、失败隔离（FX-0009 / 0010）。</summary>
 public sealed class PluginManager
 {
     private readonly string _pluginsRoot;
@@ -25,7 +25,7 @@ public sealed class PluginManager
     private readonly bool _ownsPluginSet;
     private readonly Action<string> _reportFault;
     // 载体服务在父级重载后可以换代（Endstone 的 Plugin* 会变），所以不是 readonly；
-    // 换代经 RepublishCarrierServices，由托管入口在重载路径上调用（ADR-0065）。
+    // 换代经 RepublishCarrierServices，由托管入口在重载路径上调用（FX-0065）。
     private IServiceProvider? _carrierServices;
     private readonly Action<string>? _onRemoved;
     private readonly object _gate = new();
@@ -118,7 +118,7 @@ public sealed class PluginManager
 
     /// <summary>
     /// 登记一个加载器。同名（<see cref="IPluginLoader.Id"/>）的已经在了就拒掉后一个，
-    /// 并把冲突报出来（ADR-0009）—— 静默让后一个落空的话，写它的那个人会以为自己的包被接管了。
+    /// 并把冲突报出来（FX-0009）—— 静默让后一个落空的话，写它的那个人会以为自己的包被接管了。
     /// </summary>
     /// <returns>登记成功为 <c>true</c>；同名的已在则为 <c>false</c>，先来的那个不变。</returns>
     public bool RegisterLoader(IPluginLoader loader)
@@ -234,7 +234,7 @@ public sealed class PluginManager
         }
     }
 
-    /// <summary>装载收尾时清掉编号标记；登记本身留着，加载器不能撤销（ADR-0002）。</summary>
+    /// <summary>装载收尾时清掉编号标记；登记本身留着，加载器不能撤销（FX-0002）。</summary>
     private void ClearLoaderMark(Guid instanceId)
     {
         lock (_loaderGate)
@@ -265,7 +265,7 @@ public sealed class PluginManager
         }
     }
 
-    /// <summary>所有仍在表中的插件快照，包含待回收的那些。快照只读，不交出插件句柄（ADR-0041）。</summary>
+    /// <summary>所有仍在表中的插件快照，包含待回收的那些。快照只读，不交出插件句柄（FX-0041）。</summary>
     public IReadOnlyList<PluginInfo> Plugins
     {
         get
@@ -307,11 +307,11 @@ public sealed class PluginManager
             .Select(dependency => new PluginDependencyInfo(dependency.Name, dependency.VersionRange))
             .ToArray());
 
-    /// <summary>载体适配器要把载体事件并进来，所以事件总线得对外可达（ADR-0007）。</summary>
+    /// <summary>载体适配器要把载体事件并进来，所以事件总线得对外可达（FX-0007）。</summary>
     public IEventBus Events => _events;
 
     /// <summary>
-    /// 父级重载后换一份载体服务（ADR-0065）：新装的插件与新启动的组件看到新的提供器；
+    /// 父级重载后换一份载体服务（FX-0065）：新装的插件与新启动的组件看到新的提供器；
     /// 已装载的插件仍攥着装载时那一份，它们本来就会随父级重载被卸掉。
     /// </summary>
     internal void RepublishCarrierServices(IServiceProvider services)
@@ -343,7 +343,7 @@ public sealed class PluginManager
     }
 
     /// <summary>
-    /// 启动载体包声明的进程级组件（ADR-0061）。在事件分发对插件开启**之前**、由载体在服务端线程上调用。
+    /// 启动载体包声明的进程级组件（FX-0061）。在事件分发对插件开启**之前**、由载体在服务端线程上调用。
     /// 任何一个组件启动失败就返回 <see langword="false"/>，整个启动按失败处理；已经启动的照旧留着，
     /// 由调用方决定是否 <see cref="StopComponents"/>。
     /// </summary>
@@ -364,7 +364,7 @@ public sealed class PluginManager
         var started = new List<ICarrierComponent>();
         var ok = true;
 
-        // 组件类型住共享层（ADR-0026 / 0061），按约定名从默认上下文解析；载体包里的私有程序集按路径装。
+        // 组件类型住共享层（FX-0026 / 0061），按约定名从默认上下文解析；载体包里的私有程序集按路径装。
         var assemblies = new Dictionary<string, System.Reflection.Assembly>(StringComparer.OrdinalIgnoreCase);
         foreach (var component in components)
         {
@@ -456,9 +456,9 @@ public sealed class PluginManager
     }
 
     /// <summary>
-    /// 停止组件（ADR-0061）。在事件分发停止**之前**调用；逆着启动顺序停。
+    /// 停止组件（FX-0061）。在事件分发停止**之前**调用；逆着启动顺序停。
     /// 每个组件各用一份 <see cref="PluginManagerOptions.ComponentStopTimeout"/> 预算：
-    /// 超时不再等待并记账，继续停下一个与后续退出（ADR-0063）。
+    /// 超时不再等待并记账，继续停下一个与后续退出（FX-0063）。
     /// </summary>
     public void StopComponents()
     {
@@ -483,7 +483,7 @@ public sealed class PluginManager
 
     /// <summary>
     /// 组件的启动/停止就在调用线程上发起 —— 装上服务端线程 <c>SynchronizationContext</c> 的组件，
-    /// 投到别的线程跑就装错了线程（ADR-0061）。组件要同步收尾：调用线程这里在等它，
+    /// 投到别的线程跑就装错了线程（FX-0061）。组件要同步收尾：调用线程这里在等它，
     /// 它自己的续体也得能在不再需要这个上下文的前提下完成。
     /// 代价：组件若在返回 <see cref="ValueTask"/> 之前同步阻塞，令牌收不到它，预算只能等它自己返回。
     /// 这是「在服务端线程上调用」换来的边界，组件要把阻塞挪进可取消的异步部分。
@@ -516,7 +516,7 @@ public sealed class PluginManager
         }
     }
 
-    /// <summary>自持态：插件包就在 <c>plugins/</c> 下，由我们枚举、按依赖排序后逐个装（ADR-0018）。</summary>
+    /// <summary>自持态：插件包就在 <c>plugins/</c> 下，由我们枚举、按依赖排序后逐个装（FX-0018）。</summary>
     public void LoadAll()
     {
         var reports = new List<string>();
@@ -567,7 +567,7 @@ public sealed class PluginManager
     }
 
     /// <summary>
-    /// 父级态：父级把包逐个交过来（ADR-0003）。顺序与依赖由父级的计划保证，我们只管装。
+    /// 父级态：父级把包逐个交过来（FX-0003）。顺序与依赖由父级的计划保证，我们只管装。
     /// 返回它有没有装上 —— 失败原因已经进了日志。
     ///
     /// **不在这里启用**：启停由父级驱动（<see cref="IPlugin.OnDisable"/> 的约定），
@@ -637,8 +637,8 @@ public sealed class PluginManager
     }
 
     /// <summary>
-    /// 启用一个在场的插件（ADR-0003：父级能单独启停子插件）。父级决定启停，
-    /// 框架只把钩子调到并开关作用域闸门（ADR-0035）。
+    /// 启用一个在场的插件（FX-0003：父级能单独启停子插件）。父级决定启停，
+    /// 框架只把钩子调到并开关作用域闸门（FX-0035）。
     /// </summary>
     public bool Enable(string name)
     {
@@ -662,7 +662,7 @@ public sealed class PluginManager
 
     /// <summary>
     /// 停用一个在场的插件：先关闭它的作用域闸门，再调 <see cref="IPlugin.OnDisable"/>；
-    /// 拒绝时重开（ADR-0035）。订阅与定时器仍保留到**卸载**时才收回。
+    /// 拒绝时重开（FX-0035）。订阅与定时器仍保留到**卸载**时才收回。
     /// </summary>
     public bool Disable(string name)
     {
@@ -691,7 +691,7 @@ public sealed class PluginManager
     /// <c>GetAwaiter().GetResult()</c> 会让钩子里的 <c>await Task.Delay</c> / <c>Task.Yield</c> 永远排不上，
     /// 调用方与钩子互相等死；线程池没有这个上下文，阻塞等就安全。
     ///
-    /// 超时是第二段预算（ADR-0063）：到点取消令牌、放弃等待、记一条账，调用方照常往下走。
+    /// 超时是第二段预算（FX-0063）：到点取消令牌、放弃等待、记一条账，调用方照常往下走。
     /// 取消是协作式的，被放弃的钩子任务可能迟到完成；迟到的东西不再回写状态。
     /// 报告进 <paramref name="reports"/> 而不是当场回调 —— 调用方多半正握着 <see cref="_gate"/>。
     /// </summary>
@@ -715,7 +715,7 @@ public sealed class PluginManager
         try
         {
             // 预算用 CTS 的 CancelAfter 而不是 WaitAsync(TimeSpan)：后者的定时器要等 Task 完成才摘掉，
-            // 会把钩子闭包（进而把插件的 ALC）钉住一整个超时时长（ADR-0023）。
+            // 会把钩子闭包（进而把插件的 ALC）钉住一整个超时时长（FX-0023）。
             using var budget = CreateHookBudget();
             var task = RunOffPool(() => call(budget.Token));
             try
@@ -725,7 +725,7 @@ public sealed class PluginManager
             }
             catch (OperationCanceledException)
             {
-                // 预算到点与钩子自己取消是同一种结局：不再等它（ADR-0059 / 0063）。
+                // 预算到点与钩子自己取消是同一种结局：不再等它（FX-0059 / 0063）。
                 reports.Add(budget.IsCancellationRequested
                     ? CoreText.Get("Manager_HookTimeout", name, hook, _hookTimeout)
                     : CoreText.Get("Manager_HookCanceled", name, hook));
@@ -844,14 +844,14 @@ public sealed class PluginManager
         faulted = null;
 
         // 已放下、待回收的不算在场 —— 它已经不在跑了，钩子无处可调。
-        // 例外：重载时父级会对已经从表里拿掉的名字再发一次停用，那不算错（ADR-0037）。
+        // 例外：重载时父级会对已经从表里拿掉的名字再发一次停用，那不算错（FX-0037）。
         if (!_slots.TryGetValue(name, out var slot) || slot.State != PluginState.Loaded)
         {
             (reports ??= []).Add(CoreText.Get("Manager_NotPresent", name, VerbText(enable)));
             return !enable;
         }
 
-        // 两个方向都幂等：已启用再启用、本轮已经停过再停用，都不再调钩子（ADR-0013）。
+        // 两个方向都幂等：已启用再启用、本轮已经停过再停用，都不再调钩子（FX-0013）。
         // 从没启用过的插件收到停用仍会调一次 OnDisable —— 父级就是这么驱动新交付的包的。
         if (enable ? slot.Enabled : slot.Stopped)
         {
@@ -884,7 +884,7 @@ public sealed class PluginManager
 
                 if (!enabled)
                 {
-                    // 超时与取消保持停用（ADR-0059）：没启用过，不必开闸门，账已记过。
+                    // 超时与取消保持停用（FX-0059）：没启用过，不必开闸门，账已记过。
                     return false;
                 }
 
@@ -922,7 +922,7 @@ public sealed class PluginManager
 
             if (!stopped)
             {
-                // 停用超时只是不再等它：闸门保持关闭，记账后按已停处理（ADR-0063）。
+                // 停用超时只是不再等它：闸门保持关闭，记账后按已停处理（FX-0063）。
                 slot.Enabled = false;
                 slot.Stopped = true;
                 return true;
@@ -969,7 +969,7 @@ public sealed class PluginManager
     }
 
     /// <summary>
-    /// 卸载。有依赖者时**拒绝**并如实返回，不自动级联（ADR-0004）。
+    /// 卸载。有依赖者时**拒绝**并如实返回，不自动级联（FX-0004）。
     ///
     /// 卸载分两段：先把实例与作用域放下，再等 ALC 被回收。第二段没通过时状态停在
     /// <see cref="PluginState.Detached"/> 并如实回报失败 —— 再问一次就是再验一次
@@ -984,8 +984,8 @@ public sealed class PluginManager
     }
 
     /// <summary>
-    /// 重载：Disable → Unload → Load → Enable（ADR-0062）。只在管理器拥有插件集时提供；
-    /// 父级在场时返回 NotSupported，插件的启停归父级驱动（ADR-0003）。
+    /// 重载：Disable → Unload → Load → Enable（FX-0062）。只在管理器拥有插件集时提供；
+    /// 父级在场时返回 NotSupported，插件的启停归父级驱动（FX-0003）。
     /// 每一步失败就停在那一步并如实回报，不做假成功。
     /// </summary>
     /// <param name="name">插件名，等于包目录名。</param>
@@ -1028,7 +1028,7 @@ public sealed class PluginManager
         return ReloadResult.Ok();
     }
 
-    /// <summary>父级态下的依赖检查：目标已在场，且版本满足清单约束（ADR-0039）。</summary>
+    /// <summary>父级态下的依赖检查：目标已在场，且版本满足清单约束（FX-0039）。</summary>
     private string? DependencyProblem(PluginManifest manifest)
     {
         foreach (var dependency in manifest.Dependencies)
@@ -1053,7 +1053,7 @@ public sealed class PluginManager
     }
 
     /// <summary>
-    /// 载体重载前的子插件回收。Loader 包按 ADR-0002 不能撤销登记，跨 reload 保留；
+    /// 载体重载前的子插件回收。Loader 包按 FX-0002 不能撤销登记，跨 reload 保留；
     /// 它们造出来的实例与路由也留着，供新 loader 直接复用。
     /// </summary>
     internal void UnloadChildren()
@@ -1090,11 +1090,11 @@ public sealed class PluginManager
     }
 
     /// <summary>
-    /// 卸载的加锁部分只做依赖检查与 Detach；回收验证在锁外等待（ADR-0023）。
+    /// 卸载的加锁部分只做依赖检查与 Detach；回收验证在锁外等待（FX-0023）。
     /// 同一槽位的并发卸载共享同一个进行中的验证；失败后清空任务，下一次重新验证。
     /// 报告先攒着，出了锁再发 —— 父级的日志回调可能拿父级自己的锁，
     /// 而父级线程可能正握着那把锁等 <see cref="_gate"/>；在锁内回调会互相等死。
-    /// 钩子与回收验证各有一段预算（ADR-0063）；前者超时只在结果上标注，后者超时才是失败。
+    /// 钩子与回收验证各有一段预算（FX-0063）；前者超时只在结果上标注，后者超时才是失败。
     /// </summary>
     private UnloadResult UnloadCore(string name, Guid? expectedInstanceId, ref List<string>? reports)
     {
@@ -1211,7 +1211,7 @@ public sealed class PluginManager
                     hookTimedOut);
             }
 
-            // 说"回收"而不是"ALC"：释放句柄长什么样是 Loader 自己的事（ADR-0010）。
+            // 说"回收"而不是"ALC"：释放句柄长什么样是 Loader 自己的事（FX-0010）。
             return UnloadResult.Failed(
                 CoreText.Get("Manager_UnloadVerifyFailedRetry", name),
                 hookThrew ? UnloadFailure.HookThrew : UnloadFailure.ReclamationFailed,
@@ -1232,12 +1232,12 @@ public sealed class PluginManager
         }
     }
 
-    /// <summary>诊断进操作员文本时带上错误码与严重级别：可读说明之外，机器可读的那半也得留下（ADR-0059）。</summary>
+    /// <summary>诊断进操作员文本时带上错误码与严重级别：可读说明之外，机器可读的那半也得留下（FX-0059）。</summary>
     private static string Describe(string key, string name, PluginDiagnostic diagnostic) =>
         CoreText.Get(key, name, diagnostic.Code, diagnostic.Severity, diagnostic.Message);
 
     /// <summary>
-    /// 故障：钩子抛出，或 Loader 在钩子之外发现插件死了（ADR-0030）。
+    /// 故障：钩子抛出，或 Loader 在钩子之外发现插件死了（FX-0030）。
     /// 由宿主发起卸载；成功后才通知载体摘账。
     /// 故障只属于发起它的那个实例：报告在锁外发，期间同名插件可能已经重新装载，
     /// 按名字找会把健康的新实例连坐卸掉。所以这里认的是装载时发给上下文的编号。
@@ -1304,9 +1304,9 @@ public sealed class PluginManager
     }
     /// <summary>
     /// 停用、卸载、放下句柄与作用域，只留下回收验证。单独一个不内联的方法，是为了让本方法返回后，
-    /// 插件与它的 ALC 在栈上再无强引用 —— 回收验证的前提（ADR-0023）。
+    /// 插件与它的 ALC 在栈上再无强引用 —— 回收验证的前提（FX-0023）。
     /// 状态与字段一起改完：表里留着插件等于把 ALC 钉死。
-    /// 停用被拒绝时返回原因，此时什么都不放开（ADR-0030）。
+    /// 停用被拒绝时返回原因，此时什么都不放开（FX-0030）。
     /// </summary>
     [MethodImpl(MethodImplOptions.NoInlining)]
     private string? Detach(Slot slot, ref List<string>? reports, out bool hookTimedOut, out bool hookThrew)
@@ -1329,7 +1329,7 @@ public sealed class PluginManager
             }
             else if (!TryInvokeHook(slot, "OnDisable", plugin.OnDisable, reportList, out var disableResult))
             {
-                // 超时只是不再等它：闸门保持关闭，停用按已发生记账，卸载继续（ADR-0063）。
+                // 超时只是不再等它：闸门保持关闭，停用按已发生记账，卸载继续（FX-0063）。
                 hookTimedOut = true;
             }
             else if (!disableResult.Allowed)
@@ -1398,7 +1398,7 @@ public sealed class PluginManager
     }
 
     /// <summary>
-    /// 状态迁移事件（ADR-0062）。调用方可能正握着 <see cref="_gate"/>，而 handler 会跑在发布者线程上，
+    /// 状态迁移事件（FX-0062）。调用方可能正握着 <see cref="_gate"/>，而 handler 会跑在发布者线程上，
     /// 回调里再调管理器就是重入 —— 所以这里总是投到线程池发，顺序仍按调用次序。
     /// </summary>
     private void PublishState(string name, PluginState previous, PluginState current)
@@ -1434,8 +1434,8 @@ public sealed class PluginManager
         handle.WaitForUnloadAsync().GetAwaiter().GetResult();
 
     /// <summary>
-    /// 包内默认 → 包外覆盖 → 环境变量，后写覆盖先写（ADR-0018）。
-    /// 三段都可选 —— 完全不带配置的插件是正常情况（ADR-0009）。
+    /// 包内默认 → 包外覆盖 → 环境变量，后写覆盖先写（FX-0018）。
+    /// 三段都可选 —— 完全不带配置的插件是正常情况（FX-0009）。
     /// 分层**必须**走配置源链：HOCON 的 <c>include</c> 在这条路径上会被静默忽略。
     /// </summary>
     private IConfiguration BuildConfiguration(string name, string packageDirectory) =>
@@ -1503,7 +1503,7 @@ public sealed class PluginManager
 
             var dataDirectory = Path.Combine(_dataRoot, manifest.Name);
             Directory.CreateDirectory(dataDirectory);
-            // 普通包只给 IPluginContext；加载器包多一层 ILoaderContext（ADR-0059）。
+            // 普通包只给 IPluginContext；加载器包多一层 ILoaderContext（FX-0059）。
             var isLoader = manifest.PackageKind == "loader";
             context = new PluginContext(
                 manifest.Name,
@@ -1518,7 +1518,7 @@ public sealed class PluginManager
                 isLoader,
                 reports.Add);
 
-            // 加载器与插件钩子拿到同一份视图：普通包的 OnLoad 也不能转成 ILoaderContext（ADR-0059）。
+            // 加载器与插件钩子拿到同一份视图：普通包的 OnLoad 也不能转成 ILoaderContext（FX-0059）。
             var pluginContext = context.ForPlugin();
             handle = loader.Load(manifest, package.Directory, pluginContext);
             if (handle?.Plugin is null)
@@ -1535,7 +1535,7 @@ public sealed class PluginManager
                     token => plugin.OnLoad(pluginContext, token),
                     reports))
             {
-                // 取消或超时都按装载回滚处理（ADR-0059），下面的 finally 收起已经跑过的部分。
+                // 取消或超时都按装载回滚处理（FX-0059），下面的 finally 收起已经跑过的部分。
                 return false;
             }
 
@@ -1555,7 +1555,7 @@ public sealed class PluginManager
                         reports,
                         out var enableResult))
                 {
-                    // 自持态在装载里顺带启用：超时保持停用、仍算装上（ADR-0059）。
+                    // 自持态在装载里顺带启用：超时保持停用、仍算装上（FX-0059）。
                 }
                 else if (!enableResult.Allowed)
                 {
@@ -1681,7 +1681,7 @@ public sealed class PluginManager
     }
 
     /// <summary>
-    /// 表里的一格。两段式卸载要求它在状态切换时把指向插件与 ALC 的字段一并清掉（ADR-0023）——
+    /// 表里的一格。两段式卸载要求它在状态切换时把指向插件与 ALC 的字段一并清掉（FX-0023）——
     /// 所以这里放的是可空字段而不是 record。
     /// </summary>
     private sealed class Slot(PluginManifest manifest)
@@ -1707,7 +1707,7 @@ public sealed class PluginManager
         /// <summary>启用状态；重复 Enable/Disable 不能把闸门留在错误的一侧。</summary>
         public bool Enabled { get; set; }
 
-        /// <summary>本轮实例已经停过；再停一次就不再调 OnDisable（ADR-0013）。</summary>
+        /// <summary>本轮实例已经停过；再停一次就不再调 OnDisable（FX-0013）。</summary>
         public bool Stopped { get; set; }
     }
 }
