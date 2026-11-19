@@ -1,4 +1,4 @@
-﻿name: verify
+name: verify
 
 on:
   push:
@@ -52,7 +52,7 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
-      # 宿主把整份断言清单跑一遍，任一条不过就以非零退出 —— 门槛就在这里（ADR-0015）。
+      # 宿主把整份断言清单跑一遍，任一条不过就以非零退出 —— 门槛就在这里（FX-0015）。
       # 这里不写条数：它会变，而写死的数字只会变成下一处过时的注释。
       - name: 跑断言
         working-directory: PluginManager

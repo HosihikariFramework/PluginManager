@@ -185,10 +185,10 @@
     <value>{0} : le manifeste n&#x27;a pas d&#x27;entrée (entry)</value>
   </data>
   <data name="Manifest_LegacyField" xml:space="preserve">
-    <value>{0} : le manifeste utilise l&#x27;ancien champ extraInfo.{1} ; renommez-le en extraInfo.{2} (ADR-0040)</value>
+    <value>{0} : le manifeste utilise l&#x27;ancien champ extraInfo.{1} ; renommez-le en extraInfo.{2} (FX-0040)</value>
   </data>
   <data name="Manifest_LegacyFieldBody" xml:space="preserve">
-    <value>le manifeste utilise l&#x27;ancien champ extraInfo.{0} ; renommez-le en extraInfo.{1} (ADR-0040)</value>
+    <value>le manifeste utilise l&#x27;ancien champ extraInfo.{0} ; renommez-le en extraInfo.{1} (FX-0040)</value>
   </data>
   <data name="Manifest_EntryOutside" xml:space="preserve">
     <value>{0} : l&#x27;entrée doit être un chemin relatif à l&#x27;intérieur du paquet (reçu {1})</value>

@@ -12,12 +12,12 @@
   </ItemGroup>
 
   <!-- Private=false / ExcludeAssets=runtime：契约与载体绑定都驻留共享层，插件不得自带副本
-       （ADR-0004 / ADR-0019）。两种拿法都要带上这两条。 -->
+       （FX-0004 / FX-0019）。两种拿法都要带上这两条。 -->
   <ItemGroup Condition="Exists('../../../Plugin.Abstractions/src/Hosihikari.Plugin.Abstractions.csproj')">
     <ProjectReference Include="../../../Plugin.Abstractions/src/Hosihikari.Plugin.Abstractions.csproj"
                       Private="false"
                       ExcludeAssets="runtime" />
-    <!-- 模型是独立程序集（ADR-0059）：ExcludeAssets 不沿着项目引用链传递到它，得单列一条。 -->
+    <!-- 模型是独立程序集（FX-0059）：ExcludeAssets 不沿着项目引用链传递到它，得单列一条。 -->
     <ProjectReference Include="../../../Plugin.Abstractions/model/Hosihikari.Plugin.Models.csproj"
                       Private="false"
                       ExcludeAssets="runtime" />

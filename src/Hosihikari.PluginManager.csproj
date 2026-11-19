@@ -28,7 +28,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- 日志是唯一的线索（ADR-0009）；异步与迭代器的栈是编译器生成的，不去谜读不懂。 -->
+    <!-- 日志是唯一的线索（FX-0009）；异步与迭代器的栈是编译器生成的，不去谜读不懂。 -->
     <PackageReference Include="Ben.Demystifier" Version="0.4.1" />
     <PackageReference Include="Hocon.Extensions.Configuration" Version="2.0.4" />
     <!-- 本机库的 RID 优先解析需要 fork；并列 checkout 时直接编，否则走 fork 的包。 -->

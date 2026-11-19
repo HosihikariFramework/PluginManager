@@ -185,10 +185,10 @@
     <value>{0}: البيان يفتقد entry</value>
   </data>
   <data name="Manifest_LegacyField" xml:space="preserve">
-    <value>{0}: البيان يستخدم الحقل القديم extraInfo.{1}؛ أعِد تسميته إلى extraInfo.{2} (ADR-0040)</value>
+    <value>{0}: البيان يستخدم الحقل القديم extraInfo.{1}؛ أعِد تسميته إلى extraInfo.{2} (FX-0040)</value>
   </data>
   <data name="Manifest_LegacyFieldBody" xml:space="preserve">
-    <value>البيان يستخدم الحقل القديم extraInfo.{0}؛ أعِد تسميته إلى extraInfo.{1} (ADR-0040)</value>
+    <value>البيان يستخدم الحقل القديم extraInfo.{0}؛ أعِد تسميته إلى extraInfo.{1} (FX-0040)</value>
   </data>
   <data name="Manifest_EntryOutside" xml:space="preserve">
     <value>{0}: يجب أن يكون entry مسارًا نسبيًا داخل الحزمة (الفعلي {1})</value>

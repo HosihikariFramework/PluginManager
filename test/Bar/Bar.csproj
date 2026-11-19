@@ -11,7 +11,7 @@
     <ProjectReference Include="../../../Plugin.Abstractions/src/Hosihikari.Plugin.Abstractions.csproj"
                       Private="false"
                       ExcludeAssets="runtime" />
-    <!-- 模型是独立程序集（ADR-0059）：ExcludeAssets 不沿着项目引用链传递到它，得单列一条。 -->
+    <!-- 模型是独立程序集（FX-0059）：ExcludeAssets 不沿着项目引用链传递到它，得单列一条。 -->
     <ProjectReference Include="../../../Plugin.Abstractions/model/Hosihikari.Plugin.Models.csproj"
                       Private="false"
                       ExcludeAssets="runtime" />
