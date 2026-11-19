@@ -185,10 +185,10 @@
     <value>{0}: 清单缺少 entry</value>
   </data>
   <data name="Manifest_LegacyField" xml:space="preserve">
-    <value>{0}: 清单使用了旧字段 extraInfo.{1}，已改名为 extraInfo.{2}（ADR-0040）</value>
+    <value>{0}: 清单使用了旧字段 extraInfo.{1}，已改名为 extraInfo.{2}（FX-0040）</value>
   </data>
   <data name="Manifest_LegacyFieldBody" xml:space="preserve">
-    <value>清单使用了旧字段 extraInfo.{0}，已改名为 extraInfo.{1}（ADR-0040）</value>
+    <value>清单使用了旧字段 extraInfo.{0}，已改名为 extraInfo.{1}（FX-0040）</value>
   </data>
   <data name="Manifest_EntryOutside" xml:space="preserve">
     <value>{0}: entry 必须是包内相对路径（实际 {1}）</value>
@@ -269,7 +269,7 @@
     <value>{0}: 这是旧包（只有 manifest.json，api_version 2 或更早）—— 跑 `hosihikari-pack migrate {0}` 再重新打包</value>
   </data>
   <data name="Manager_ReloadParented" xml:space="preserve">
-    <value>{0}: 父级在场时不提供重载；插件的启停由父级驱动（ADR-0003）</value>
+    <value>{0}: 父级在场时不提供重载；插件的启停由父级驱动（FX-0003）</value>
   </data>
   <data name="Manager_ReloadDisableFailed" xml:space="preserve">
     <value>{0}: 重载停在停用这一步</value>

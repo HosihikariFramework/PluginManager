@@ -9,12 +9,12 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- 日志的落地端由宿主决定（ADR-0007）；核心只依赖 Logging 抽象。 -->
+    <!-- 日志的落地端由宿主决定（FX-0007）；核心只依赖 Logging 抽象。 -->
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="10.0.15" />
     <ProjectReference Include="../src/Hosihikari.PluginManager.csproj" />
     <!-- 插件包由打包工具装配，测试插件就是它的前两个用户。 -->
     <ProjectReference Include="../tools/Pack/Hosihikari.Plugin.Pack.csproj" />
-    <!-- 载体绑定的替身，住共享层（ADR-0019 / ADR-0021）。 -->
+    <!-- 载体绑定的替身，住共享层（FX-0019 / FX-0021）。 -->
     <ProjectReference Include="../test/Bindings.Stub/Bindings.Stub.csproj" />
     <!-- 只为保证构建顺序：插件包在运行时组装到临时目录。 -->
     <ProjectReference Include="../test/Foo/Foo.csproj" ReferenceOutputAssembly="false" />

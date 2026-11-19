@@ -11,7 +11,7 @@ namespace Hosihikari.Spike;
 /// </summary>
 public sealed class PinnedPluginLoader : IPluginLoader
 {
-    /// <summary>为真时模拟"外面还有根"（ADR-0004 里作者欠的那笔账）。</summary>
+    /// <summary>为真时模拟"外面还有根"（FX-0004 里作者欠的那笔账）。</summary>
     public bool Pinned { get; set; } = true;
 
     /// <summary>回收验证实际被调用了几次；并发卸载应共享同一个验证。</summary>
@@ -89,7 +89,7 @@ internal sealed class PinnedPlugin : IPlugin
         return ValueTask.CompletedTask;
     }
 
-    /// <summary>把最后一个到达的钩子写下来 —— 断言据此看"谁在驱动"（ADR-0003）。</summary>
+    /// <summary>把最后一个到达的钩子写下来 —— 断言据此看"谁在驱动"（FX-0003）。</summary>
     private void Record(string hook)
     {
         if (_dataDirectory is not null)

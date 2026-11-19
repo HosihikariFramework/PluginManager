@@ -96,7 +96,7 @@ public sealed class PluginTestHost : IDisposable
         Unload();
     }
 
-    /// <summary>钩子投到线程池再等，与生产一致（ADR-0059）：调用方线程上若装着上下文，同步等会死锁。</summary>
+    /// <summary>钩子投到线程池再等，与生产一致（FX-0059）：调用方线程上若装着上下文，同步等会死锁。</summary>
     private static T Run<T>(Func<CancellationToken, ValueTask<T>> hook) =>
         Task.Run(() => hook(CancellationToken.None).AsTask()).GetAwaiter().GetResult();
 

@@ -3,7 +3,7 @@ using Hosihikari;
 namespace Hosihikari.Spike;
 
 /// <summary>
-/// 钩子语义（ADR-0059 / 0063）的检验加载器，按包名选行为：
+/// 钩子语义（FX-0059 / 0063）的检验加载器，按包名选行为：
 /// <c>Awaiting</c> 的四个钩子都 <c>await Task.Delay(1)</c>（挂着服务端线程上下文时，同步阻塞等会死锁）；
 /// <c>Hanging</c> 的停用与卸载一直等到令牌取消才返回（验钩子超时）；<c>ContextKind</c> 记录拿到的上下文类型。
 /// </summary>

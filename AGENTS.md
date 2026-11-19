@@ -28,17 +28,17 @@ do the same when changing the contract or native probing.
 
 ## Invariants
 
-- Public names follow ADR-0040. 1.x changes are additive (ADR-0041) and carry no Reload verb; v2
-  adds `Reload` for the self-hosted set only (ADR-0062) and still never cascades unload.
-- Unload timeout is a failed unload and leaves the slot `Detached` (ADR-0042).
+- Public names follow FX-0040. 1.x changes are additive (FX-0041) and carry no Reload verb; v2
+  adds `Reload` for the self-hosted set only (FX-0062) and still never cascades unload.
+- Unload timeout is a failed unload and leaves the slot `Detached` (FX-0042).
 - Operator-facing messages (logs, load reports, unload reasons) come from `src/Resources/CoreStrings.resx`
-  (neutral English) and `CoreStrings.zh.resx`; exception messages are English (ADR-0050).
+  (neutral English) and `CoreStrings.zh.resx`; exception messages are English (FX-0050).
 - On release, keep the `hosihikari-core-<version>.zip` name, `src/Hosihikari.PluginManager.csproj`
   version, and core dependency ranges in sync. The archive extracts at the server root and writes
   `plugins/hosihikari/`. `Hosihikari.Plugin.Build`, `Hosihikari.Plugin.Pack`, and
   `Hosihikari.Testing` are versioned independently. The packer is also the
   `Hosihikari.Plugin.Pack` dotnet tool (`hosihikari-pack`); keep `dotnet pack` working and publish
-  it with the framework release (ADR-0049).
+  it with the framework release (FX-0049).
 - Do not commit `artifacts/`, `bin/`, or `obj/`.
 
 ## Context

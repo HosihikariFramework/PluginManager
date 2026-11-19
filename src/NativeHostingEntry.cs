@@ -6,7 +6,7 @@ using Microsoft.Extensions.Logging;
 namespace Hosihikari;
 
 /// <summary>
-/// 原生 Shim 调进来的那一个入口（ADR-0005）—— "原生 → 托管"这条缝的托管一侧。
+/// 原生 Shim 调进来的那一个入口（FX-0005）—— "原生 → 托管"这条缝的托管一侧。
 /// 它由 <c>get_function_pointer</c> 按类型名与方法名取到，形状就是 <c>component_entry_point_fn</c>。
 /// </summary>
 public static class NativeHostingEntry
@@ -20,7 +20,7 @@ public static class NativeHostingEntry
     private static IntPtr s_logCallback;
     private static IntPtr s_logUser;
 
-    // 故障卸载成功后，通知载体把父级的账摘掉（ADR-0030）。
+    // 故障卸载成功后，通知载体把父级的账摘掉（FX-0030）。
     // 回调与 user 成对读写；StopCore 置空时要等已经进桥的通知写完。
     private static readonly Lock s_removalGate = new();
     private static IntPtr s_removalCallback;
@@ -31,7 +31,7 @@ public static class NativeHostingEntry
     /// 发生不兼容变化时递增；垫片启动时先读这个值。
     ///
     /// 2：<see cref="Start"/> / <see cref="StartUnderParent"/> 的参数改为
-    /// <c>{ const char* carrier_directory; void* host; }</c>（ADR-0065）。
+    /// <c>{ const char* carrier_directory; void* host; }</c>（FX-0065）。
     /// </summary>
     public const int HostingContractVersion = 2;
 
@@ -61,7 +61,7 @@ public static class NativeHostingEntry
 
     /// <summary>
     /// 父级交来“移除”出口：<paramref name="arg"/> 指向 <c>{ void* callback; void* user; }</c>。
-    /// 托管侧在故障卸载成功后调用它，载体据此摘掉父级注册表里的那一条（ADR-0030）。
+    /// 托管侧在故障卸载成功后调用它，载体据此摘掉父级注册表里的那一条（FX-0030）。
     /// </summary>
     /// <param name="arg">指向那两个指针的缓冲。</param>
     /// <param name="argSizeInBytes">缓冲的字节数。</param>
@@ -82,9 +82,9 @@ public static class NativeHostingEntry
     }
 
     /// <summary>
-    /// 自持态入口：插件包就在 <c>plugins/</c> 下，由我们枚举装载（ADR-0018）。
+    /// 自持态入口：插件包就在 <c>plugins/</c> 下，由我们枚举装载（FX-0018）。
     ///
-    /// **不抛异常**：在别人的进程里，托管异常越过这条边界等于把宿主一起拖下水（ADR-0009）。
+    /// **不抛异常**：在别人的进程里，托管异常越过这条边界等于把宿主一起拖下水（FX-0009）。
     /// </summary>
     /// <param name="arg">指向 <c>{ const char* carrier_directory; void* host; }</c>；可以为零。</param>
     /// <param name="argSizeInBytes">上面那块的大小。</param>
@@ -93,7 +93,7 @@ public static class NativeHostingEntry
         StartCore(scanPlugins: true, ReadStartArgs(arg, argSizeInBytes));
 
     /// <summary>
-    /// 父级态入口：插件集归父级注册表所有（ADR-0003），我们等父级把插件交过来。
+    /// 父级态入口：插件集归父级注册表所有（FX-0003），我们等父级把插件交过来。
     /// 枚举 <c>plugins/</c> 会把父级自己的模组一并收编，所以这里不扫目录。
     /// </summary>
     /// <param name="arg">指向 <c>{ const char* carrier_directory; void* host; }</c>；可以为零。</param>
@@ -136,7 +136,7 @@ public static class NativeHostingEntry
                 return 0;
             }
 
-            // 组件停止在分发停止之前（ADR-0061）；超时只记账，不拖住退出。
+            // 组件停止在分发停止之前（FX-0061）；超时只记账，不拖住退出。
             host.StopComponents();
             host.UnloadChildren();
             for (var i = 0; i < 10; i++)
@@ -168,7 +168,7 @@ public static class NativeHostingEntry
     }
 
     /// <summary>
-    /// 父级交付一个插件包：参数是包目录的、以 null 结尾的 UTF-8 指针（ADR-0003）。
+    /// 父级交付一个插件包：参数是包目录的、以 null 结尾的 UTF-8 指针（FX-0003）。
     /// 返回 0 表示装上了，非 0 表示没装上 —— 原因已经进了父级的日志。
     /// </summary>
     /// <param name="arg">包目录的 UTF-8 指针。</param>
@@ -177,7 +177,7 @@ public static class NativeHostingEntry
     public static int LoadPlugin(IntPtr arg, int argSizeInBytes) => Deliver(arg, Verb.Load);
 
     /// <summary>
-    /// 父级收回一个插件：参数是插件名的、以 null 结尾的 UTF-8 指针（ADR-0003）。
+    /// 父级收回一个插件：参数是插件名的、以 null 结尾的 UTF-8 指针（FX-0003）。
     /// 返回 0 表示回收验证过了；非 0 表示放下了但还没回收，父级可以再问一次。
     /// </summary>
     /// <param name="arg">插件名的 UTF-8 指针。</param>
@@ -185,7 +185,7 @@ public static class NativeHostingEntry
     [UnmanagedCallersOnly]
     public static int UnloadPlugin(IntPtr arg, int argSizeInBytes) => Deliver(arg, Verb.Unload);
 
-    /// <summary>父级单独启停一个子插件（ADR-0003）：参数是插件名的 UTF-8 指针。</summary>
+    /// <summary>父级单独启停一个子插件（FX-0003）：参数是插件名的 UTF-8 指针。</summary>
     /// <param name="arg">插件名的 UTF-8 指针。</param>
     /// <param name="argSizeInBytes">那块缓冲的字节数，含结尾的 null。</param>
     [UnmanagedCallersOnly]
@@ -210,7 +210,7 @@ public static class NativeHostingEntry
         var action = ActionName(verb);
 
         // 整段包在 try 里：这是托管与父级之间唯一的一道缝，异常越过它等于把服务端一起拖下水
-        // （ADR-0009）。一次交付失败只是这个插件没动成，父级照常跑。
+        // （FX-0009）。一次交付失败只是这个插件没动成，父级照常跑。
         try
         {
             // UTF-8 而不是 UTF-16：原生侧的名字与路径本来就是 UTF-8，跨平台也是同一个字节形状。
@@ -365,11 +365,11 @@ public static class NativeHostingEntry
                     HostingContractVersion,
                     PluginContractInfo.CurrentApiVersion));
 
-            // 服务端根就是进程的工作目录；配置与数据都相对它找（ADR-0018）。
+            // 服务端根就是进程的工作目录；配置与数据都相对它找（FX-0018）。
             var root = Directory.GetCurrentDirectory();
             // 宿主从 services 里取 ILoggerFactory；不传的话插件拿到的是 NullLogger ——
             // 它们的每一行都会消失，而且不会有人报错。
-            // 载体包在容器建成之前配置它自己的服务（ADR-0064）。
+            // 载体包在容器建成之前配置它自己的服务（FX-0064）。
             var startup = CarrierStartup.Create(args.CarrierDirectory, args.Host, s_loggerFactory!, out var startupError);
             if (startupError is not null)
             {
@@ -384,11 +384,11 @@ public static class NativeHostingEntry
                 entry => logger.LogError("{Message}", CoreText.Get("Native_LoadProblem", entry)),
                 startup.Services,
                 ForwardRemoval,
-                // 自持态扫描并拥有插件集；父级态由父级驱动启停（ADR-0003 / 0062）。
+                // 自持态扫描并拥有插件集；父级态由父级驱动启停（FX-0003 / 0062）。
                 new PluginManagerOptions { OwnsPluginSet = scanPlugins });
             host.RegisterLoader(new AssemblyPluginLoader([.. startup.SharedAssemblies]));
 
-            // 组件在事件分发对插件开启之前启动；任何一个失败都中止整次启动（ADR-0061）。
+            // 组件在事件分发对插件开启之前启动；任何一个失败都中止整次启动（FX-0061）。
             // 宿主到这里才公布：失败的启动不能留一个“已就绪”的静态宿主给重试（Codex 指出）。
             if (startup.Directory is { Length: > 0 } carrierDirectory && startup.Components.Count > 0)
             {

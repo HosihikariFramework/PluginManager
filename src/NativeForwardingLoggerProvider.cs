@@ -6,7 +6,7 @@ using Microsoft.Extensions.Logging;
 namespace Hosihikari.Internal;
 
 /// <summary>
-/// 把托管的日志转发给父级的日志器（ADR-0007 的出口一侧）。
+/// 把托管的日志转发给父级的日志器（FX-0007 的出口一侧）。
 ///
 /// 原生侧在启动时递进来一个 C 回调：<c>void (*)(void* user, int level, const char* utf8)</c>。
 /// 等级由这里映射成整数，文本一律 UTF-8、以 null 结尾 —— 与这条缝上的其它字符串一致。
@@ -51,7 +51,7 @@ internal sealed unsafe class NativeForwardingLoggerProvider : ILoggerProvider
                 return;
             }
 
-            // 异常整段带上：在别人的进程里没有调试器，消息就是唯一的线索（ADR-0009）。
+            // 异常整段带上：在别人的进程里没有调试器，消息就是唯一的线索（FX-0009）。
             var message = $"{category}: {formatter(state, error)}";
             if (error is not null)
             {

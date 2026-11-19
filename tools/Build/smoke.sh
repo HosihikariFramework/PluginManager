@@ -8,7 +8,7 @@ trap 'rm -rf "$work"' EXIT
 
 dotnet pack "$here/Hosihikari.Plugin.Build.csproj" -c Release -o "$work/packages" --nologo
 
-# 契约按并列检出取本地包：冒烟验的是 NuGet 打包路径，但契约本身还没发布（ADR-0059）。
+# 契约按并列检出取本地包：冒烟验的是 NuGet 打包路径，但契约本身还没发布（FX-0059）。
 contract="$here/../../../Plugin.Abstractions"
 dotnet pack "$contract/model/Hosihikari.Plugin.Models.csproj" -c Release -o "$work/packages" --nologo
 dotnet pack "$contract/src/Hosihikari.Plugin.Abstractions.csproj" -c Release -o "$work/packages" --nologo

@@ -7,10 +7,10 @@ using Microsoft.Extensions.Logging;
 
 namespace Hosihikari;
 
-/// <summary>内置的程序集型加载器（ADR-0002）。每个插件一个 collectible ALC，契约走共享层（ADR-0004 / ADR-0019）。</summary>
+/// <summary>内置的程序集型加载器（FX-0002）。每个插件一个 collectible ALC，契约走共享层（FX-0004 / FX-0019）。</summary>
 public sealed class AssemblyPluginLoader(params Assembly[] sharedSources) : IPluginLoader
 {
-    // 共享层 = 契约 + 契约引用的抽象包 + 当前载体的绑定程序集（ADR-0007 / ADR-0019）。
+    // 共享层 = 契约 + 契约引用的抽象包 + 当前载体的绑定程序集（FX-0007 / FX-0019）。
     // 两侧的类型必须同身份，转型与实现接口才成立；插件包里也不许有这些的副本。
     private static readonly Type[] BaseSharedTypes =
     [
@@ -23,14 +23,14 @@ public sealed class AssemblyPluginLoader(params Assembly[] sharedSources) : IPlu
     ];
 
     /// <summary>
-    /// 基地清单：契约与它引用的抽象包（ADR-0019）。载体自己的绑定程序集在它的包清单里，
+    /// 基地清单：契约与它引用的抽象包（FX-0019）。载体自己的绑定程序集在它的包清单里，
     /// 由 <see cref="SharedLayerFor"/> 并进来。
     /// </summary>
     public static IReadOnlyList<string> SharedAssemblyFileNames => PluginContractInfo.BaseSharedAssemblyFileNames;
 
     /// <summary>
     /// 目标载体的完整共享层：基地清单 + 该载体包 <c>carrier.sharedAssemblies</c> 声明的程序集
-    /// （ADR-0061）。运行期与打包期读同一份，插件包里才剔得干净。
+    /// （FX-0061）。运行期与打包期读同一份，插件包里才剔得干净。
     /// </summary>
     /// <param name="carrierPackageDirectory">载体包目录。</param>
     public static IReadOnlyList<string> SharedLayerFor(string carrierPackageDirectory)
@@ -49,7 +49,7 @@ public sealed class AssemblyPluginLoader(params Assembly[] sharedSources) : IPlu
 
     private readonly Type[] _sharedTypes = [.. BaseSharedTypes, .. DeclareShared(sharedSources)];
 
-    /// <summary>载体交进来的程序集也算共享层：它的导出类型与契约同身份，插件包里不许有副本（ADR-0019）。</summary>
+    /// <summary>载体交进来的程序集也算共享层：它的导出类型与契约同身份，插件包里不许有副本（FX-0019）。</summary>
     private static Type[] DeclareShared(Assembly[] sources) =>
         [.. sources.SelectMany(source => source.GetExportedTypes())];
 
@@ -68,14 +68,14 @@ public sealed class AssemblyPluginLoader(params Assembly[] sharedSources) : IPlu
             return null;
         }
 
-        // isUnloadable 是 ADR-0004；PreferSharedTypes + sharedTypes 是让共享层保持同一身份（ADR-0019）。
+        // isUnloadable 是 FX-0004；PreferSharedTypes + sharedTypes 是让共享层保持同一身份（FX-0019）。
         var loader = PluginLoader.CreateFromAssemblyFile(
             entryPath,
             isUnloadable: true,
             sharedTypes: _sharedTypes,
             configure: config => config.PreferSharedTypes = true);
 
-        // 入口由程序集上的特性声明 —— 怎么找到入口是本加载器的事（ADR-0008 / ADR-0010）。
+        // 入口由程序集上的特性声明 —— 怎么找到入口是本加载器的事（FX-0008 / FX-0010）。
         var assembly = loader.LoadDefaultAssembly();
         var declared = assembly.GetCustomAttributesData().Count(IsEntryPoint);
         if (declared != 1)
@@ -91,7 +91,7 @@ public sealed class AssemblyPluginLoader(params Assembly[] sharedSources) : IPlu
         return new AssemblyPluginHandle(entryPoint.CreateInstance(), loader);
     }
 
-    /// <summary>在已加载的共享层里按类型认入口声明（ADR-0008）。</summary>
+    /// <summary>在已加载的共享层里按类型认入口声明（FX-0008）。</summary>
     private static bool IsEntryPoint(CustomAttributeData attribute) =>
         typeof(EntryPointAttributeBase).IsAssignableFrom(attribute.AttributeType);
 }

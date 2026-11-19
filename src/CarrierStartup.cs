@@ -10,7 +10,7 @@ using Microsoft.Extensions.Logging;
 namespace Hosihikari;
 
 /// <summary>
-/// 载体包的启动装配（ADR-0061 / 0064）：读载体清单、并共享层、跑服务配置器，交出容器与组件清单。
+/// 载体包的启动装配（FX-0061 / 0064）：读载体清单、并共享层、跑服务配置器，交出容器与组件清单。
 /// 原生入口拿到载体目录与宿主句柄后走这里；宿主断言也用它，所以是 internal 而不是私有。
 /// </summary>
 internal sealed class CarrierStartup

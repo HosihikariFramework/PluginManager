@@ -185,10 +185,10 @@
     <value>{0}: в манифесте отсутствует entry</value>
   </data>
   <data name="Manifest_LegacyField" xml:space="preserve">
-    <value>{0}: манифест использует старое поле extraInfo.{1}; переименуйте его в extraInfo.{2} (ADR-0040)</value>
+    <value>{0}: манифест использует старое поле extraInfo.{1}; переименуйте его в extraInfo.{2} (FX-0040)</value>
   </data>
   <data name="Manifest_LegacyFieldBody" xml:space="preserve">
-    <value>манифест использует старое поле extraInfo.{0}; переименуйте его в extraInfo.{1} (ADR-0040)</value>
+    <value>манифест использует старое поле extraInfo.{0}; переименуйте его в extraInfo.{1} (FX-0040)</value>
   </data>
   <data name="Manifest_EntryOutside" xml:space="preserve">
     <value>{0}: entry должен быть относительным путём внутри пакета (получено {1})</value>

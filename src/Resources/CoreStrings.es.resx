@@ -185,10 +185,10 @@
     <value>{0}: falta entry en el manifiesto</value>
   </data>
   <data name="Manifest_LegacyField" xml:space="preserve">
-    <value>{0}: el manifiesto usa el campo antiguo extraInfo.{1}; cámbialo a extraInfo.{2} (ADR-0040)</value>
+    <value>{0}: el manifiesto usa el campo antiguo extraInfo.{1}; cámbialo a extraInfo.{2} (FX-0040)</value>
   </data>
   <data name="Manifest_LegacyFieldBody" xml:space="preserve">
-    <value>el manifiesto usa el campo antiguo extraInfo.{0}; cámbialo a extraInfo.{1} (ADR-0040)</value>
+    <value>el manifiesto usa el campo antiguo extraInfo.{0}; cámbialo a extraInfo.{1} (FX-0040)</value>
   </data>
   <data name="Manifest_EntryOutside" xml:space="preserve">
     <value>{0}: entry debe ser una ruta relativa dentro del paquete (recibido {1})</value>

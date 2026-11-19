@@ -1,9 +1,9 @@
 namespace Hosihikari.Internal;
 
-/// <summary>拓扑序加载、反序卸载、不自动级联（ADR-0004）。</summary>
+/// <summary>拓扑序加载、反序卸载、不自动级联（FX-0004）。</summary>
 internal static class DependencyGraph
 {
-    /// <summary>返回加载顺序；缺失依赖或成环的包被剔出来单独报告，不牵连其余包（ADR-0009）。</summary>
+    /// <summary>返回加载顺序；缺失依赖或成环的包被剔出来单独报告，不牵连其余包（FX-0009）。</summary>
     internal static List<PluginPackage> Resolve(IReadOnlyList<PluginPackage> packages, Action<string> report)
     {
         var byName = packages.ToDictionary(p => p.Manifest.Name, StringComparer.Ordinal);
@@ -43,7 +43,7 @@ internal static class DependencyGraph
         state[name] = 1;
         foreach (var dependency in package.Manifest.Dependencies)
         {
-            // 对框架自身的依赖在哪个拓扑下都成立 —— 我们就是正在跑的那个（ADR-0006）。
+            // 对框架自身的依赖在哪个拓扑下都成立 —— 我们就是正在跑的那个（FX-0006）。
             // 父级态下这条依赖是给父级的计划用的，自持态下没有这个包，但它同样已经在了。
             if (dependency.Name == PluginContractInfo.ParentName)
             {

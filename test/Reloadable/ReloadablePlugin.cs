@@ -5,7 +5,7 @@ using Hosihikari;
 namespace Reloadable;
 
 /// <summary>
-/// 只为重载验收存在的最小插件（ADR-0062）：没有依赖者，装载后能安稳地重载。
+/// 只为重载验收存在的最小插件（FX-0062）：没有依赖者，装载后能安稳地重载。
 /// 每次 OnDisable 往数据目录追加一行，供宿主断言一次重载只停一次。
 /// </summary>
 public sealed class ReloadablePlugin : IPlugin

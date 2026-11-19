@@ -185,10 +185,10 @@
     <value>{0}: manifest is missing entry</value>
   </data>
   <data name="Manifest_LegacyField" xml:space="preserve">
-    <value>{0}: manifest uses the old field extraInfo.{1}; rename it to extraInfo.{2} (ADR-0040)</value>
+    <value>{0}: manifest uses the old field extraInfo.{1}; rename it to extraInfo.{2} (FX-0040)</value>
   </data>
   <data name="Manifest_LegacyFieldBody" xml:space="preserve">
-    <value>manifest uses the old field extraInfo.{0}; rename it to extraInfo.{1} (ADR-0040)</value>
+    <value>manifest uses the old field extraInfo.{0}; rename it to extraInfo.{1} (FX-0040)</value>
   </data>
   <data name="Manifest_EntryOutside" xml:space="preserve">
     <value>{0}: entry must be a relative path inside the package (got {1})</value>
@@ -269,7 +269,7 @@
     <value>{0}: legacy package (manifest.json only, api_version 2 or older) - run 'hosihikari-pack migrate {0}' and pack again</value>
   </data>
   <data name="Manager_ReloadParented" xml:space="preserve">
-    <value>{0}: reload is not offered while a parent owns the plugin set; the parent drives start and stop (ADR-0003)</value>
+    <value>{0}: reload is not offered while a parent owns the plugin set; the parent drives start and stop (FX-0003)</value>
   </data>
   <data name="Manager_ReloadDisableFailed" xml:space="preserve">
     <value>{0}: reload stopped at disable</value>

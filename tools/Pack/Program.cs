@@ -22,7 +22,7 @@ if (args.Length == 1 && args[0] is "--help" or "-h")
     return 2;
 }
 
-// 旧包升级（ADR-0058）：读 manifest.json 写 hosihikari.json，然后删掉旧文件。
+// 旧包升级（FX-0058）：读 manifest.json 写 hosihikari.json，然后删掉旧文件。
 if (args.Length == 2 && args[0] == "migrate")
 {
     var migrated = Packager.Migrate(args[1]);
@@ -50,11 +50,11 @@ if (args.Length == 2 && args[0] == "migrate")
     return 0;
 }
 
-// pack-loader / pack-plugin 都用核心的共享层清单剔除共享层副本（ADR-0036）；
+// pack-loader / pack-plugin 都用核心的共享层清单剔除共享层副本（FX-0036）；
 // 两个名字只是说明调用方，规则只有一份。显式清单那条留给自定义共享层的载体。
 if (args.Length >= 4 && (args[0] == "pack-loader" || args[0] == "pack-plugin"))
 {
-    // --carrier 指到已装好的载体包，读它声明的共享层（ADR-0061）；不传就只剔基地清单。
+    // --carrier 指到已装好的载体包，读它声明的共享层（FX-0061）；不传就只剔基地清单。
     string? carrier = null;
     for (var i = 4; i < args.Length; i++)
     {
@@ -91,7 +91,7 @@ if (args.Length == 4 && args[0] == "pack-plugin-from-assembly")
 }
 
 // --shared 可以重复，写的是**目标载体**的共享层清单 —— 它由载体声明，
-// 与运行期 AssemblyPluginLoader 拿到的那份必须同源（ADR-0021 / 0026）。
+// 与运行期 AssemblyPluginLoader 拿到的那份必须同源（FX-0021 / 0026）。
 if (args.Length < 3)
 {
     PrintUsage();
@@ -143,7 +143,7 @@ foreach (var problem in result.Problems)
 return 1;
 
 // Loader 包的装配：先按共享层清单剔除副本，再交给 Packager 做常规校验与复制。
-// 共享清单 = 契约的基地清单 + 目标载体声明的那份（ADR-0061）；载体包用 --carrier 指定。
+// 共享清单 = 契约的基地清单 + 目标载体声明的那份（FX-0061）；载体包用 --carrier 指定。
 static int PackLoader(string sourceDirectory, string manifestPath, string outputRoot, string? carrierDirectory)
 {
     var shared = carrierDirectory is null
