@@ -32,8 +32,9 @@ public static class NativeHostingEntry
     ///
     /// 2：<see cref="Start"/> / <see cref="StartUnderParent"/> 的参数改为
     /// <c>{ const char* carrier_directory; void* host; }</c>（FX-0065）。
+    /// 3：入口表新增 <see cref="CarrierEnabled"/>，载体插件被父级启用时由原生侧调用（FX-0067）。
     /// </summary>
-    public const int HostingContractVersion = 2;
+    public const int HostingContractVersion = 3;
 
     /// <summary>给原生垫片读取的契约版本入口。</summary>
     [UnmanagedCallersOnly]
@@ -124,6 +125,28 @@ public static class NativeHostingEntry
     /// </summary>
     [UnmanagedCallersOnly]
     public static int StopUnderParent(IntPtr arg, int argSizeInBytes) => StopCore();
+
+    /// <summary>
+    /// 载体插件自己被父级启用了（Endstone 的 <c>onEnable</c>）。可注册的调用从这一刻起才被接受，
+    /// 所以能力层的等待闸门在这里统一放开 —— 子插件的 <c>OnEnable</c> 已经先于父级跑完，
+    /// 只靠轮询会晚整整一拍。
+    /// </summary>
+    [UnmanagedCallersOnly]
+    public static int CarrierEnabled(IntPtr arg, int argSizeInBytes) => SignalCore();
+
+    private static int SignalCore()
+    {
+        try
+        {
+            CarrierEnableSignal.Signal();
+            return 0;
+        }
+        catch (Exception ex)
+        {
+            s_loggerFactory?.CreateLogger("Hosihikari").LogError(ex, "启用信号分发失败");
+            return 1;
+        }
+    }
 
     private static int StopCore()
     {
