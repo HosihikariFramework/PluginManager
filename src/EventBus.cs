@@ -89,21 +89,21 @@ internal sealed class Scheduler(ILogger logger) : IScheduler
 {
     public IDisposable ScheduleOnce(TimeSpan delay, Action work)
     {
-        // 先建成不触发的，赋值之后再 Change —— 否则回调可能早于赋值而拿不到自己。
+        // 先建成不引发的那种，赋值之后再 Change —— 否则回调可能早于赋值而拿不到自己。
         Timer? timer = null;
         timer = new Timer(_ =>
         {
             timer!.Dispose();
-            Fire(work);
+            Raise(work);
         }, null, Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
         timer.Change(delay, Timeout.InfiniteTimeSpan);
         return new Handle(timer);
     }
 
     public IDisposable SchedulePeriodic(TimeSpan interval, Action work) =>
-        new Handle(new Timer(_ => Fire(work), null, interval, interval));
+        new Handle(new Timer(_ => Raise(work), null, interval, interval));
 
-    private void Fire(Action work)
+    private void Raise(Action work)
     {
         try
         {
