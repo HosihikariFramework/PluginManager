@@ -9,9 +9,14 @@ public sealed class DiagnosticsPluginLoader : IPluginLoader, IPluginLoaderDiagno
 
     public bool CanLoad(PluginManifest manifest) => manifest.Loader == Id;
 
-    public PluginHandle? Load(PluginManifest manifest, string packageDirectory, IPluginContext context) =>
-        throw new InvalidOperationException("诊断没有拦下");
+    public PluginHandle? Load(
+        PluginManifest manifest,
+        string packageDirectory,
+        IPluginContext context
+    ) => throw new InvalidOperationException("诊断没有拦下");
 
-    public IReadOnlyList<PluginDiagnostic> Validate(PluginManifest manifest, string packageDirectory) =>
-        [PluginDiagnostic.Error("entry-missing", "缺少入口文件 Diagnostic.dll")];
+    public IReadOnlyList<PluginDiagnostic> Validate(
+        PluginManifest manifest,
+        string packageDirectory
+    ) => [PluginDiagnostic.Error("entry-missing", "缺少入口文件 Diagnostic.dll")];
 }

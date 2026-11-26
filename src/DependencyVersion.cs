@@ -11,8 +11,10 @@ internal static class DependencyVersion
     {
         problem = null;
 
-        if (!string.IsNullOrWhiteSpace(manifest.Version)
-            && !NuGetVersion.TryParse(manifest.Version, out _))
+        if (
+            !string.IsNullOrWhiteSpace(manifest.Version)
+            && !NuGetVersion.TryParse(manifest.Version, out _)
+        )
         {
             problem = CoreText.Get("Version_Invalid", manifest.Name, manifest.Version);
             return false;
@@ -26,14 +28,17 @@ internal static class DependencyVersion
                 return false;
             }
 
-            if (!string.IsNullOrWhiteSpace(dependency.VersionRange)
-                && !VersionRange.TryParse(dependency.VersionRange, out _))
+            if (
+                !string.IsNullOrWhiteSpace(dependency.VersionRange)
+                && !VersionRange.TryParse(dependency.VersionRange, out _)
+            )
             {
                 problem = CoreText.Get(
                     "Version_InvalidRange",
                     manifest.Name,
                     dependency.Name,
-                    dependency.VersionRange);
+                    dependency.VersionRange
+                );
                 return false;
             }
         }
@@ -42,23 +47,36 @@ internal static class DependencyVersion
     }
 
     /// <summary>目标插件的版本是否满足这条依赖约束；没有约束时接受任意版本。</summary>
-    internal static bool Satisfies(PluginManifest target, ManifestDependency dependency, out string? problem)
+    internal static bool Satisfies(
+        PluginManifest target,
+        ManifestDependency dependency,
+        out string? problem
+    )
     {
         problem = null;
 
-        if (string.IsNullOrWhiteSpace(dependency.VersionRange) || dependency.VersionRange.Trim() == "*")
+        if (
+            string.IsNullOrWhiteSpace(dependency.VersionRange)
+            || dependency.VersionRange.Trim() == "*"
+        )
         {
             return true;
         }
 
         if (!VersionRange.TryParse(dependency.VersionRange, out var range))
         {
-            problem = CoreText.Get("Version_ConstraintInvalid", dependency.Name, dependency.VersionRange);
+            problem = CoreText.Get(
+                "Version_ConstraintInvalid",
+                dependency.Name,
+                dependency.VersionRange
+            );
             return false;
         }
 
-        if (string.IsNullOrWhiteSpace(target.Version)
-            || !NuGetVersion.TryParse(target.Version, out var version))
+        if (
+            string.IsNullOrWhiteSpace(target.Version)
+            || !NuGetVersion.TryParse(target.Version, out var version)
+        )
         {
             problem = CoreText.Get("Version_NoVersion", dependency.Name, dependency.VersionRange);
             return false;
@@ -66,10 +84,17 @@ internal static class DependencyVersion
 
         // 浮动版本（1.*、1.2.*）在 VersionRange 里没有上界，Satisfies 会放过 2.0.0；
         // 上界由 FloatRange 给出，两个都要满足。
-        if (!range.Satisfies(version)
-            || (range.Float is { } floatRange && !floatRange.Satisfies(version)))
+        if (
+            !range.Satisfies(version)
+            || (range.Float is { } floatRange && !floatRange.Satisfies(version))
+        )
         {
-            problem = CoreText.Get("Version_NotSatisfied", dependency.Name, version, dependency.VersionRange);
+            problem = CoreText.Get(
+                "Version_NotSatisfied",
+                dependency.Name,
+                version,
+                dependency.VersionRange
+            );
             return false;
         }
 

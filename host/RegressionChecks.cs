@@ -17,7 +17,17 @@ internal static class RegressionChecks
 {
     internal static IEnumerable<(string Name, bool Passed, string Detail)> Run(string root)
     {
-        foreach (var mode in new[] { "load", "enable", "null", "loader-throw", "cleanup-throw", "fault-on-load" })
+        foreach (
+            var mode in new[]
+            {
+                "load",
+                "enable",
+                "null",
+                "loader-throw",
+                "cleanup-throw",
+                "fault-on-load",
+            }
+        )
         {
             var directory = Path.Combine(root, mode);
             var host = NewHost(directory);
@@ -29,15 +39,23 @@ internal static class RegressionChecks
             var context = regressionLoader.Context!;
             var scope = (PluginScope)context.Events;
             var expectedHooks = mode is "load" or "enable" or "cleanup-throw" or "fault-on-load";
-            var hooksCleaned = regressionLoader.Unloads == (expectedHooks ? 1 : 0)
-                               && regressionLoader.Disables == (mode == "enable" ? 1 : 0);
-            var clean = !loaded && host.LoadedNames.Count == 0 && regressionLoader.Events == 0
-                        && context.PluginServices.Get<Marker>() is null && hooksCleaned
-                        && regressionLoader.Releases == (expectedHooks ? 1 : 0)
-                        && RejectsReleasedScope(scope);
-            yield return ($"R1 加载回滚 ({mode})", clean,
+            var hooksCleaned =
+                regressionLoader.Unloads == (expectedHooks ? 1 : 0)
+                && regressionLoader.Disables == (mode == "enable" ? 1 : 0);
+            var clean =
+                !loaded
+                && host.LoadedNames.Count == 0
+                && regressionLoader.Events == 0
+                && context.PluginServices.Get<Marker>() is null
+                && hooksCleaned
+                && regressionLoader.Releases == (expectedHooks ? 1 : 0)
+                && RejectsReleasedScope(scope);
+            yield return (
+                $"R1 加载回滚 ({mode})",
+                clean,
                 $"events={regressionLoader.Events} unload={regressionLoader.Unloads} "
-                + $"disable={regressionLoader.Disables} release={regressionLoader.Releases}");
+                    + $"disable={regressionLoader.Disables} release={regressionLoader.Releases}"
+            );
 
             bool LoadAll()
             {
@@ -54,8 +72,11 @@ internal static class RegressionChecks
         Stage(dependencyRoot, "Transitive", "Dependent");
         Stage(dependencyRoot, "Independent");
         dependencyHost.LoadAll();
-        yield return ("R2 失败依赖跳过下游，独立分支继续", dependencyHost.LoadedNames.SequenceEqual(["Independent"]),
-            string.Join(",", dependencyHost.LoadedNames));
+        yield return (
+            "R2 失败依赖跳过下游，独立分支继续",
+            dependencyHost.LoadedNames.SequenceEqual(["Independent"]),
+            string.Join(",", dependencyHost.LoadedNames)
+        );
 
         var configRoot = Path.Combine(root, "configuration");
         var configHost = NewHost(configRoot);
@@ -64,49 +85,87 @@ internal static class RegressionChecks
         File.WriteAllText(Path.Combine(badConfig, "BadConfig.conf"), "foo = {");
         Stage(configRoot, "GoodConfig");
         var isolated = true;
-        try { configHost.LoadAll(); }
-        catch { isolated = false; }
-        yield return ("R3 坏配置只拒绝一个包", isolated && configHost.LoadedNames.SequenceEqual(["GoodConfig"]),
-            string.Join(",", configHost.LoadedNames));
+        try
+        {
+            configHost.LoadAll();
+        }
+        catch
+        {
+            isolated = false;
+        }
+        yield return (
+            "R3 坏配置只拒绝一个包",
+            isolated && configHost.LoadedNames.SequenceEqual(["GoodConfig"]),
+            string.Join(",", configHost.LoadedNames)
+        );
 
         var bus = new EventBus(NullLogger.Instance);
         var weak = SubscribeCollectibleEvent(bus);
         Collect();
-        yield return ("R4 最后一次退订释放事件类型", !weak.IsAlive, $"assembly alive={weak.IsAlive}");
+        yield return (
+            "R4 最后一次退订释放事件类型",
+            !weak.IsAlive,
+            $"assembly alive={weak.IsAlive}"
+        );
         GC.KeepAlive(bus);
 
         var scheduler = new CountingScheduler();
-        var scopeForGrowth = new PluginScope(new EventBus(NullLogger.Instance), scheduler, new PluginServiceRegistry());
+        var scopeForGrowth = new PluginScope(
+            new EventBus(NullLogger.Instance),
+            scheduler,
+            new PluginServiceRegistry()
+        );
         DisposeTasks(scopeForGrowth);
         Collect();
         var retained = scheduler.References.Count(reference => reference.IsAlive);
-        yield return ("R5 已释放句柄不累积", retained == 0 && scheduler.Disposed == 1000,
-            $"retained={retained} disposed={scheduler.Disposed}");
+        yield return (
+            "R5 已释放句柄不累积",
+            retained == 0 && scheduler.Disposed == 1000,
+            $"retained={retained} disposed={scheduler.Disposed}"
+        );
         GC.KeepAlive(scopeForGrowth);
 
         var concurrentScheduler = new CountingScheduler();
         var registry = new PluginServiceRegistry();
-        var concurrentScope = new PluginScope(new EventBus(NullLogger.Instance), concurrentScheduler, registry);
-        Parallel.For(0, 2000, i =>
-        {
-            try
+        var concurrentScope = new PluginScope(
+            new EventBus(NullLogger.Instance),
+            concurrentScheduler,
+            registry
+        );
+        Parallel.For(
+            0,
+            2000,
+            i =>
             {
-                var handle = concurrentScope.ScheduleOnce(TimeSpan.FromHours(1), () => { });
-                if (i % 2 == 0) handle.Dispose();
-                if (i % 7 == 0) concurrentScope.Register(new Marker());
-                if (i == 100) concurrentScope.ReleaseAll();
-                handle.Dispose();
+                try
+                {
+                    var handle = concurrentScope.ScheduleOnce(TimeSpan.FromHours(1), () => { });
+                    if (i % 2 == 0)
+                        handle.Dispose();
+                    if (i % 7 == 0)
+                        concurrentScope.Register(new Marker());
+                    if (i == 100)
+                        concurrentScope.ReleaseAll();
+                    handle.Dispose();
+                }
+                catch (ObjectDisposedException) { }
             }
-            catch (ObjectDisposedException) { }
-        });
+        );
         concurrentScope.ReleaseAll();
-        yield return ("R6 并发释放与登记不遗留资源", concurrentScheduler.Created == concurrentScheduler.Disposed
-            && concurrentScheduler.DuplicateDisposes == 0 && registry.Get<Marker>() is null
-            && RejectsReleasedScope(concurrentScope),
-            $"created={concurrentScheduler.Created} disposed={concurrentScheduler.Disposed} duplicates={concurrentScheduler.DuplicateDisposes}");
+        yield return (
+            "R6 并发释放与登记不遗留资源",
+            concurrentScheduler.Created == concurrentScheduler.Disposed
+                && concurrentScheduler.DuplicateDisposes == 0
+                && registry.Get<Marker>() is null
+                && RejectsReleasedScope(concurrentScope),
+            $"created={concurrentScheduler.Created} disposed={concurrentScheduler.Disposed} duplicates={concurrentScheduler.DuplicateDisposes}"
+        );
 
-        yield return ("R7 打包同时消费大量 stdout/stderr", PackOutput(Path.Combine(root, "pack")),
-            "受控 publish 进程各输出 2MiB，10 秒内应退出");
+        yield return (
+            "R7 打包同时消费大量 stdout/stderr",
+            PackOutput(Path.Combine(root, "pack")),
+            "受控 publish 进程各输出 2MiB，10 秒内应退出"
+        );
 
         var manifestRoot = Path.Combine(root, "manifest");
         var manifestHost = NewHost(manifestRoot);
@@ -114,75 +173,116 @@ internal static class RegressionChecks
         Stage(manifestRoot, "Good");
         Stage(manifestRoot, "SelfDependency", "SelfDependency");
         Stage(manifestRoot, "NullDependencies");
-        StageManifest(manifestRoot, "NullDependencies", """
+        StageManifest(
+            manifestRoot,
+            "NullDependencies",
+            """
             {
               "name": "NullDependencies", "entry": "main",
               "schemaVersion": 1, "kind": "plugin", "apiVersion": 3,
               "dependencies": null,
               "loader": "regression"
             }
-            """);
-        StageManifest(manifestRoot, "NullExtra", """
+            """
+        );
+        StageManifest(
+            manifestRoot,
+            "NullExtra",
+            """
             {
               "name": "NullExtra", "entry": "main",
               "schemaVersion": 1, "kind": "plugin", "apiVersion": 3,
               "carrier": null,
               "loader": "regression"
             }
-            """);
-        StageManifest(manifestRoot, "NullDependencyEntry", """
+            """
+        );
+        StageManifest(
+            manifestRoot,
+            "NullDependencyEntry",
+            """
             {
               "name": "NullDependencyEntry", "entry": "main",
               "schemaVersion": 1, "kind": "plugin", "apiVersion": 3,
               "dependencies": [null],
               "loader": "regression"
             }
-            """);
+            """
+        );
         var manifestThrew = false;
-        try { manifestHost.LoadAll(); }
-        catch { manifestThrew = true; }
+        try
+        {
+            manifestHost.LoadAll();
+        }
+        catch
+        {
+            manifestThrew = true;
+        }
         var manifestLoaded = manifestHost.LoadedNames;
-        yield return ("R8 清单 null 字段不中断整轮",
+        yield return (
+            "R8 清单 null 字段不中断整轮",
             !manifestThrew
-            && manifestLoaded.Contains("Good")
-            && !manifestLoaded.Contains("SelfDependency")
-            && !manifestLoaded.Contains("NullExtra")
-            && !manifestLoaded.Contains("NullDependencyEntry"),
-            string.Join(",", manifestLoaded));
+                && manifestLoaded.Contains("Good")
+                && !manifestLoaded.Contains("SelfDependency")
+                && !manifestLoaded.Contains("NullExtra")
+                && !manifestLoaded.Contains("NullDependencyEntry"),
+            string.Join(",", manifestLoaded)
+        );
 
         var legacyRoot = Path.Combine(root, "legacy-keys");
-        var legacyPackage = StageManifest(legacyRoot, "Legacy", """
+        var legacyPackage = StageManifest(
+            legacyRoot,
+            "Legacy",
+            """
             {
               "name": "Legacy", "entry": "main", "type": "hosihikari",
               "dependencies": [ { "name": "hosihikari" } ],
               "extraInfo": { "api": "2", "manifest_version": "1" }
             }
-            """);
+            """
+        );
         var legacyReports = new List<string>();
         var legacyRead = ManifestReader.Read(legacyPackage, legacyReports.Add);
         var legacySource = Path.Combine(legacyRoot, "source");
         Directory.CreateDirectory(legacySource);
         var legacyManifestPath = Path.Combine(legacyRoot, "Legacy.json");
-        File.WriteAllText(legacyManifestPath, File.ReadAllText(Path.Combine(legacyPackage, "hosihikari.json")));
-        var legacyPack = Packager.Pack(legacySource, legacyManifestPath, Path.Combine(legacyRoot, "out"), []);
-        yield return ("R20 旧清单键给出迁移错误",
+        File.WriteAllText(
+            legacyManifestPath,
+            File.ReadAllText(Path.Combine(legacyPackage, "hosihikari.json"))
+        );
+        var legacyPack = Packager.Pack(
+            legacySource,
+            legacyManifestPath,
+            Path.Combine(legacyRoot, "out"),
+            []
+        );
+        yield return (
+            "R20 旧清单键给出迁移错误",
             legacyRead is null
-            && legacyReports.Any(message => message.Contains("已改名为 extraInfo.api_version", StringComparison.Ordinal))
-            && !legacyPack.Succeeded
-            && legacyPack.Problems.Any(problem => problem.Contains("已改名为 extraInfo.api_version", StringComparison.Ordinal)),
-            legacyReports.FirstOrDefault() ?? string.Join(" | ", legacyPack.Problems));
+                && legacyReports.Any(message =>
+                    message.Contains("已改名为 extraInfo.api_version", StringComparison.Ordinal)
+                )
+                && !legacyPack.Succeeded
+                && legacyPack.Problems.Any(problem =>
+                    problem.Contains("已改名为 extraInfo.api_version", StringComparison.Ordinal)
+                ),
+            legacyReports.FirstOrDefault() ?? string.Join(" | ", legacyPack.Problems)
+        );
 
         // R24：migrate 把旧包搬成新清单：字段改名、删旧文件、打包设置搬进 pack（FX-0058）。
         var migrateRoot = Path.Combine(root, "migrate");
         var migratePackage = Path.Combine(migrateRoot, "Old");
         Directory.CreateDirectory(migratePackage);
-        File.WriteAllText(Path.Combine(migratePackage, "manifest.json"), """
+        File.WriteAllText(
+            Path.Combine(migratePackage, "manifest.json"),
+            """
             {
               "name": "Old", "entry": "Old.dll", "type": "hosihikari", "version": "1.2.3",
               "dependencies": [ { "name": "hosihikari" } ],
               "extraInfo": { "api_version": "2", "manifest_version": "1", "loader": "assembly", "packages": "A/1.0.0, B" }
             }
-            """);
+            """
+        );
         var migrated = Packager.Migrate(migratePackage);
         var migratedJson = Path.Combine(migratePackage, "hosihikari.json");
         using var migratedDocument = migrated.Succeeded
@@ -190,72 +290,112 @@ internal static class RegressionChecks
             : null;
         var migratedRoot = migratedDocument?.RootElement;
         var migratedAgain = Packager.Migrate(migratePackage);
-        yield return ("R24 migrate 生成新清单并删掉旧文件",
+        yield return (
+            "R24 migrate 生成新清单并删掉旧文件",
             migrated.Succeeded
-            && !File.Exists(Path.Combine(migratePackage, "manifest.json"))
-            && migratedRoot is { } element
-            && element.GetProperty("kind").GetString() == "plugin"
-            && element.GetProperty("apiVersion").GetInt32() == 3
-            && element.GetProperty("schemaVersion").GetInt32() == 1
-            // 旧文件马上就删，打包设置必须已经搬进 pack；1.x 的逗号写法要拆成两项。
-            && element.GetProperty("pack").GetProperty("packages")[0].GetString() == "A/1.0.0"
-            && element.GetProperty("pack").GetProperty("packages")[1].GetString() == "B"
-            && migrated.Notes.Count == 0
-            && !migratedAgain.Succeeded,
+                && !File.Exists(Path.Combine(migratePackage, "manifest.json"))
+                && migratedRoot is { } element
+                && element.GetProperty("kind").GetString() == "plugin"
+                && element.GetProperty("apiVersion").GetInt32() == 3
+                && element.GetProperty("schemaVersion").GetInt32() == 1
+                // 旧文件马上就删，打包设置必须已经搬进 pack；1.x 的逗号写法要拆成两项。
+                && element.GetProperty("pack").GetProperty("packages")[0].GetString() == "A/1.0.0"
+                && element.GetProperty("pack").GetProperty("packages")[1].GetString() == "B"
+                && migrated.Notes.Count == 0
+                && !migratedAgain.Succeeded,
             migrated.Succeeded
                 ? string.Join(" | ", migrated.Notes)
-                : string.Join(" | ", migrated.Problems));
+                : string.Join(" | ", migrated.Problems)
+        );
 
         // R21 起是 FX-0006 / 0013 / 0042 的规则：每条都同时看读取期与打包期。
         var ruleRoot = Path.Combine(root, "manifest-rules");
         var ruleSource = Path.Combine(ruleRoot, "source");
         Directory.CreateDirectory(ruleSource);
         File.WriteAllText(Path.Combine(ruleSource, "main"), "entry placeholder");
-        string RuleManifest(string name, string extra, string dependencies = """[ { "name": "hosihikari" } ]""")
+        string RuleManifest(
+            string name,
+            string extra,
+            string dependencies = """[ { "name": "hosihikari" } ]"""
+        )
         {
             var path = Path.Combine(ruleRoot, name + ".json");
-            File.WriteAllText(path, $$"""
+            File.WriteAllText(
+                path,
+                $$"""
                 {
                   "schemaVersion": 1, "name": "{{name}}", "entry": "main",
                   "kind": "plugin", "apiVersion": 3, "version": "1.0.0",
                   "dependencies": {{dependencies}},
                   {{extra}}
                 }
-                """);
+                """
+            );
             return path;
         }
 
         var missingDependency = RuleManifest("NoFramework", """ "loader": "regression" """, "[]");
         var missingDependencyReports = new List<string>();
         var missingDependencyRead = ManifestReader.Read(
-            StageManifest(ruleRoot, "NoFramework", File.ReadAllText(missingDependency)), missingDependencyReports.Add);
-        var missingDependencyPack = Packager.Pack(ruleSource, missingDependency, Path.Combine(ruleRoot, "out-no-framework"), []);
-        yield return ("R21 缺少 hosihikari 依赖时读取期与打包期都拒绝",
+            StageManifest(ruleRoot, "NoFramework", File.ReadAllText(missingDependency)),
+            missingDependencyReports.Add
+        );
+        var missingDependencyPack = Packager.Pack(
+            ruleSource,
+            missingDependency,
+            Path.Combine(ruleRoot, "out-no-framework"),
+            []
+        );
+        yield return (
+            "R21 缺少 hosihikari 依赖时读取期与打包期都拒绝",
             missingDependencyRead is null
-            && missingDependencyReports.Any(message => message.Contains("hosihikari", StringComparison.Ordinal))
-            && !missingDependencyPack.Succeeded
-            && missingDependencyPack.Problems.Any(problem => problem.Contains("hosihikari", StringComparison.Ordinal)),
-            string.Join(" | ", missingDependencyReports.Concat(missingDependencyPack.Problems)));
+                && missingDependencyReports.Any(message =>
+                    message.Contains("hosihikari", StringComparison.Ordinal)
+                )
+                && !missingDependencyPack.Succeeded
+                && missingDependencyPack.Problems.Any(problem =>
+                    problem.Contains("hosihikari", StringComparison.Ordinal)
+                ),
+            string.Join(" | ", missingDependencyReports.Concat(missingDependencyPack.Problems))
+        );
 
         var carrierKind = RuleManifest(
             PluginContractInfo.ParentName,
             """ "loader": "regression", "kind": "carrier" """,
-            "[]");
+            "[]"
+        );
         var unknownKind = RuleManifest(
             "UnknownKind",
-            """ "loader": "regression", "kind": "pluginish" """);
-        var carrierPack = Packager.Pack(ruleSource, carrierKind, Path.Combine(ruleRoot, "out-carrier"), []);
-        var unknownPack = Packager.Pack(ruleSource, unknownKind, Path.Combine(ruleRoot, "out-unknown"), []);
-        yield return ("R22 kind 只认三个值，carrier 只给 hosihikari",
+            """ "loader": "regression", "kind": "pluginish" """
+        );
+        var carrierPack = Packager.Pack(
+            ruleSource,
+            carrierKind,
+            Path.Combine(ruleRoot, "out-carrier"),
+            []
+        );
+        var unknownPack = Packager.Pack(
+            ruleSource,
+            unknownKind,
+            Path.Combine(ruleRoot, "out-unknown"),
+            []
+        );
+        yield return (
+            "R22 kind 只认三个值，carrier 只给 hosihikari",
             carrierPack.Succeeded
-            && !unknownPack.Succeeded
-            && unknownPack.Problems.Any(problem => problem.Contains("packageKind", StringComparison.Ordinal)),
-            string.Join(" | ", carrierPack.Problems.Concat(unknownPack.Problems)));
+                && !unknownPack.Succeeded
+                && unknownPack.Problems.Any(problem =>
+                    problem.Contains("packageKind", StringComparison.Ordinal)
+                ),
+            string.Join(" | ", carrierPack.Problems.Concat(unknownPack.Problems))
+        );
 
         var prepackSource = Path.Combine(ruleRoot, "prepack-source");
         Directory.CreateDirectory(prepackSource);
         var prepackGood = Path.Combine(ruleRoot, "prepack-good.json");
-        File.WriteAllText(prepackGood, $$"""
+        File.WriteAllText(
+            prepackGood,
+            $$"""
             {
               "schemaVersion": 1, "name": "Prepack", "entry": "main",
               "kind": "plugin", "apiVersion": 3, "version": "1.0.0",
@@ -263,9 +403,12 @@ internal static class RegressionChecks
               "loader": "regression",
               "pack": { "prepack": "{{(OperatingSystem.IsWindows() ? "cmd" : "sh")}}" }
             }
-            """);
+            """
+        );
         var prepackBad = Path.Combine(ruleRoot, "prepack-bad.json");
-        File.WriteAllText(prepackBad, $$"""
+        File.WriteAllText(
+            prepackBad,
+            $$"""
             {
               "schemaVersion": 1, "name": "PrepackBad", "entry": "main",
               "kind": "plugin", "apiVersion": 3, "version": "1.0.0",
@@ -273,14 +416,29 @@ internal static class RegressionChecks
               "loader": "regression",
               "pack": { "prepack": "hosihikari-no-such-program" }
             }
-            """);
-        var prepackGoodPack = Packager.Pack(prepackSource, prepackGood, Path.Combine(ruleRoot, "out-prepack"), []);
-        var prepackBadPack = Packager.Pack(prepackSource, prepackBad, Path.Combine(ruleRoot, "out-prepack-bad"), []);
-        yield return ("R23 prepack 在打包期执行，失败拒包",
+            """
+        );
+        var prepackGoodPack = Packager.Pack(
+            prepackSource,
+            prepackGood,
+            Path.Combine(ruleRoot, "out-prepack"),
+            []
+        );
+        var prepackBadPack = Packager.Pack(
+            prepackSource,
+            prepackBad,
+            Path.Combine(ruleRoot, "out-prepack-bad"),
+            []
+        );
+        yield return (
+            "R23 prepack 在打包期执行，失败拒包",
             prepackGoodPack.Succeeded
-            && !prepackBadPack.Succeeded
-            && prepackBadPack.Problems.Any(problem => problem.Contains("prepack", StringComparison.Ordinal)),
-            string.Join(" | ", prepackGoodPack.Problems.Concat(prepackBadPack.Problems)));
+                && !prepackBadPack.Succeeded
+                && prepackBadPack.Problems.Any(problem =>
+                    problem.Contains("prepack", StringComparison.Ordinal)
+                ),
+            string.Join(" | ", prepackGoodPack.Problems.Concat(prepackBadPack.Problems))
+        );
 
         var lockRoot = Path.Combine(root, "load-lock");
         var parentLock = new object();
@@ -292,8 +450,14 @@ internal static class RegressionChecks
             SecondRelease = secondRelease,
         };
         var lockHost = new PluginManager(
-            Path.Combine(lockRoot, "plugins"), Path.Combine(lockRoot, "data"), Path.Combine(lockRoot, "config"),
-            _ => { lock (parentLock) { } });
+            Path.Combine(lockRoot, "plugins"),
+            Path.Combine(lockRoot, "data"),
+            Path.Combine(lockRoot, "config"),
+            _ =>
+            {
+                lock (parentLock) { }
+            }
+        );
         lockHost.RegisterLoader(lockLoader);
         Stage(lockRoot, "Probe");
         Stage(lockRoot, "Second", "Probe");
@@ -302,9 +466,18 @@ internal static class RegressionChecks
         Exception? loadError = null;
         var loader = new Thread(() =>
         {
-            try { lockHost.LoadAll(); }
-            catch (Exception ex) { loadError = ex; }
-            finally { loadDone.Set(); }
+            try
+            {
+                lockHost.LoadAll();
+            }
+            catch (Exception ex)
+            {
+                loadError = ex;
+            }
+            finally
+            {
+                loadDone.Set();
+            }
         });
         var unloader = new Thread(() =>
         {
@@ -318,26 +491,36 @@ internal static class RegressionChecks
         });
         loader.Start();
         unloader.Start();
-        var bothDone = loadDone.Wait(TimeSpan.FromSeconds(5)) && unloadDone.Wait(TimeSpan.FromSeconds(5));
-        yield return ("R9 加载路径不在锁内回调父级", bothDone && secondStarted.IsSet && loadError is null,
-            $"loaded={string.Join(",", lockHost.LoadedNames)} error={loadError?.Message}");
+        var bothDone =
+            loadDone.Wait(TimeSpan.FromSeconds(5)) && unloadDone.Wait(TimeSpan.FromSeconds(5));
+        yield return (
+            "R9 加载路径不在锁内回调父级",
+            bothDone && secondStarted.IsSet && loadError is null,
+            $"loaded={string.Join(",", lockHost.LoadedNames)} error={loadError?.Message}"
+        );
 
         var rollbackRoot = Path.Combine(root, "loader-rollback");
         var rollbackHost = NewHost(rollbackRoot);
         rollbackHost.RegisterLoader(new FailingLoader("loader-register-throw"));
         var brokenPackage = Stage(rollbackRoot, "Broken");
-        var ghostPackage = StageManifest(rollbackRoot, "GhostUser", """
+        var ghostPackage = StageManifest(
+            rollbackRoot,
+            "GhostUser",
+            """
             {
               "schemaVersion": 1, "name": "GhostUser", "entry": "main",
               "apiVersion": 3, "loader": "ghost", "kind": "plugin",
               "dependencies": [ { "name": "hosihikari" } ]
             }
-            """);
+            """
+        );
         var brokenLoaded = rollbackHost.Load(brokenPackage);
         var ghostLoaded = rollbackHost.Load(ghostPackage);
-        yield return ("R10 失败装载撤销 Loader 登记",
+        yield return (
+            "R10 失败装载撤销 Loader 登记",
             !brokenLoaded && !ghostLoaded && rollbackHost.LoadedNames.Count == 0,
-            $"broken={brokenLoaded} ghost={ghostLoaded} loaded={string.Join(",", rollbackHost.LoadedNames)}");
+            $"broken={brokenLoaded} ghost={ghostLoaded} loaded={string.Join(",", rollbackHost.LoadedNames)}"
+        );
 
         var loaderRoot = Path.Combine(root, "loader-unload");
         var loaderHost = NewHost(loaderRoot);
@@ -345,9 +528,13 @@ internal static class RegressionChecks
         var loaderPackage = Stage(loaderRoot, "LoaderPackage", kind: "loader");
         var loaderLoaded = loaderHost.Load(loaderPackage);
         var loaderUnload = loaderHost.Unload("LoaderPackage");
-        yield return ("R11 显式卸载 Loader 包被拒绝",
-            loaderLoaded && !loaderUnload.Released && loaderHost.LoadedNames.Contains("LoaderPackage"),
-            loaderUnload.Error ?? "卸载竟然成功");
+        yield return (
+            "R11 显式卸载 Loader 包被拒绝",
+            loaderLoaded
+                && !loaderUnload.Released
+                && loaderHost.LoadedNames.Contains("LoaderPackage"),
+            loaderUnload.Error ?? "卸载竟然成功"
+        );
 
         if (!OperatingSystem.IsWindows())
         {
@@ -358,11 +545,19 @@ internal static class RegressionChecks
             var lockedPackage = Stage(aclRoot, "Locked");
             File.SetUnixFileMode(Path.Combine(lockedPackage, "hosihikari.json"), UnixFileMode.None);
             var aclIsolated = true;
-            try { aclHost.LoadAll(); }
-            catch { aclIsolated = false; }
-            yield return ("R12 读不了的清单只跳过该包",
+            try
+            {
+                aclHost.LoadAll();
+            }
+            catch
+            {
+                aclIsolated = false;
+            }
+            yield return (
+                "R12 读不了的清单只跳过该包",
                 aclIsolated && aclHost.LoadedNames.SequenceEqual(["Good"]),
-                string.Join(",", aclHost.LoadedNames));
+                string.Join(",", aclHost.LoadedNames)
+            );
         }
 
         var reuseRoot = Path.Combine(root, "loader-reuse-log");
@@ -375,9 +570,12 @@ internal static class RegressionChecks
             lock (reuseLock) { }
         });
         var reuseHost = new PluginManager(
-            Path.Combine(reuseRoot, "plugins"), Path.Combine(reuseRoot, "data"), Path.Combine(reuseRoot, "config"),
+            Path.Combine(reuseRoot, "plugins"),
+            Path.Combine(reuseRoot, "data"),
+            Path.Combine(reuseRoot, "config"),
             message => Console.WriteLine($"[回归] {message}"),
-            new SingleService(reuseLogger));
+            new SingleService(reuseLogger)
+        );
         reuseHost.RegisterLoader(new FailingLoader("none") { RegisterLoader = true });
         var reusePackage = Stage(reuseRoot, "LoaderPackage", kind: "loader");
         var firstLoad = reuseHost.Load(reusePackage);
@@ -393,10 +591,15 @@ internal static class RegressionChecks
         });
         reuseParentHeld.Wait(TimeSpan.FromSeconds(2));
         var reuseLoad = Task.Run(() => reuseHost.Load(reusePackage));
-        var completed = reuseLoad.Wait(TimeSpan.FromSeconds(5)) && unloadThread.Wait(TimeSpan.FromSeconds(5));
-        yield return ("R13 Loader 复用日志不在核心锁内",
+        var completed =
+            reuseLoad.Wait(TimeSpan.FromSeconds(5)) && unloadThread.Wait(TimeSpan.FromSeconds(5));
+        yield return (
+            "R13 Loader 复用日志不在核心锁内",
             firstLoad && completed && reuseLoad.Result && reuseUnload is { Released: false },
-            completed ? $"reload={reuseLoad.Result} unload={reuseUnload?.Error}" : "超时：日志回调与卸载互相等");
+            completed
+                ? $"reload={reuseLoad.Result} unload={reuseUnload?.Error}"
+                : "超时：日志回调与卸载互相等"
+        );
 
         var versionRoot = Path.Combine(root, "dependency-versions");
         var versionHost = NewHost(versionRoot);
@@ -416,11 +619,24 @@ internal static class RegressionChecks
         StageVersioned(versionRoot, "NeedsUntyped", "1.0.0", ("UntypedLib", "[1.0.0,3.0.0)"));
         StageVersioned(versionRoot, "BadVersion", "not-semver");
         versionHost.LoadAll();
-        var versionLoaded = versionHost.LoadedNames.OrderBy(name => name, StringComparer.Ordinal).ToArray();
-        yield return ("R14 依赖版本约束过滤",
-            versionLoaded.SequenceEqual(
-                ["Any", "Exact", "Lib", "Lib1", "Lib12", "MajorWildcard", "MinorWildcard", "Range", "UntypedLib"]),
-            string.Join(",", versionLoaded));
+        var versionLoaded = versionHost
+            .LoadedNames.OrderBy(name => name, StringComparer.Ordinal)
+            .ToArray();
+        yield return (
+            "R14 依赖版本约束过滤",
+            versionLoaded.SequenceEqual([
+                "Any",
+                "Exact",
+                "Lib",
+                "Lib1",
+                "Lib12",
+                "MajorWildcard",
+                "MinorWildcard",
+                "Range",
+                "UntypedLib",
+            ]),
+            string.Join(",", versionLoaded)
+        );
 
         var parentVersionRoot = Path.Combine(root, "dependency-versions-parent");
         var parentVersionHost = NewHost(parentVersionRoot);
@@ -431,48 +647,92 @@ internal static class RegressionChecks
         var needs2Star = StageVersioned(parentVersionRoot, "Needs2Star", "1.0.0", ("Lib", "2.*"));
         var needs1Star = StageVersioned(parentVersionRoot, "Needs1Star", "1.0.0", ("Lib", "1.*"));
         var bare = StageVersioned(parentVersionRoot, "Bare", "1.0.0", ("Lib", null));
-        var parentLoaded = parentVersionHost.Load(versionLib)
-                           && parentVersionHost.Load(needs2)
-                           && !parentVersionHost.Load(needs3)
-                           && parentVersionHost.Load(needs2Star)
-                           && !parentVersionHost.Load(needs1Star)
-                           && parentVersionHost.Load(bare);
-        yield return ("R15 父级交付也检查依赖版本",
-            parentLoaded && parentVersionHost.LoadedNames.OrderBy(name => name, StringComparer.Ordinal)
-                .SequenceEqual(["Bare", "Lib", "Needs2", "Needs2Star"]),
-            string.Join(",", parentVersionHost.LoadedNames));
+        var parentLoaded =
+            parentVersionHost.Load(versionLib)
+            && parentVersionHost.Load(needs2)
+            && !parentVersionHost.Load(needs3)
+            && parentVersionHost.Load(needs2Star)
+            && !parentVersionHost.Load(needs1Star)
+            && parentVersionHost.Load(bare);
+        yield return (
+            "R15 父级交付也检查依赖版本",
+            parentLoaded
+                && parentVersionHost
+                    .LoadedNames.OrderBy(name => name, StringComparer.Ordinal)
+                    .SequenceEqual(["Bare", "Lib", "Needs2", "Needs2Star"]),
+            string.Join(",", parentVersionHost.LoadedNames)
+        );
 
         var packVersionRoot = Path.Combine(root, "pack-version");
         var packVersionSource = Path.Combine(packVersionRoot, "source");
         Directory.CreateDirectory(packVersionSource);
         var badVersionManifest = Path.Combine(packVersionRoot, "bad-version.json");
-        File.WriteAllText(badVersionManifest, JsonSerializer.Serialize(new
-        {
-            schemaVersion = 1, name = "BadVersion", entry = "main.dll", kind = "plugin",
-            apiVersion = int.Parse(PluginContractInfo.CurrentApiVersion), version = "not-semver",
-            dependencies = new object[] { new { name = "hosihikari" } },
-            loader = "assembly",
-        }));
+        File.WriteAllText(
+            badVersionManifest,
+            JsonSerializer.Serialize(
+                new
+                {
+                    schemaVersion = 1,
+                    name = "BadVersion",
+                    entry = "main.dll",
+                    kind = "plugin",
+                    apiVersion = int.Parse(PluginContractInfo.CurrentApiVersion),
+                    version = "not-semver",
+                    dependencies = new object[] { new { name = "hosihikari" } },
+                    loader = "assembly",
+                }
+            )
+        );
         var badConstraintManifest = Path.Combine(packVersionRoot, "bad-constraint.json");
-        File.WriteAllText(badConstraintManifest, JsonSerializer.Serialize(new
-        {
-            schemaVersion = 1, name = "BadConstraint", entry = "main.dll", kind = "plugin",
-            apiVersion = int.Parse(PluginContractInfo.CurrentApiVersion), version = "1.0.0",
-            dependencies = new object[] { new { name = "Lib", version = ">>1" }, new { name = "hosihikari" } },
-            loader = "assembly",
-        }));
+        File.WriteAllText(
+            badConstraintManifest,
+            JsonSerializer.Serialize(
+                new
+                {
+                    schemaVersion = 1,
+                    name = "BadConstraint",
+                    entry = "main.dll",
+                    kind = "plugin",
+                    apiVersion = int.Parse(PluginContractInfo.CurrentApiVersion),
+                    version = "1.0.0",
+                    dependencies = new object[]
+                    {
+                        new { name = "Lib", version = ">>1" },
+                        new { name = "hosihikari" },
+                    },
+                    loader = "assembly",
+                }
+            )
+        );
         var badVersionPack = Packager.Pack(
-            packVersionSource, badVersionManifest, Path.Combine(packVersionRoot, "out-version"), []);
+            packVersionSource,
+            badVersionManifest,
+            Path.Combine(packVersionRoot, "out-version"),
+            []
+        );
         var badConstraintPack = Packager.Pack(
-            packVersionSource, badConstraintManifest, Path.Combine(packVersionRoot, "out-constraint"), []);
-        yield return ("R16 打包拒绝非法版本与约束",
-            !badVersionPack.Succeeded && !badConstraintPack.Succeeded
-            && badVersionPack.Problems.Any(problem => problem.Contains("SemVer", StringComparison.Ordinal))
-            && badConstraintPack.Problems.Any(problem => problem.Contains("SemVer", StringComparison.Ordinal)),
-            string.Join(" | ", badVersionPack.Problems.Concat(badConstraintPack.Problems)));
+            packVersionSource,
+            badConstraintManifest,
+            Path.Combine(packVersionRoot, "out-constraint"),
+            []
+        );
+        yield return (
+            "R16 打包拒绝非法版本与约束",
+            !badVersionPack.Succeeded
+                && !badConstraintPack.Succeeded
+                && badVersionPack.Problems.Any(problem =>
+                    problem.Contains("SemVer", StringComparison.Ordinal)
+                )
+                && badConstraintPack.Problems.Any(problem =>
+                    problem.Contains("SemVer", StringComparison.Ordinal)
+                ),
+            string.Join(" | ", badVersionPack.Problems.Concat(badConstraintPack.Problems))
+        );
 
         var nullDependencyManifest = Path.Combine(packVersionRoot, "null-dependency.json");
-        File.WriteAllText(nullDependencyManifest, """
+        File.WriteAllText(
+            nullDependencyManifest,
+            """
             {
               "name": "NullDependency",
               "entry": "main.dll",
@@ -483,24 +743,33 @@ internal static class RegressionChecks
               "dependencies": [ null ],
               "loader": "assembly"
             }
-            """);
+            """
+        );
         PackResult? nullDependencyPack = null;
         string? nullDependencyError = null;
         try
         {
             nullDependencyPack = Packager.Pack(
-                packVersionSource, nullDependencyManifest, Path.Combine(packVersionRoot, "out-null-dep"), []);
+                packVersionSource,
+                nullDependencyManifest,
+                Path.Combine(packVersionRoot, "out-null-dep"),
+                []
+            );
         }
         catch (Exception ex)
         {
             nullDependencyError = $"{ex.GetType().Name}: {ex.Message}";
         }
 
-        yield return ("R18 打包拒绝 null 依赖而不是抛出",
+        yield return (
+            "R18 打包拒绝 null 依赖而不是抛出",
             nullDependencyError is null
-            && nullDependencyPack is { Succeeded: false, Problems: { } nullProblems }
-            && nullProblems.Any(problem => problem.Contains("dependencies", StringComparison.Ordinal)),
-            nullDependencyError ?? string.Join(" | ", nullDependencyPack?.Problems ?? []));
+                && nullDependencyPack is { Succeeded: false, Problems: { } nullProblems }
+                && nullProblems.Any(problem =>
+                    problem.Contains("dependencies", StringComparison.Ordinal)
+                ),
+            nullDependencyError ?? string.Join(" | ", nullDependencyPack?.Problems ?? [])
+        );
 
         var timerProbe = ScheduleOnceRetentionProbe();
         yield return ("R19 单次定时任务完成后释放捕获对象", timerProbe.Passed, timerProbe.Detail);
@@ -514,7 +783,10 @@ internal static class RegressionChecks
         {
             var directory = Path.Combine(fuzzRoot, "p" + i);
             Directory.CreateDirectory(directory);
-            File.WriteAllText(Path.Combine(directory, "hosihikari.json"), RandomManifest(fuzzRandom));
+            File.WriteAllText(
+                Path.Combine(directory, "hosihikari.json"),
+                RandomManifest(fuzzRandom)
+            );
             try
             {
                 ManifestReader.Read(directory, _ => { });
@@ -532,7 +804,11 @@ internal static class RegressionChecks
     private static (bool Passed, string Detail) ScheduleOnceRetentionProbe()
     {
         var logger = NullLogger.Instance;
-        var scope = new PluginScope(new EventBus(logger), new Scheduler(logger), new PluginServiceRegistry());
+        var scope = new PluginScope(
+            new EventBus(logger),
+            new Scheduler(logger),
+            new PluginServiceRegistry()
+        );
         scope.Open();
 
         using var done = new ManualResetEventSlim();
@@ -544,7 +820,9 @@ internal static class RegressionChecks
         }
 
         var ownedField = typeof(PluginScope).GetField(
-            "_owned", BindingFlags.NonPublic | BindingFlags.Instance);
+            "_owned",
+            BindingFlags.NonPublic | BindingFlags.Instance
+        );
         var deadline = Stopwatch.StartNew();
         var ownedCount = -1;
         while (deadline.Elapsed < TimeSpan.FromSeconds(2))
@@ -565,24 +843,40 @@ internal static class RegressionChecks
         return (ownedCount == 0, $"owned={ownedCount}");
     }
 
-    private static PluginManager NewHost(string root) => new(
-        Path.Combine(root, "plugins"), Path.Combine(root, "data"), Path.Combine(root, "config"),
-        message => Console.WriteLine($"[回归] {message}"));
+    private static PluginManager NewHost(string root) =>
+        new(
+            Path.Combine(root, "plugins"),
+            Path.Combine(root, "data"),
+            Path.Combine(root, "config"),
+            message => Console.WriteLine($"[回归] {message}")
+        );
 
-    private static string Stage(string root, string name, string? dependency = null, string kind = "plugin")
+    private static string Stage(
+        string root,
+        string name,
+        string? dependency = null,
+        string kind = "plugin"
+    )
     {
         var directory = Path.Combine(root, "plugins", name);
         Directory.CreateDirectory(directory);
-        File.WriteAllText(Path.Combine(directory, "hosihikari.json"), JsonSerializer.Serialize(new
-        {
-            schemaVersion = 1,
-            name,
-            entry = "main",
-            apiVersion = 3,
-            loader = "regression",
-            kind,
-            dependencies = dependency is null ? new object[] { new { name = "hosihikari" } } : new object[] { new { name = dependency }, new { name = "hosihikari" } },
-        }));
+        File.WriteAllText(
+            Path.Combine(directory, "hosihikari.json"),
+            JsonSerializer.Serialize(
+                new
+                {
+                    schemaVersion = 1,
+                    name,
+                    entry = "main",
+                    apiVersion = 3,
+                    loader = "regression",
+                    kind,
+                    dependencies = dependency is null
+                        ? new object[] { new { name = "hosihikari" } }
+                        : new object[] { new { name = dependency }, new { name = "hosihikari" } },
+                }
+            )
+        );
         return directory;
     }
 
@@ -598,9 +892,30 @@ internal static class RegressionChecks
     {
         string[] fragments =
         [
-            "{", "}", "[", "]", "\"name\"", ":", "\"p\"", "\"entry\"", "\"..\"", "\"main.dll\"",
-            "\"type\"", "\"hosihikari\"", "\"version\"", "\"1.0.0\"", "\"dependencies\"",
-            "null", "0", ",", "\\", "\n", "\"kind\"", "\"apiVersion\"", "3", "\"carrier\"",
+            "{",
+            "}",
+            "[",
+            "]",
+            "\"name\"",
+            ":",
+            "\"p\"",
+            "\"entry\"",
+            "\"..\"",
+            "\"main.dll\"",
+            "\"type\"",
+            "\"hosihikari\"",
+            "\"version\"",
+            "\"1.0.0\"",
+            "\"dependencies\"",
+            "null",
+            "0",
+            ",",
+            "\\",
+            "\n",
+            "\"kind\"",
+            "\"apiVersion\"",
+            "3",
+            "\"carrier\"",
         ];
         var builder = new StringBuilder();
         for (var i = 0; i < random.Next(1, 50); i++)
@@ -615,45 +930,74 @@ internal static class RegressionChecks
         string root,
         string name,
         string? version,
-        params (string Name, string? Version)[] dependencies) =>
-        StageManifest(root, name, JsonSerializer.Serialize(new
-        {
+        params (string Name, string? Version)[] dependencies
+    ) =>
+        StageManifest(
+            root,
             name,
-            entry = "main",
-            type = "hosihikari",
-            version,
-            schemaVersion = 1, kind = "plugin",
-            apiVersion = int.Parse(PluginContractInfo.CurrentApiVersion),
-            dependencies = dependencies.Select(dependency => new { dependency.Name, dependency.Version })
-                .Cast<object>()
-                .Append(new { Name = "hosihikari", Version = (string?)null })
-                .ToArray(),
-            loader = "regression",
-        }));
+            JsonSerializer.Serialize(
+                new
+                {
+                    name,
+                    entry = "main",
+                    type = "hosihikari",
+                    version,
+                    schemaVersion = 1,
+                    kind = "plugin",
+                    apiVersion = int.Parse(PluginContractInfo.CurrentApiVersion),
+                    dependencies = dependencies
+                        .Select(dependency => new { dependency.Name, dependency.Version })
+                        .Cast<object>()
+                        .Append(new { Name = "hosihikari", Version = (string?)null })
+                        .ToArray(),
+                    loader = "regression",
+                }
+            )
+        );
 
     private static bool RejectsReleasedScope(PluginScope scope)
     {
-        Action[] actions = [() => scope.Subscribe<string>(_ => { }),
+        Action[] actions =
+        [
+            () => scope.Subscribe<string>(_ => { }),
             () => scope.ScheduleOnce(TimeSpan.FromHours(1), () => { }),
-            () => scope.Register(new Marker())];
+            () => scope.Register(new Marker()),
+        ];
         return actions.All(action =>
         {
-            try { action(); return false; }
-            catch (ObjectDisposedException) { return true; }
+            try
+            {
+                action();
+                return false;
+            }
+            catch (ObjectDisposedException)
+            {
+                return true;
+            }
         });
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     private static WeakReference SubscribeCollectibleEvent(EventBus bus)
     {
-        var assembly = AssemblyBuilder.DefineDynamicAssembly(new AssemblyName("CollectibleRegression"),
-            AssemblyBuilderAccess.RunAndCollect);
-        var type = assembly.DefineDynamicModule("Events").DefineType("PluginEvent", TypeAttributes.Public).CreateType()!;
+        var assembly = AssemblyBuilder.DefineDynamicAssembly(
+            new AssemblyName("CollectibleRegression"),
+            AssemblyBuilderAccess.RunAndCollect
+        );
+        var type = assembly
+            .DefineDynamicModule("Events")
+            .DefineType("PluginEvent", TypeAttributes.Public)
+            .CreateType()!;
         var method = new DynamicMethod("Handle", typeof(void), [type]);
         method.GetILGenerator().Emit(OpCodes.Ret);
         var handler = method.CreateDelegate(typeof(Action<>).MakeGenericType(type));
-        ((IDisposable)typeof(EventBus).GetMethod(nameof(EventBus.Subscribe))!
-            .MakeGenericMethod(type).Invoke(bus, [handler, EventPriority.Normal])!).Dispose();
+        (
+            (IDisposable)
+                typeof(EventBus)
+                    .GetMethod(nameof(EventBus.Subscribe))!
+                    .MakeGenericMethod(type)
+                    .Invoke(bus, [handler, EventPriority.Normal])!
+        ).Dispose();
         return new WeakReference(type.Assembly);
     }
 
@@ -670,7 +1014,11 @@ internal static class RegressionChecks
 
     private static void Collect()
     {
-        for (var i = 0; i < 10; i++) { GC.Collect(); GC.WaitForPendingFinalizers(); }
+        for (var i = 0; i < 10; i++)
+        {
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+        }
     }
 
     private static bool PackOutput(string root)
@@ -679,15 +1027,26 @@ internal static class RegressionChecks
         Directory.CreateDirectory(fixtureBin);
         foreach (var file in Directory.EnumerateFiles(AppContext.BaseDirectory))
             File.Copy(file, Path.Combine(fixtureBin, Path.GetFileName(file)), true);
-        var apphost = Path.Combine(AppContext.BaseDirectory,
-            "Hosihikari.PluginManager.Host" + (OperatingSystem.IsWindows() ? ".exe" : ""));
-        var fakeDotnet = Path.Combine(fixtureBin, "dotnet" + (OperatingSystem.IsWindows() ? ".exe" : ""));
+        var apphost = Path.Combine(
+            AppContext.BaseDirectory,
+            "Hosihikari.PluginManager.Host" + (OperatingSystem.IsWindows() ? ".exe" : "")
+        );
+        var fakeDotnet = Path.Combine(
+            fixtureBin,
+            "dotnet" + (OperatingSystem.IsWindows() ? ".exe" : "")
+        );
         File.Copy(apphost, fakeDotnet, true);
-        if (!OperatingSystem.IsWindows()) File.SetUnixFileMode(fakeDotnet, File.GetUnixFileMode(apphost));
-        var start = new ProcessStartInfo(apphost) { RedirectStandardOutput = true, RedirectStandardError = true };
+        if (!OperatingSystem.IsWindows())
+            File.SetUnixFileMode(fakeDotnet, File.GetUnixFileMode(apphost));
+        var start = new ProcessStartInfo(apphost)
+        {
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+        };
         start.ArgumentList.Add("--pack-output-regression");
         start.ArgumentList.Add(root);
-        start.Environment["PATH"] = fixtureBin + Path.PathSeparator + Environment.GetEnvironmentVariable("PATH");
+        start.Environment["PATH"] =
+            fixtureBin + Path.PathSeparator + Environment.GetEnvironmentVariable("PATH");
         start.Environment["HOSHI_PACK_OUTPUT_FIXTURE"] = "1";
         using var process = Process.Start(start)!;
         var stdout = process.StandardOutput.ReadToEndAsync();
@@ -708,24 +1067,39 @@ internal static class RegressionChecks
         var source = Path.Combine(root, "source");
         Directory.CreateDirectory(Path.Combine(source, "src"));
         Directory.CreateDirectory(Path.Combine(source, "shared"));
-        File.WriteAllText(Path.Combine(source, "src", "main.cs"), """
+        File.WriteAllText(
+            Path.Combine(source, "src", "main.cs"),
+            """
             #:include "../shared/*.cs"
             #:package fixture@1.0.0
             public static class Entry { }
-            """);
-        File.WriteAllText(Path.Combine(source, "shared", "helper.cs"), "public static class Helper { }");
+            """
+        );
+        File.WriteAllText(
+            Path.Combine(source, "shared", "helper.cs"),
+            "public static class Helper { }"
+        );
         var manifest = Path.Combine(root, "hosihikari.json");
-        File.WriteAllText(manifest, JsonSerializer.Serialize(new
-        {
-            schemaVersion = 1, name = "OutputFixture", entry = "src/main.cs", kind = "plugin",
-            apiVersion = int.Parse(PluginContractInfo.CurrentApiVersion),
-            dependencies = new object[] { new { name = "hosihikari" } },
-            loader = "csharp",
-        }));
+        File.WriteAllText(
+            manifest,
+            JsonSerializer.Serialize(
+                new
+                {
+                    schemaVersion = 1,
+                    name = "OutputFixture",
+                    entry = "src/main.cs",
+                    kind = "plugin",
+                    apiVersion = int.Parse(PluginContractInfo.CurrentApiVersion),
+                    dependencies = new object[] { new { name = "hosihikari" } },
+                    loader = "csharp",
+                }
+            )
+        );
         var result = Packager.Pack(source, manifest, Path.Combine(root, "packages"), []);
-        return result.Succeeded
-               && result.PackageDirectory is { } package
-               && File.Exists(Path.Combine(package, "shared", "helper.cs"))
+        return
+            result.Succeeded
+            && result.PackageDirectory is { } package
+            && File.Exists(Path.Combine(package, "shared", "helper.cs"))
             ? 0
             : 1;
     }
@@ -748,7 +1122,8 @@ internal static class RegressionChecks
 
         private sealed class BlockingLogger(Action onLog) : ILogger
         {
-            public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+            public IDisposable? BeginScope<TState>(TState state)
+                where TState : notnull => null;
 
             public bool IsEnabled(LogLevel logLevel) => true;
 
@@ -757,25 +1132,36 @@ internal static class RegressionChecks
                 EventId eventId,
                 TState state,
                 Exception? exception,
-                Func<TState, Exception?, string> formatter) => onLog();
+                Func<TState, Exception?, string> formatter
+            ) => onLog();
         }
     }
 
     private sealed class GhostLoader : IPluginLoader
     {
         public string Id => "ghost";
+
         public bool CanLoad(PluginManifest manifest) => manifest.Loader == Id;
-        public PluginHandle? Load(PluginManifest manifest, string packageDirectory, IPluginContext context) =>
-            new TestPluginHandle(new GhostPlugin());
+
+        public PluginHandle? Load(
+            PluginManifest manifest,
+            string packageDirectory,
+            IPluginContext context
+        ) => new TestPluginHandle(new GhostPlugin());
 
         private sealed class GhostPlugin : IPlugin
         {
-            public ValueTask OnLoad(IPluginContext context, CancellationToken cancellationToken) => ValueTask.CompletedTask;
+            public ValueTask OnLoad(IPluginContext context, CancellationToken cancellationToken) =>
+                ValueTask.CompletedTask;
+
             public ValueTask<PluginHookResult> OnEnable(CancellationToken cancellationToken) =>
                 ValueTask.FromResult(PluginHookResult.Allow());
+
             public ValueTask<PluginHookResult> OnDisable(CancellationToken cancellationToken) =>
                 ValueTask.FromResult(PluginHookResult.Allow());
-            public ValueTask OnUnload(CancellationToken cancellationToken) => ValueTask.CompletedTask;
+
+            public ValueTask OnUnload(CancellationToken cancellationToken) =>
+                ValueTask.CompletedTask;
         }
     }
 
@@ -787,9 +1173,18 @@ internal static class RegressionChecks
         public ManualResetEventSlim? SecondLoadStarted;
         public ManualResetEventSlim? SecondRelease;
         public bool RegisterLoader { get; set; }
-        public int Events, Unloads, Disables, Releases;
+        public int Events,
+            Unloads,
+            Disables,
+            Releases;
+
         public bool CanLoad(PluginManifest manifest) => manifest.Loader == Id;
-        public PluginHandle? Load(PluginManifest manifest, string packageDirectory, IPluginContext context)
+
+        public PluginHandle? Load(
+            PluginManifest manifest,
+            string packageDirectory,
+            IPluginContext context
+        )
         {
             Context = context;
             if (manifest.Name == "Second")
@@ -801,17 +1196,23 @@ internal static class RegressionChecks
             if (manifest.Name == "Broken" && _mode is "null" or "loader-throw")
             {
                 UseContext(context);
-                if (_mode == "loader-throw") throw new InvalidOperationException("loader failure");
+                if (_mode == "loader-throw")
+                    throw new InvalidOperationException("loader failure");
                 return null;
             }
             return new Instance(new Plugin(this, manifest.Name), this);
         }
+
         private void UseContext(IPluginContext context)
         {
             context.Events.Subscribe<string>(_ => Interlocked.Increment(ref Events));
             context.PluginServices.Register(new Marker());
-            context.Scheduler.ScheduleOnce(TimeSpan.FromHours(1), () => Interlocked.Increment(ref Events));
+            context.Scheduler.ScheduleOnce(
+                TimeSpan.FromHours(1),
+                () => Interlocked.Increment(ref Events)
+            );
         }
+
         private sealed class Instance(IPlugin plugin, FailingLoader owner) : PluginHandle(plugin)
         {
             public override bool IsUnloaded => Plugin is null;
@@ -827,9 +1228,11 @@ internal static class RegressionChecks
                 Plugin = null;
             }
 
-            public override Task<bool> WaitForUnloadAsync(CancellationToken cancellationToken = default) =>
-                Task.FromResult(IsUnloaded);
+            public override Task<bool> WaitForUnloadAsync(
+                CancellationToken cancellationToken = default
+            ) => Task.FromResult(IsUnloaded);
         }
+
         private sealed class Plugin(FailingLoader owner, string name) : IPlugin
         {
             public ValueTask OnLoad(IPluginContext context, CancellationToken cancellationToken)
@@ -844,7 +1247,9 @@ internal static class RegressionChecks
                 if (name == "Broken" && owner._mode is "load" or "cleanup-throw")
                     throw new InvalidOperationException("load failure");
                 if (name == "Broken" && owner._mode == "fault-on-load")
-                    context.ReportFault(PluginDiagnostic.Error("immediate-death", "immediate death"));
+                    context.ReportFault(
+                        PluginDiagnostic.Error("immediate-death", "immediate death")
+                    );
                 if (name == "Broken" && owner._mode == "loader-register-throw")
                 {
                     loaderContext?.RegisterLoader(new GhostLoader());
@@ -853,19 +1258,23 @@ internal static class RegressionChecks
 
                 return ValueTask.CompletedTask;
             }
+
             public ValueTask<PluginHookResult> OnEnable(CancellationToken cancellationToken) =>
                 name == "Broken" && owner._mode == "enable"
                     ? throw new InvalidOperationException("enable failure")
                     : ValueTask.FromResult(PluginHookResult.Allow());
+
             public ValueTask<PluginHookResult> OnDisable(CancellationToken cancellationToken)
             {
                 owner.Disables++;
                 return ValueTask.FromResult(PluginHookResult.Allow());
             }
+
             public ValueTask OnUnload(CancellationToken cancellationToken)
             {
                 owner.Unloads++;
-                if (owner._mode == "cleanup-throw") throw new InvalidOperationException("unload failure");
+                if (owner._mode == "cleanup-throw")
+                    throw new InvalidOperationException("unload failure");
                 return ValueTask.CompletedTask;
             }
         }
@@ -874,7 +1283,10 @@ internal static class RegressionChecks
     private sealed class CountingScheduler : IScheduler
     {
         internal readonly ConcurrentBag<WeakReference> References = [];
-        internal int Created, Disposed, DuplicateDisposes;
+        internal int Created,
+            Disposed,
+            DuplicateDisposes;
+
         public IDisposable ScheduleOnce(TimeSpan delay, Action work)
         {
             Interlocked.Increment(ref Created);
@@ -882,14 +1294,20 @@ internal static class RegressionChecks
             References.Add(new WeakReference(disposable));
             return disposable;
         }
-        public IDisposable SchedulePeriodic(TimeSpan interval, Action work) => ScheduleOnce(interval, work);
+
+        public IDisposable SchedulePeriodic(TimeSpan interval, Action work) =>
+            ScheduleOnce(interval, work);
+
         private sealed class Counted(CountingScheduler owner) : IDisposable
         {
             private int _disposed;
+
             public void Dispose()
             {
-                if (Interlocked.Exchange(ref _disposed, 1) == 0) Interlocked.Increment(ref owner.Disposed);
-                else Interlocked.Increment(ref owner.DuplicateDisposes);
+                if (Interlocked.Exchange(ref _disposed, 1) == 0)
+                    Interlocked.Increment(ref owner.Disposed);
+                else
+                    Interlocked.Increment(ref owner.DuplicateDisposes);
             }
         }
     }

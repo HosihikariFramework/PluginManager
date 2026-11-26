@@ -22,7 +22,8 @@ internal sealed class CarrierStartup
         IServiceProvider services,
         IReadOnlyList<Assembly> sharedAssemblies,
         IReadOnlyList<ManifestCarrierComponent> components,
-        string? directory)
+        string? directory
+    )
     {
         Services = services;
         SharedAssemblies = sharedAssemblies;
@@ -53,7 +54,8 @@ internal sealed class CarrierStartup
         string? carrierDirectory,
         nint hostHandle,
         ILoggerFactory loggerFactory,
-        out string? error)
+        out string? error
+    )
     {
         error = null;
         var logger = loggerFactory.CreateLogger("Hosihikari");
@@ -76,12 +78,19 @@ internal sealed class CarrierStartup
                 {
                     manifest = JsonSerializer.Deserialize<PluginManifest>(
                         File.ReadAllText(manifestPath),
-                        new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                        new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
+                    );
                 }
-                catch (Exception ex) when (ex is JsonException or IOException or UnauthorizedAccessException)
+                catch (Exception ex)
+                    when (ex is JsonException or IOException or UnauthorizedAccessException)
                 {
                     error = CoreText.Get("Native_CarrierManifestInvalid", manifestPath, ex.Message);
-                    return new CarrierStartup(services.BuildServiceProvider(), shared, [], carrierDirectory);
+                    return new CarrierStartup(
+                        services.BuildServiceProvider(),
+                        shared,
+                        [],
+                        carrierDirectory
+                    );
                 }
 
                 if (manifest is null || manifest.PackageKind != "carrier")
@@ -89,8 +98,14 @@ internal sealed class CarrierStartup
                     error = CoreText.Get(
                         "Native_CarrierManifestInvalid",
                         manifestPath,
-                        CoreText.Get("Native_CarrierManifestKind", manifest?.PackageKind ?? "none"));
-                    return new CarrierStartup(services.BuildServiceProvider(), shared, [], carrierDirectory);
+                        CoreText.Get("Native_CarrierManifestKind", manifest?.PackageKind ?? "none")
+                    );
+                    return new CarrierStartup(
+                        services.BuildServiceProvider(),
+                        shared,
+                        [],
+                        carrierDirectory
+                    );
                 }
 
                 var carrier = manifest.Carrier;
@@ -105,17 +120,38 @@ internal sealed class CarrierStartup
                         else
                         {
                             error = CoreText.Get("Native_CarrierSharedMissing", name);
-                            return new CarrierStartup(services.BuildServiceProvider(), shared, [], carrierDirectory);
+                            return new CarrierStartup(
+                                services.BuildServiceProvider(),
+                                shared,
+                                [],
+                                carrierDirectory
+                            );
                         }
                     }
 
-                    if (carrier.Bootstrap is { } bootstrap
-                        && (bootstrap.Assembly.Length > 0 || bootstrap.Type.Length > 0))
+                    if (
+                        carrier.Bootstrap is { } bootstrap
+                        && (bootstrap.Assembly.Length > 0 || bootstrap.Type.Length > 0)
+                    )
                     {
-                        if (!TryConfigure(carrierDirectory, bootstrap, services, hostHandle, logger, out var problem))
+                        if (
+                            !TryConfigure(
+                                carrierDirectory,
+                                bootstrap,
+                                services,
+                                hostHandle,
+                                logger,
+                                out var problem
+                            )
+                        )
                         {
                             error = problem;
-                            return new CarrierStartup(services.BuildServiceProvider(), shared, [], carrierDirectory);
+                            return new CarrierStartup(
+                                services.BuildServiceProvider(),
+                                shared,
+                                [],
+                                carrierDirectory
+                            );
                         }
                     }
 
@@ -125,14 +161,21 @@ internal sealed class CarrierStartup
                             "Native_CarrierStage",
                             carrierDirectory,
                             carrier.Components.Count,
-                            carrier.Bootstrap?.Type is { Length: > 0 } type ? type : CoreText.Get("Common_None"),
-                            hostHandle == 0 ? CoreText.Get("Common_No") : hostHandle.ToString("X", CultureInfo.InvariantCulture)));
+                            carrier.Bootstrap?.Type is { Length: > 0 } type
+                                ? type
+                                : CoreText.Get("Common_None"),
+                            hostHandle == 0
+                                ? CoreText.Get("Common_No")
+                                : hostHandle.ToString("X", CultureInfo.InvariantCulture)
+                        )
+                    );
 
                     return new CarrierStartup(
                         services.BuildServiceProvider(),
                         shared,
                         carrier.Components,
-                        carrierDirectory);
+                        carrierDirectory
+                    );
                 }
             }
         }
@@ -146,20 +189,30 @@ internal sealed class CarrierStartup
         IServiceCollection services,
         nint hostHandle,
         ILogger logger,
-        out string? problem)
+        out string? problem
+    )
     {
         problem = null;
         try
         {
             var assembly = ResolveAssembly(carrierDirectory, bootstrap.Assembly, logger);
             var type = assembly?.GetType(bootstrap.Type, throwOnError: false);
-            if (type is null || Activator.CreateInstance(type) is not ICarrierServicesConfigurator configurator)
+            if (
+                type is null
+                || Activator.CreateInstance(type) is not ICarrierServicesConfigurator configurator
+            )
             {
-                problem = CoreText.Get("Native_CarrierBootstrapMissing", bootstrap.Assembly, bootstrap.Type);
+                problem = CoreText.Get(
+                    "Native_CarrierBootstrapMissing",
+                    bootstrap.Assembly,
+                    bootstrap.Type
+                );
                 return false;
             }
 
-            configurator.Configure(new CarrierServiceContext(services, carrierDirectory, hostHandle));
+            configurator.Configure(
+                new CarrierServiceContext(services, carrierDirectory, hostHandle)
+            );
             return true;
         }
         catch (Exception ex)
@@ -172,7 +225,8 @@ internal sealed class CarrierStartup
     private sealed class CarrierServiceContext(
         IServiceCollection services,
         string carrierDirectory,
-        nint hostHandle) : ICarrierServiceContext
+        nint hostHandle
+    ) : ICarrierServiceContext
     {
         public IServiceCollection Services => services;
 
@@ -190,12 +244,19 @@ internal sealed class CarrierStartup
     /// </remarks>
     private static void EnsurePackageResolver(string carrierDirectory, ILogger logger)
     {
-        var context = AssemblyLoadContext.GetLoadContext(typeof(CarrierStartup).Assembly)
+        var context =
+            AssemblyLoadContext.GetLoadContext(typeof(CarrierStartup).Assembly)
             ?? AssemblyLoadContext.Default;
 
         lock (ResolverGate)
         {
-            if (string.Equals(s_resolvedDirectory, carrierDirectory, StringComparison.OrdinalIgnoreCase))
+            if (
+                string.Equals(
+                    s_resolvedDirectory,
+                    carrierDirectory,
+                    StringComparison.OrdinalIgnoreCase
+                )
+            )
             {
                 return;
             }
@@ -219,7 +280,11 @@ internal sealed class CarrierStartup
                 }
                 catch (Exception ex) when (ex is FileLoadException or BadImageFormatException)
                 {
-                    logger.LogError(ex, "{Message}", CoreText.Get("Native_CarrierAssemblyFailed", name.Name + ".dll"));
+                    logger.LogError(
+                        ex,
+                        "{Message}",
+                        CoreText.Get("Native_CarrierAssemblyFailed", name.Name + ".dll")
+                    );
                     return null;
                 }
             };
@@ -236,7 +301,11 @@ internal sealed class CarrierStartup
     /// FileNotFoundException）。也不用 <see cref="Assembly.LoadFrom(string)"/>：它挂的是包目录
     /// 探测，会把已在上下文里的契约**再装一份**，同名类型于是有两个类型对象，转型失败。
     /// </remarks>
-    internal static Assembly? ResolveAssembly(string carrierDirectory, string fileName, ILogger logger)
+    internal static Assembly? ResolveAssembly(
+        string carrierDirectory,
+        string fileName,
+        ILogger logger
+    )
     {
         if (string.IsNullOrWhiteSpace(fileName))
         {
@@ -244,14 +313,22 @@ internal sealed class CarrierStartup
         }
 
         var simpleName = Path.GetFileNameWithoutExtension(fileName);
-        var context = AssemblyLoadContext.GetLoadContext(typeof(CarrierStartup).Assembly)
+        var context =
+            AssemblyLoadContext.GetLoadContext(typeof(CarrierStartup).Assembly)
             ?? AssemblyLoadContext.Default;
         try
         {
             // 同一份程序集只装一次：bootstrap 与组件都要先查共享层里已经装进来的那份。
-            if (context.Assemblies.FirstOrDefault(
-                    loaded => string.Equals(loaded.GetName().Name, simpleName, StringComparison.OrdinalIgnoreCase))
-                is { } existing)
+            if (
+                context.Assemblies.FirstOrDefault(loaded =>
+                    string.Equals(
+                        loaded.GetName().Name,
+                        simpleName,
+                        StringComparison.OrdinalIgnoreCase
+                    )
+                ) is
+                { } existing
+            )
             {
                 return existing;
             }
@@ -261,9 +338,14 @@ internal sealed class CarrierStartup
                 ? context.LoadFromAssemblyPath(Path.GetFullPath(path))
                 : Assembly.Load(new AssemblyName(simpleName));
         }
-        catch (Exception ex) when (ex is FileNotFoundException or FileLoadException or BadImageFormatException)
+        catch (Exception ex)
+            when (ex is FileNotFoundException or FileLoadException or BadImageFormatException)
         {
-            logger.LogError(ex, "{Message}", CoreText.Get("Native_CarrierAssemblyFailed", fileName));
+            logger.LogError(
+                ex,
+                "{Message}",
+                CoreText.Get("Native_CarrierAssemblyFailed", fileName)
+            );
             return null;
         }
     }

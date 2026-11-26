@@ -24,8 +24,11 @@ public sealed class PinnedPluginLoader : IPluginLoader
 
     public bool CanLoad(PluginManifest manifest) => manifest.Loader == Id;
 
-    public PluginHandle? Load(PluginManifest manifest, string packageDirectory, IPluginContext context) =>
-        new PinnedPluginHandle(new PinnedPlugin(), this);
+    public PluginHandle? Load(
+        PluginManifest manifest,
+        string packageDirectory,
+        IPluginContext context
+    ) => new PinnedPluginHandle(new PinnedPlugin(), this);
 }
 
 internal sealed class PinnedPluginHandle(PinnedPlugin plugin, PinnedPluginLoader loader)
@@ -42,7 +45,9 @@ internal sealed class PinnedPluginHandle(PinnedPlugin plugin, PinnedPluginLoader
         Plugin = null;
     }
 
-    public override async Task<bool> WaitForUnloadAsync(CancellationToken cancellationToken = default)
+    public override async Task<bool> WaitForUnloadAsync(
+        CancellationToken cancellationToken = default
+    )
     {
         if (!_unloadStarted)
         {

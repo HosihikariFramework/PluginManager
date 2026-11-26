@@ -14,7 +14,11 @@ public sealed class PluginManagerHarness : IDisposable
 
     public PluginManagerHarness(PluginManagerOptions? options = null)
     {
-        _root = Path.Combine(Path.GetTempPath(), "hosihikari-testing", Guid.NewGuid().ToString("N"));
+        _root = Path.Combine(
+            Path.GetTempPath(),
+            "hosihikari-testing",
+            Guid.NewGuid().ToString("N")
+        );
         PluginsRoot = Path.Combine(_root, "plugins");
         DataRoot = Path.Combine(_root, "data");
         ConfigRoot = Path.Combine(_root, "config", "hosihikari");
@@ -29,7 +33,8 @@ public sealed class PluginManagerHarness : IDisposable
             report => _reports.Enqueue(report),
             carrierServices: null,
             onRemoved: name => _removed.Enqueue(name),
-            options ?? new PluginManagerOptions());
+            options ?? new PluginManagerOptions()
+        );
     }
 
     public string Root => _root;
@@ -44,22 +49,31 @@ public sealed class PluginManagerHarness : IDisposable
     public string CreatePackage(
         string name,
         string manifestJson,
-        params (string Path, string Content)[] files)
+        params (string Path, string Content)[] files
+    )
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
         ArgumentException.ThrowIfNullOrWhiteSpace(manifestJson);
-        if (Path.IsPathRooted(name)
+        if (
+            Path.IsPathRooted(name)
             || name is "." or ".."
-            || name.IndexOfAny([Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar]) >= 0)
+            || name.IndexOfAny([Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar]) >= 0
+        )
         {
-            throw new ArgumentException("Test package name must be a single directory name", nameof(name));
+            throw new ArgumentException(
+                "Test package name must be a single directory name",
+                nameof(name)
+            );
         }
 
         var directory = Path.GetFullPath(Path.Combine(PluginsRoot, name));
         var pluginRoot = Path.GetFullPath(PluginsRoot) + Path.DirectorySeparatorChar;
         if (!directory.StartsWith(pluginRoot, StringComparison.Ordinal))
         {
-            throw new ArgumentException("Test package directory is outside the test root", nameof(name));
+            throw new ArgumentException(
+                "Test package directory is outside the test root",
+                nameof(name)
+            );
         }
 
         Directory.CreateDirectory(directory);
@@ -67,10 +81,17 @@ public sealed class PluginManagerHarness : IDisposable
         foreach (var (path, content) in files)
         {
             var target = Path.GetFullPath(Path.Combine(directory, path));
-            if (!target.StartsWith(Path.GetFullPath(directory) + Path.DirectorySeparatorChar, StringComparison.Ordinal)
-                && !string.Equals(target, Path.GetFullPath(directory), StringComparison.Ordinal))
+            if (
+                !target.StartsWith(
+                    Path.GetFullPath(directory) + Path.DirectorySeparatorChar,
+                    StringComparison.Ordinal
+                ) && !string.Equals(target, Path.GetFullPath(directory), StringComparison.Ordinal)
+            )
             {
-                throw new ArgumentException($"Test package path is outside the test root: {path}", nameof(files));
+                throw new ArgumentException(
+                    $"Test package path is outside the test root: {path}",
+                    nameof(files)
+                );
             }
 
             Directory.CreateDirectory(Path.GetDirectoryName(target)!);
@@ -103,11 +124,7 @@ public sealed class PluginManagerHarness : IDisposable
                 Directory.Delete(_root, recursive: true);
             }
         }
-        catch (IOException)
-        {
-        }
-        catch (UnauthorizedAccessException)
-        {
-        }
+        catch (IOException) { }
+        catch (UnauthorizedAccessException) { }
     }
 }

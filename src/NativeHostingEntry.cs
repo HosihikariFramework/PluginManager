@@ -38,7 +38,8 @@ public static class NativeHostingEntry
 
     /// <summary>给原生垫片读取的契约版本入口。</summary>
     [UnmanagedCallersOnly]
-    public static int GetHostingContractVersion(IntPtr arg, int argSizeInBytes) => HostingContractVersion;
+    public static int GetHostingContractVersion(IntPtr arg, int argSizeInBytes) =>
+        HostingContractVersion;
 
     /// <summary>
     /// 父级交来日志出口：<paramref name="arg"/> 指向 <c>{ void* callback; void* user; }</c>。
@@ -107,7 +108,10 @@ public static class NativeHostingEntry
     /// 读启动参数：载体包目录与不透明宿主句柄。字符串只在这次调用里有效，立刻复制；
     /// 没有参数（验证宿主、旧行为）时目录为空、句柄为零。
     /// </summary>
-    private static (string? CarrierDirectory, nint Host) ReadStartArgs(IntPtr arg, int argSizeInBytes)
+    private static (string? CarrierDirectory, nint Host) ReadStartArgs(
+        IntPtr arg,
+        int argSizeInBytes
+    )
     {
         if (arg == IntPtr.Zero || argSizeInBytes < IntPtr.Size * 2)
         {
@@ -268,7 +272,9 @@ public static class NativeHostingEntry
                             CoreText.Get(
                                 "Native_UnloadIncomplete",
                                 text,
-                                result.Error ?? CoreText.Get("Common_Unknown")));
+                                result.Error ?? CoreText.Get("Common_Unknown")
+                            )
+                        );
                     }
 
                     return result.Released ? 0 : 1;
@@ -281,13 +287,14 @@ public static class NativeHostingEntry
         }
     }
 
-    private static string ActionName(Verb verb) => verb switch
-    {
-        Verb.Load => CoreText.Get("Verb_Load"),
-        Verb.Unload => CoreText.Get("Verb_Unload"),
-        Verb.Enable => CoreText.Get("Verb_Enable"),
-        _ => CoreText.Get("Verb_Disable"),
-    };
+    private static string ActionName(Verb verb) =>
+        verb switch
+        {
+            Verb.Load => CoreText.Get("Verb_Load"),
+            Verb.Unload => CoreText.Get("Verb_Unload"),
+            Verb.Enable => CoreText.Get("Verb_Enable"),
+            _ => CoreText.Get("Verb_Disable"),
+        };
 
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     private delegate void RemovalCallback(IntPtr user, IntPtr nameUtf8);
@@ -319,7 +326,8 @@ public static class NativeHostingEntry
             }
             catch (Exception ex)
             {
-                s_loggerFactory?.CreateLogger("Hosihikari")
+                s_loggerFactory
+                    ?.CreateLogger("Hosihikari")
                     .LogError(ex, "{Message}", CoreText.Get("Native_RemovalNotifyFailed", name));
             }
         }
@@ -337,7 +345,11 @@ public static class NativeHostingEntry
             try
             {
                 var restarted = CarrierStartup.Create(
-                    args.CarrierDirectory, args.Host, s_loggerFactory!, out var restartError);
+                    args.CarrierDirectory,
+                    args.Host,
+                    s_loggerFactory!,
+                    out var restartError
+                );
                 if (restartError is not null)
                 {
                     reuseLogger?.LogError("{Message}", restartError);
@@ -345,12 +357,19 @@ public static class NativeHostingEntry
                 }
 
                 reused.RepublishCarrierServices(restarted.Services);
-                if (restarted.Directory is { Length: > 0 } reusedDirectory && restarted.Components.Count > 0
-                    && !reused.StartComponents(reusedDirectory, restarted.Components))
+                if (
+                    restarted.Directory is { Length: > 0 } reusedDirectory
+                    && restarted.Components.Count > 0
+                    && !reused.StartComponents(reusedDirectory, restarted.Components)
+                )
                 {
                     reuseLogger?.LogError(
                         "{Message}",
-                        CoreText.Get("Native_ComponentsFailed", string.Join(" | ", restarted.Components)));
+                        CoreText.Get(
+                            "Native_ComponentsFailed",
+                            string.Join(" | ", restarted.Components)
+                        )
+                    );
                     return 1;
                 }
 
@@ -384,16 +403,24 @@ public static class NativeHostingEntry
                 "{Message}",
                 CoreText.Get(
                     "Native_Versions",
-                    typeof(PluginManager).Assembly.GetName().Version?.ToString(3) ?? CoreText.Get("Common_Unknown"),
+                    typeof(PluginManager).Assembly.GetName().Version?.ToString(3)
+                        ?? CoreText.Get("Common_Unknown"),
                     HostingContractVersion,
-                    PluginContractInfo.CurrentApiVersion));
+                    PluginContractInfo.CurrentApiVersion
+                )
+            );
 
             // 服务端根就是进程的工作目录；配置与数据都相对它找（FX-0018）。
             var root = Directory.GetCurrentDirectory();
             // 宿主从 services 里取 ILoggerFactory；不传的话插件拿到的是 NullLogger ——
             // 它们的每一行都会消失，而且不会有人报错。
             // 载体包在容器建成之前配置它自己的服务（FX-0064）。
-            var startup = CarrierStartup.Create(args.CarrierDirectory, args.Host, s_loggerFactory!, out var startupError);
+            var startup = CarrierStartup.Create(
+                args.CarrierDirectory,
+                args.Host,
+                s_loggerFactory!,
+                out var startupError
+            );
             if (startupError is not null)
             {
                 logger.LogError("{Message}", startupError);
@@ -408,16 +435,26 @@ public static class NativeHostingEntry
                 startup.Services,
                 ForwardRemoval,
                 // 自持态扫描并拥有插件集；父级态由父级驱动启停（FX-0003 / 0062）。
-                new PluginManagerOptions { OwnsPluginSet = scanPlugins });
+                new PluginManagerOptions { OwnsPluginSet = scanPlugins }
+            );
             host.RegisterLoader(new AssemblyPluginLoader([.. startup.SharedAssemblies]));
 
             // 组件在事件分发对插件开启之前启动；任何一个失败都中止整次启动（FX-0061）。
             // 宿主到这里才公布：失败的启动不能留一个“已就绪”的静态宿主给重试（Codex 指出）。
-            if (startup.Directory is { Length: > 0 } carrierDirectory && startup.Components.Count > 0)
+            if (
+                startup.Directory is { Length: > 0 } carrierDirectory
+                && startup.Components.Count > 0
+            )
             {
                 if (!host.StartComponents(carrierDirectory, startup.Components))
                 {
-                    logger.LogError("{Message}", CoreText.Get("Native_ComponentsFailed", string.Join(" | ", startup.Components)));
+                    logger.LogError(
+                        "{Message}",
+                        CoreText.Get(
+                            "Native_ComponentsFailed",
+                            string.Join(" | ", startup.Components)
+                        )
+                    );
                     (startup.Services as IDisposable)?.Dispose();
                     return 1;
                 }
@@ -433,7 +470,9 @@ public static class NativeHostingEntry
                     CoreText.Get(
                         "Native_Loaded",
                         host.LoadedNames.Count,
-                        string.Join(", ", host.LoadedNames)));
+                        string.Join(", ", host.LoadedNames)
+                    )
+                );
             }
             else
             {

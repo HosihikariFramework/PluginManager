@@ -17,15 +17,28 @@ var probe = new ProbePlugin();
 using (var host = new PluginTestHost(probe, "Probe"))
 {
     host.RunLifecycle();
-    checks.Add(("测试宿主拒绝越界的插件名", invalidHostRejected, invalidHostRejected ? "已拒绝" : "（没有拒绝）"));
-    checks.Add((
-        "生命周期按 Load → Enable → Disable → Unload 驱动",
-        host.HookLog.SequenceEqual(["load", "enable", "disable", "unload"]),
-        string.Join(" → ", host.HookLog)));
-    checks.Add((
-        "上下文给出包目录与数据目录",
-        Directory.Exists(host.Context.PackageDirectory) && Directory.Exists(host.Context.DataDirectory),
-        host.Context.PackageDirectory));
+    checks.Add(
+        (
+            "测试宿主拒绝越界的插件名",
+            invalidHostRejected,
+            invalidHostRejected ? "已拒绝" : "（没有拒绝）"
+        )
+    );
+    checks.Add(
+        (
+            "生命周期按 Load → Enable → Disable → Unload 驱动",
+            host.HookLog.SequenceEqual(["load", "enable", "disable", "unload"]),
+            string.Join(" → ", host.HookLog)
+        )
+    );
+    checks.Add(
+        (
+            "上下文给出包目录与数据目录",
+            Directory.Exists(host.Context.PackageDirectory)
+                && Directory.Exists(host.Context.DataDirectory),
+            host.Context.PackageDirectory
+        )
+    );
     checks.Add(("插件拿到上下文", probe.Context is not null, probe.Context?.Name ?? "（没有）"));
 
     var seen = 0;
@@ -38,26 +51,40 @@ using (var host = new PluginTestHost(probe, "Probe"))
 
     // 跨档：Lowest → Low → Normal → High → Highest → Monitor，同档按订阅顺序（FX-0060）。
     var order = new List<string>();
-    foreach (var (priority, label) in new[]
-             {
-                 (EventPriority.Monitor, "monitor"),
-                 (EventPriority.Highest, "highest"),
-                 (EventPriority.Normal, "normal"),
-                 (EventPriority.Lowest, "lowest"),
-                 (EventPriority.High, "high"),
-                 (EventPriority.Low, "low"),
-                 (EventPriority.Normal, "normal-2"),
-                 (EventPriority.Monitor, "monitor-2"),
-             })
+    foreach (
+        var (priority, label) in new[]
+        {
+            (EventPriority.Monitor, "monitor"),
+            (EventPriority.Highest, "highest"),
+            (EventPriority.Normal, "normal"),
+            (EventPriority.Lowest, "lowest"),
+            (EventPriority.High, "high"),
+            (EventPriority.Low, "low"),
+            (EventPriority.Normal, "normal-2"),
+            (EventPriority.Monitor, "monitor-2"),
+        }
+    )
     {
         host.Context.TestEvents.Subscribe<string>(_ => order.Add(label), priority);
     }
 
     host.Context.TestEvents.Publish("order");
-    checks.Add((
-        "事件按档分发、同档按订阅顺序",
-        order.SequenceEqual(["lowest", "low", "normal", "normal-2", "high", "highest", "monitor", "monitor-2"]),
-        string.Join(" → ", order)));
+    checks.Add(
+        (
+            "事件按档分发、同档按订阅顺序",
+            order.SequenceEqual([
+                "lowest",
+                "low",
+                "normal",
+                "normal-2",
+                "high",
+                "highest",
+                "monitor",
+                "monitor-2",
+            ]),
+            string.Join(" → ", order)
+        )
+    );
 
     var badPriorityRefused = false;
     try
@@ -69,13 +96,24 @@ using (var host = new PluginTestHost(probe, "Probe"))
         badPriorityRefused = true;
     }
 
-    checks.Add(("越界档位抛 ArgumentOutOfRangeException", badPriorityRefused,
-        badPriorityRefused ? "已抛出" : "（没有抛）"));
+    checks.Add(
+        (
+            "越界档位抛 ArgumentOutOfRangeException",
+            badPriorityRefused,
+            badPriorityRefused ? "已抛出" : "（没有抛）"
+        )
+    );
 
     var once = 0;
     host.Context.TestScheduler.ScheduleOnce(TimeSpan.Zero, () => once++);
     host.Context.TestScheduler.RunOnce();
-    checks.Add(("一次性调度手动执行", once == 1 && host.Context.TestScheduler.PendingOnce == 0, $"once={once}"));
+    checks.Add(
+        (
+            "一次性调度手动执行",
+            once == 1 && host.Context.TestScheduler.PendingOnce == 0,
+            $"once={once}"
+        )
+    );
 
     var periodic = 0;
     var cancel = host.Context.TestScheduler.SchedulePeriodic(TimeSpan.Zero, () => periodic++);
@@ -88,13 +126,22 @@ using (var host = new PluginTestHost(probe, "Probe"))
     var services = host.Context.TestServices;
     var first = services.Register<IProbeService>(new ProbeService("first"));
     var duplicate = services.Register<IProbeService>(new ProbeService("second"));
-    checks.Add((
-        "服务注册先到先得",
-        first && !duplicate && services.Get<IProbeService>()?.Name == "first",
-        services.Get<IProbeService>()?.Name ?? "（没有）"));
+    checks.Add(
+        (
+            "服务注册先到先得",
+            first && !duplicate && services.Get<IProbeService>()?.Name == "first",
+            services.Get<IProbeService>()?.Name ?? "（没有）"
+        )
+    );
 
     host.Context.ReportFault(PluginDiagnostic.Error("probe", "probe fault"));
-    checks.Add(("故障报告可检查", host.Context.Faults.Contains("probe fault"), string.Join("；", host.Context.Faults)));
+    checks.Add(
+        (
+            "故障报告可检查",
+            host.Context.Faults.Contains("probe fault"),
+            string.Join("；", host.Context.Faults)
+        )
+    );
 }
 
 var refused = new RefusePlugin();
@@ -102,10 +149,13 @@ using (var host = new PluginTestHost(refused))
 {
     host.Load();
     var result = host.Enable();
-    checks.Add((
-        "拒绝启用保留原因",
-        !result.Allowed && result.Reason == "not now",
-        result.Reason ?? "（没有原因）"));
+    checks.Add(
+        (
+            "拒绝启用保留原因",
+            !result.Allowed && result.Reason == "not now",
+            result.Reason ?? "（没有原因）"
+        )
+    );
 }
 
 var gate = new GatePlugin();
@@ -121,14 +171,20 @@ using (var host = new PluginTestHost(gate))
     host.Unload();
     host.Context.Events.Publish("unloaded");
 
-    checks.Add((
-        "启用闸门拦住启用前、停用后与卸载后的回调",
-        gate.Seen == 1 && gate.Scheduled == 1,
-        $"seen={gate.Seen} scheduled={gate.Scheduled}"));
-    checks.Add((
-        "卸载释放插件登记的服务",
-        host.Context.TestServices.Get<IProbeService>() is null,
-        host.Context.TestServices.Get<IProbeService>()?.Name ?? "（已释放）"));
+    checks.Add(
+        (
+            "启用闸门拦住启用前、停用后与卸载后的回调",
+            gate.Seen == 1 && gate.Scheduled == 1,
+            $"seen={gate.Seen} scheduled={gate.Scheduled}"
+        )
+    );
+    checks.Add(
+        (
+            "卸载释放插件登记的服务",
+            host.Context.TestServices.Get<IProbeService>() is null,
+            host.Context.TestServices.Get<IProbeService>()?.Name ?? "（已释放）"
+        )
+    );
 }
 
 var thrower = new ThrowUnloadPlugin();
@@ -146,10 +202,13 @@ using (var host = new PluginTestHost(thrower))
         threw = true;
     }
 
-    checks.Add((
-        "OnUnload 抛出仍释放作用域",
-        threw && host.Context.TestServices.Get<IProbeService>() is null,
-        $"threw={threw} service={host.Context.TestServices.Get<IProbeService>()?.Name ?? "已释放"}"));
+    checks.Add(
+        (
+            "OnUnload 抛出仍释放作用域",
+            threw && host.Context.TestServices.Get<IProbeService>() is null,
+            $"threw={threw} service={host.Context.TestServices.Get<IProbeService>()?.Name ?? "已释放"}"
+        )
+    );
 }
 
 var unloadPublish = new UnloadPublishPlugin();
@@ -158,10 +217,9 @@ using (var host = new PluginTestHost(unloadPublish))
     host.Load();
     host.Enable();
     host.Unload();
-    checks.Add((
-        "直接卸载时先关闸门再调 OnUnload",
-        unloadPublish.Seen == 0,
-        $"seen={unloadPublish.Seen}"));
+    checks.Add(
+        ("直接卸载时先关闸门再调 OnUnload", unloadPublish.Seen == 0, $"seen={unloadPublish.Seen}")
+    );
 }
 
 using (var harness = new PluginManagerHarness())
@@ -192,14 +250,18 @@ using (var harness = new PluginManagerHarness())
           "dependencies": [ { "name": "hosihikari" } ],
           "loader": "probe"
         }
-        """);
+        """
+    );
     var loaded = harness.Load("HarnessProbe");
     var enabled = harness.Manager.Enable("HarnessProbe");
     var unloaded = harness.Manager.Unload("HarnessProbe");
-    checks.Add((
-        "真实管理器辅助加载、启用并卸载",
-        loaded && enabled && unloaded.Released,
-        $"loaded={loaded} enabled={enabled} unloaded={unloaded.Released} {unloaded.Error} reports=[{string.Join(" | ", harness.Reports)}]"));
+    checks.Add(
+        (
+            "真实管理器辅助加载、启用并卸载",
+            loaded && enabled && unloaded.Released,
+            $"loaded={loaded} enabled={enabled} unloaded={unloaded.Released} {unloaded.Error} reports=[{string.Join(" | ", harness.Reports)}]"
+        )
+    );
 }
 
 Console.WriteLine("=== Hosihikari.Testing 冒烟 ===");
@@ -241,7 +303,8 @@ sealed class ProbePlugin : IPlugin
 
 sealed class RefusePlugin : IPlugin
 {
-    public ValueTask OnLoad(IPluginContext context, CancellationToken cancellationToken) => ValueTask.CompletedTask;
+    public ValueTask OnLoad(IPluginContext context, CancellationToken cancellationToken) =>
+        ValueTask.CompletedTask;
 
     public ValueTask<PluginHookResult> OnEnable(CancellationToken cancellationToken) =>
         ValueTask.FromResult(PluginHookResult.Refuse("not now"));
@@ -320,10 +383,14 @@ sealed class ThrowUnloadPlugin : IPlugin
 sealed class ProbeLoader : IPluginLoader
 {
     public string Id => "probe";
+
     public bool CanLoad(PluginManifest manifest) => manifest.Loader == Id;
 
-    public PluginHandle? Load(PluginManifest manifest, string packageDirectory, IPluginContext context) =>
-        new ProbeHandle(new ProbePlugin());
+    public PluginHandle? Load(
+        PluginManifest manifest,
+        string packageDirectory,
+        IPluginContext context
+    ) => new ProbeHandle(new ProbePlugin());
 }
 
 sealed class ProbeHandle(ProbePlugin plugin) : PluginHandle(plugin)

@@ -15,13 +15,13 @@ internal static class CoreText
 {
     private const string ResourceBaseName = "Hosihikari.Resources.CoreStrings";
 
-    private static readonly IStringLocalizer Localizer =
-        new ResourceManagerStringLocalizer(
-            new ResourceManager(ResourceBaseName, typeof(CoreStrings).Assembly),
-            typeof(CoreStrings).Assembly,
-            ResourceBaseName,
-            new ResourceNamesCache(),
-            NullLogger.Instance);
+    private static readonly IStringLocalizer Localizer = new ResourceManagerStringLocalizer(
+        new ResourceManager(ResourceBaseName, typeof(CoreStrings).Assembly),
+        typeof(CoreStrings).Assembly,
+        ResourceBaseName,
+        new ResourceNamesCache(),
+        NullLogger.Instance
+    );
 
     internal static string Get(string key, params object[] arguments) => Localizer[key, arguments];
 }

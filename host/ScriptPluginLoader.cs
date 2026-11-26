@@ -12,7 +12,11 @@ public sealed class ScriptPluginLoader : IPluginLoader
 
     public bool CanLoad(PluginManifest manifest) => manifest.Loader == Id;
 
-    public PluginHandle? Load(PluginManifest manifest, string packageDirectory, IPluginContext context)
+    public PluginHandle? Load(
+        PluginManifest manifest,
+        string packageDirectory,
+        IPluginContext context
+    )
     {
         var scriptPath = Path.Combine(packageDirectory, manifest.EntryPath);
         if (!File.Exists(scriptPath))
@@ -20,7 +24,9 @@ public sealed class ScriptPluginLoader : IPluginLoader
             return null;
         }
 
-        return new TestPluginHandle(new ScriptPlugin(File.ReadAllText(scriptPath), context.DataDirectory));
+        return new TestPluginHandle(
+            new ScriptPlugin(File.ReadAllText(scriptPath), context.DataDirectory)
+        );
     }
 }
 

@@ -26,7 +26,8 @@ public sealed class AssemblyPluginLoader(params Assembly[] sharedSources) : IPlu
     /// 基地清单：契约与它引用的抽象包（FX-0019）。载体自己的绑定程序集在它的包清单里，
     /// 由 <see cref="SharedLayerFor"/> 并进来。
     /// </summary>
-    public static IReadOnlyList<string> SharedAssemblyFileNames => PluginContractInfo.BaseSharedAssemblyFileNames;
+    public static IReadOnlyList<string> SharedAssemblyFileNames =>
+        PluginContractInfo.BaseSharedAssemblyFileNames;
 
     /// <summary>
     /// 目标载体的完整共享层：基地清单 + 该载体包 <c>carrier.sharedAssemblies</c> 声明的程序集
@@ -42,7 +43,10 @@ public sealed class AssemblyPluginLoader(params Assembly[] sharedSources) : IPlu
         }
 
         var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-        var manifest = JsonSerializer.Deserialize<PluginManifest>(File.ReadAllText(manifestPath), options);
+        var manifest = JsonSerializer.Deserialize<PluginManifest>(
+            File.ReadAllText(manifestPath),
+            options
+        );
         var declared = manifest?.Carrier?.SharedAssemblies ?? [];
         return [.. PluginContractInfo.BaseSharedAssemblyFileNames, .. declared];
     }
@@ -57,14 +61,19 @@ public sealed class AssemblyPluginLoader(params Assembly[] sharedSources) : IPlu
 
     public bool CanLoad(PluginManifest manifest) => manifest.Loader == Id;
 
-    public PluginHandle? Load(PluginManifest manifest, string packageDirectory, IPluginContext context)
+    public PluginHandle? Load(
+        PluginManifest manifest,
+        string packageDirectory,
+        IPluginContext context
+    )
     {
         var entryPath = Path.Combine(packageDirectory, manifest.EntryPath);
         if (!File.Exists(entryPath))
         {
             context.Logger.LogError(
                 "{Message}",
-                CoreText.Get("Assembly_EntryMissing", manifest.Name, manifest.EntryPath));
+                CoreText.Get("Assembly_EntryMissing", manifest.Name, manifest.EntryPath)
+            );
             return null;
         }
 
@@ -73,7 +82,8 @@ public sealed class AssemblyPluginLoader(params Assembly[] sharedSources) : IPlu
             entryPath,
             isUnloadable: true,
             sharedTypes: _sharedTypes,
-            configure: config => config.PreferSharedTypes = true);
+            configure: config => config.PreferSharedTypes = true
+        );
 
         // 入口由程序集上的特性声明 —— 怎么找到入口是本加载器的事（FX-0008 / FX-0010）。
         var assembly = loader.LoadDefaultAssembly();
@@ -82,7 +92,8 @@ public sealed class AssemblyPluginLoader(params Assembly[] sharedSources) : IPlu
         {
             context.Logger.LogError(
                 "{Message}",
-                CoreText.Get("Assembly_EntryCount", manifest.Name, declared));
+                CoreText.Get("Assembly_EntryCount", manifest.Name, declared)
+            );
             loader.Dispose();
             return null;
         }

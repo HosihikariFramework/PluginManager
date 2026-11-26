@@ -144,7 +144,12 @@ return 1;
 
 // Loader 包的装配：先按共享层清单剔除副本，再交给 Packager 做常规校验与复制。
 // 共享清单 = 契约的基地清单 + 目标载体声明的那份（FX-0061）；载体包用 --carrier 指定。
-static int PackLoader(string sourceDirectory, string manifestPath, string outputRoot, string? carrierDirectory)
+static int PackLoader(
+    string sourceDirectory,
+    string manifestPath,
+    string outputRoot,
+    string? carrierDirectory
+)
 {
     var shared = carrierDirectory is null
         ? AssemblyPluginLoader.SharedAssemblyFileNames
@@ -153,7 +158,10 @@ static int PackLoader(string sourceDirectory, string manifestPath, string output
         .Select(name => Path.GetFileNameWithoutExtension(name))
         .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-    var staging = Path.Combine(Path.GetTempPath(), "hosihikari-pack-" + Guid.NewGuid().ToString("N"));
+    var staging = Path.Combine(
+        Path.GetTempPath(),
+        "hosihikari-pack-" + Guid.NewGuid().ToString("N")
+    );
     Directory.CreateDirectory(staging);
     try
     {
@@ -163,12 +171,16 @@ static int PackLoader(string sourceDirectory, string manifestPath, string output
         var comparison = OperatingSystem.IsWindows()
             ? StringComparison.OrdinalIgnoreCase
             : StringComparison.Ordinal;
-        var sourceRoot = Path.TrimEndingDirectorySeparator(Path.GetFullPath(sourceDirectory)) + Path.DirectorySeparatorChar;
+        var sourceRoot =
+            Path.TrimEndingDirectorySeparator(Path.GetFullPath(sourceDirectory))
+            + Path.DirectorySeparatorChar;
         var outputFull = Path.TrimEndingDirectorySeparator(Path.GetFullPath(outputRoot));
         var skipRoot = outputFull.StartsWith(sourceRoot, comparison)
             ? outputFull + Path.DirectorySeparatorChar
             : null;
-        foreach (var file in Directory.EnumerateFiles(sourceDirectory, "*", SearchOption.AllDirectories))
+        foreach (
+            var file in Directory.EnumerateFiles(sourceDirectory, "*", SearchOption.AllDirectories)
+        )
         {
             if (skipRoot is not null && Path.GetFullPath(file).StartsWith(skipRoot, comparison))
             {

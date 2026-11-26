@@ -3,7 +3,8 @@ using McMaster.NETCore.Plugins;
 namespace Hosihikari.Internal;
 
 /// <summary>内置加载器交出的句柄：放下插件并观察 collectible ALC 的回收（FX-0010 / 0023）。</summary>
-internal sealed class AssemblyPluginHandle(IPlugin plugin, PluginLoader loader) : PluginHandle(plugin)
+internal sealed class AssemblyPluginHandle(IPlugin plugin, PluginLoader loader)
+    : PluginHandle(plugin)
 {
     private WeakReference? _weakContext;
     private PluginLoader? _loader = loader;
@@ -23,7 +24,9 @@ internal sealed class AssemblyPluginHandle(IPlugin plugin, PluginLoader loader) 
         Plugin = null;
     }
 
-    public override async Task<bool> WaitForUnloadAsync(CancellationToken cancellationToken = default)
+    public override async Task<bool> WaitForUnloadAsync(
+        CancellationToken cancellationToken = default
+    )
     {
         if (_weakContext is null)
         {

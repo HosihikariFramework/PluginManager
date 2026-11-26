@@ -1,5 +1,4 @@
 <Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net10.0</TargetFramework>
@@ -19,9 +18,14 @@
     <!-- 只为保证构建顺序：插件包在运行时组装到临时目录。 -->
     <ProjectReference Include="../test/Foo/Foo.csproj" ReferenceOutputAssembly="false" />
     <ProjectReference Include="../test/Bar/Bar.csproj" ReferenceOutputAssembly="false" />
-    <ProjectReference Include="../test/NativeProbe/NativeProbe.csproj" ReferenceOutputAssembly="false" />
+    <ProjectReference
+      Include="../test/NativeProbe/NativeProbe.csproj"
+      ReferenceOutputAssembly="false"
+    />
     <ProjectReference Include="../test/Retained/Retained.csproj" ReferenceOutputAssembly="false" />
-    <ProjectReference Include="../test/Reloadable/Reloadable.csproj" ReferenceOutputAssembly="false" />
+    <ProjectReference
+      Include="../test/Reloadable/Reloadable.csproj"
+      ReferenceOutputAssembly="false"
+    />
   </ItemGroup>
-
 </Project>

@@ -17,7 +17,8 @@ public sealed record PluginInfo(
     PluginState State,
     bool Enabled,
     bool IsLoader,
-    IReadOnlyList<PluginDependencyInfo> Dependencies);
+    IReadOnlyList<PluginDependencyInfo> Dependencies
+);
 
 /// <summary>一条依赖的只读快照。</summary>
 /// <param name="Name">被依赖的插件名。</param>

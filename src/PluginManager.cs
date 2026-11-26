@@ -2,10 +2,10 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using Hocon.Extensions.Configuration;
+using Hosihikari.Internal;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
-using Hosihikari.Internal;
 
 namespace Hosihikari;
 
@@ -15,20 +15,22 @@ public sealed class PluginManager
     private readonly string _pluginsRoot;
     private readonly string _dataRoot;
     private readonly string _configRoot;
+
     // Task.WaitAsync / Task.Delay 的计时器上限；超过它会抛 ArgumentOutOfRangeException。
-    private static readonly TimeSpan MaxTimeout =
-        TimeSpan.FromMilliseconds(uint.MaxValue - 1);
+    private static readonly TimeSpan MaxTimeout = TimeSpan.FromMilliseconds(uint.MaxValue - 1);
 
     private readonly TimeSpan _hookTimeout;
     private readonly TimeSpan _unloadVerificationTimeout;
     private readonly TimeSpan _componentStopTimeout;
     private readonly bool _ownsPluginSet;
     private readonly Action<string> _reportFault;
+
     // 载体服务在父级重载后可以换代（Endstone 的 Plugin* 会变），所以不是 readonly；
     // 换代经 RepublishCarrierServices，由托管入口在重载路径上调用（FX-0065）。
     private IServiceProvider? _carrierServices;
     private readonly Action<string>? _onRemoved;
     private readonly object _gate = new();
+
     // 钩子跑在线程池上，钩子里回调管理器时拿不到 _gate（调用方正握着它等钩子）。
     // 所以在装载钩子里会用到的那两本账各有自己的锁，不与 _gate 相交。
     private readonly object _faultGate = new();
@@ -57,7 +59,8 @@ public sealed class PluginManager
         string configRoot,
         Action<string> reportFault,
         IServiceProvider? carrierServices = null,
-        Action<string>? onRemoved = null)
+        Action<string>? onRemoved = null
+    )
         : this(
             pluginsRoot,
             dataRoot,
@@ -65,9 +68,9 @@ public sealed class PluginManager
             reportFault,
             carrierServices,
             onRemoved,
-            new PluginManagerOptions())
-    {
-    }
+            new PluginManagerOptions()
+        )
+    { }
 
     /// <summary>带显式配置的构造函数；现有构造函数保持原签名。</summary>
     public PluginManager(
@@ -77,15 +80,22 @@ public sealed class PluginManager
         Action<string> reportFault,
         IServiceProvider? carrierServices,
         Action<string>? onRemoved,
-        PluginManagerOptions options)
+        PluginManagerOptions options
+    )
     {
         ArgumentNullException.ThrowIfNull(options);
         // InfiniteTimeSpan 是 1.x 已有的取值，继续收（加法承诺）；有限值才走范围校验。
         _hookTimeout = ValidateTimeout(options.HookTimeout, nameof(options), "HookTimeout");
         _unloadVerificationTimeout = ValidateTimeout(
-            options.UnloadVerificationTimeout, nameof(options), "UnloadVerificationTimeout");
+            options.UnloadVerificationTimeout,
+            nameof(options),
+            "UnloadVerificationTimeout"
+        );
         _componentStopTimeout = ValidateTimeout(
-            options.ComponentStopTimeout, nameof(options), "ComponentStopTimeout");
+            options.ComponentStopTimeout,
+            nameof(options),
+            "ComponentStopTimeout"
+        );
         _ownsPluginSet = options.OwnsPluginSet;
 
         _pluginsRoot = pluginsRoot;
@@ -94,8 +104,9 @@ public sealed class PluginManager
         _reportFault = reportFault;
         _carrierServices = carrierServices;
         _onRemoved = onRemoved;
-        _loggerFactory = carrierServices?.GetService(typeof(ILoggerFactory)) as ILoggerFactory
-                         ?? NullLoggerFactory.Instance;
+        _loggerFactory =
+            carrierServices?.GetService(typeof(ILoggerFactory)) as ILoggerFactory
+            ?? NullLoggerFactory.Instance;
         _events = new EventBus(_loggerFactory.CreateLogger("Hosihikari.Events"));
         _scheduler = new Scheduler(_loggerFactory.CreateLogger("Hosihikari.Scheduler"));
 
@@ -110,7 +121,8 @@ public sealed class PluginManager
         {
             throw new ArgumentOutOfRangeException(
                 parameter,
-                $"{name} must be positive and no more than about 49.7 days, or Timeout.InfiniteTimeSpan.");
+                $"{name} must be positive and no more than about 49.7 days, or Timeout.InfiniteTimeSpan."
+            );
         }
 
         return value;
@@ -142,7 +154,8 @@ public sealed class PluginManager
         Guid instanceId,
         PluginContext context,
         IPluginLoader loader,
-        out string? problem)
+        out string? problem
+    )
     {
         lock (_loaderGate)
         {
@@ -159,7 +172,8 @@ public sealed class PluginManager
                     "Manager_LoaderDuplicate",
                     loader.Id,
                     existing.GetType().Name,
-                    loader.GetType().Name);
+                    loader.GetType().Name
+                );
                 return false;
             }
 
@@ -208,7 +222,8 @@ public sealed class PluginManager
                     "Manager_LoaderDuplicate",
                     loader.Id,
                     existing.GetType().Name,
-                    loader.GetType().Name);
+                    loader.GetType().Name
+                );
                 return false;
             }
 
@@ -258,7 +273,8 @@ public sealed class PluginManager
         {
             lock (_gate)
             {
-                return _slots.Where(slot => slot.Value.State == PluginState.Loaded)
+                return _slots
+                    .Where(slot => slot.Value.State == PluginState.Loaded)
                     .Select(slot => slot.Key)
                     .ToArray();
             }
@@ -272,8 +288,8 @@ public sealed class PluginManager
         {
             lock (_gate)
             {
-                return _slots.Values
-                    .OrderBy(slot => slot.Manifest.Name, StringComparer.Ordinal)
+                return _slots
+                    .Values.OrderBy(slot => slot.Manifest.Name, StringComparer.Ordinal)
                     .Select(ToInfo)
                     .ToArray();
             }
@@ -296,16 +312,20 @@ public sealed class PluginManager
         }
     }
 
-    private static PluginInfo ToInfo(Slot slot) => new(
-        slot.Manifest.Name,
-        slot.Manifest.Version,
-        slot.Manifest.Loader,
-        slot.State,
-        slot.Enabled,
-        slot.IsLoader,
-        slot.Manifest.Dependencies
-            .Select(dependency => new PluginDependencyInfo(dependency.Name, dependency.VersionRange))
-            .ToArray());
+    private static PluginInfo ToInfo(Slot slot) =>
+        new(
+            slot.Manifest.Name,
+            slot.Manifest.Version,
+            slot.Manifest.Loader,
+            slot.State,
+            slot.Enabled,
+            slot.IsLoader,
+            slot.Manifest.Dependencies.Select(dependency => new PluginDependencyInfo(
+                    dependency.Name,
+                    dependency.VersionRange
+                ))
+                .ToArray()
+        );
 
     /// <summary>载体适配器要把载体事件并进来，所以事件总线得对外可达（FX-0007）。</summary>
     public IEventBus Events => _events;
@@ -352,7 +372,8 @@ public sealed class PluginManager
     /// <returns>全部启动成功为 <see langword="true"/>。</returns>
     public bool StartComponents(
         string carrierPackageDirectory,
-        IReadOnlyList<ManifestCarrierComponent> components)
+        IReadOnlyList<ManifestCarrierComponent> components
+    )
     {
         ArgumentNullException.ThrowIfNull(components);
         if (_componentsStarted)
@@ -365,7 +386,9 @@ public sealed class PluginManager
         var ok = true;
 
         // 组件类型住共享层（FX-0026 / 0061），按约定名从默认上下文解析；载体包里的私有程序集按路径装。
-        var assemblies = new Dictionary<string, System.Reflection.Assembly>(StringComparer.OrdinalIgnoreCase);
+        var assemblies = new Dictionary<string, System.Reflection.Assembly>(
+            StringComparer.OrdinalIgnoreCase
+        );
         foreach (var component in components)
         {
             if (!assemblies.TryGetValue(component.Assembly, out var assembly))
@@ -374,18 +397,22 @@ public sealed class PluginManager
                 {
                     // 与载体装配同一条解析规则：共享层里装过一次的那份就复用，
                     // 否则按包内路径装（LoadFrom 会为同一个类型再装一份，别用）。
-                    assemblies[component.Assembly] = assembly = CarrierStartup.ResolveAssembly(
-                        carrierPackageDirectory,
-                        component.Assembly,
-                        _loggerFactory.CreateLogger("Hosihikari.Components"))
-                        ?? throw new FileNotFoundException(component.Assembly);
+                    assemblies[component.Assembly] = assembly =
+                        CarrierStartup.ResolveAssembly(
+                            carrierPackageDirectory,
+                            component.Assembly,
+                            _loggerFactory.CreateLogger("Hosihikari.Components")
+                        ) ?? throw new FileNotFoundException(component.Assembly);
                 }
                 catch (Exception ex)
                 {
-                    reports.Add(CoreText.Get(
-                        "Manager_ComponentAssemblyFailed",
-                        component.Assembly,
-                        ex.Demystify()));
+                    reports.Add(
+                        CoreText.Get(
+                            "Manager_ComponentAssemblyFailed",
+                            component.Assembly,
+                            ex.Demystify()
+                        )
+                    );
                     ok = false;
                     break;
                 }
@@ -395,12 +422,15 @@ public sealed class PluginManager
             try
             {
                 var type = assembly.GetType(component.Type, throwOnError: false);
-                instance = type is null ? null : Activator.CreateInstance(type) as ICarrierComponent;
+                instance = type is null
+                    ? null
+                    : Activator.CreateInstance(type) as ICarrierComponent;
             }
             catch (Exception ex)
             {
                 // 构造函数抛出与类型缺失同一种结局：记一笔、按启动失败处理（Codex 指出的漏网路径）。
-                _loggerFactory.CreateLogger("Hosihikari.Components")
+                _loggerFactory
+                    .CreateLogger("Hosihikari.Components")
                     .LogDebug(ex, "{Message}", component.Type);
                 instance = null;
             }
@@ -415,11 +445,18 @@ public sealed class PluginManager
             var context = new CarrierComponentContext(
                 _events,
                 _loggerFactory.CreateLogger(instance.GetType().FullName ?? instance.GetType().Name),
-                _carrierServices ?? PluginContext.Empty);
+                _carrierServices ?? PluginContext.Empty
+            );
             // 先记账再启动：启动失败的那一个也可能已经订阅了事件或拿了原生资源，
             // 回滚同样要给它一次 StopAsync（Codex 指出）。
             started.Add(instance);
-            if (!TryInvokeComponent(component.Type, token => instance.StartAsync(context, token), reports))
+            if (
+                !TryInvokeComponent(
+                    component.Type,
+                    token => instance.StartAsync(context, token),
+                    reports
+                )
+            )
             {
                 ok = false;
                 break;
@@ -434,7 +471,8 @@ public sealed class PluginManager
                 TryInvokeComponent(
                     started[i].GetType().FullName ?? started[i].GetType().Name,
                     started[i].StopAsync,
-                    reports);
+                    reports
+                );
             }
 
             started.Clear();
@@ -491,7 +529,8 @@ public sealed class PluginManager
     private bool TryInvokeComponent(
         string name,
         Func<CancellationToken, ValueTask> call,
-        List<string> reports)
+        List<string> reports
+    )
     {
         using var budget = new CancellationTokenSource();
         if (_componentStopTimeout != Timeout.InfiniteTimeSpan)
@@ -525,29 +564,44 @@ public sealed class PluginManager
         {
             lock (_gate)
             {
-                foreach (var package in DependencyGraph.Resolve(ManifestReader.Scan(_pluginsRoot, reports.Add), reports.Add))
+                foreach (
+                    var package in DependencyGraph.Resolve(
+                        ManifestReader.Scan(_pluginsRoot, reports.Add),
+                        reports.Add
+                    )
+                )
                 {
                     if (_slots.ContainsKey(package.Manifest.Name))
                     {
                         continue;
                     }
 
-                    var missing = package.Manifest.Dependencies
-                        .Where(dependency => dependency.Name != PluginContractInfo.ParentName)
-                        .Where(dependency => !_slots.TryGetValue(dependency.Name, out var slot)
-                                             || slot.State != PluginState.Loaded)
+                    var missing = package
+                        .Manifest.Dependencies.Where(dependency =>
+                            dependency.Name != PluginContractInfo.ParentName
+                        )
+                        .Where(dependency =>
+                            !_slots.TryGetValue(dependency.Name, out var slot)
+                            || slot.State != PluginState.Loaded
+                        )
                         .Select(dependency => dependency.Name)
                         .ToArray();
                     if (missing.Length > 0)
                     {
-                        reports.Add(CoreText.Get(
-                            "Manager_DependenciesNotLoaded",
-                            package.Manifest.Name,
-                            string.Join(", ", missing)));
+                        reports.Add(
+                            CoreText.Get(
+                                "Manager_DependenciesNotLoaded",
+                                package.Manifest.Name,
+                                string.Join(", ", missing)
+                            )
+                        );
                         continue;
                     }
 
-                    if (LoadOne(package, enable: true, reports, out var late) && late is { } lateFault)
+                    if (
+                        LoadOne(package, enable: true, reports, out var late)
+                        && late is { } lateFault
+                    )
                     {
                         lateFaults.Add(lateFault);
                     }
@@ -597,10 +651,13 @@ public sealed class PluginManager
                     }
                     else
                     {
-                        reports.Add(CoreText.Get(
-                            "Manager_AlreadyRegistered",
-                            package.Manifest.Name,
-                            slot.State));
+                        reports.Add(
+                            CoreText.Get(
+                                "Manager_AlreadyRegistered",
+                                package.Manifest.Name,
+                                slot.State
+                            )
+                        );
                         result = false;
                     }
                 }
@@ -629,7 +686,8 @@ public sealed class PluginManager
         // 父级的日志回调可能拿父级的锁；出了 _gate 再写，避免与卸载路径互相等。
         if (reusedLoader is not null)
         {
-            _loggerFactory.CreateLogger("Hosihikari")
+            _loggerFactory
+                .CreateLogger("Hosihikari")
                 .LogInformation("{Message}", CoreText.Get("Manager_LoaderReused", reusedLoader));
         }
 
@@ -684,7 +742,8 @@ public sealed class PluginManager
         return result;
     }
 
-    private static string VerbText(bool enable) => CoreText.Get(enable ? "Verb_Enable" : "Verb_Disable");
+    private static string VerbText(bool enable) =>
+        CoreText.Get(enable ? "Verb_Enable" : "Verb_Disable");
 
     /// <summary>
     /// 把钩子投到线程池再等。装着服务端线程 <c>SynchronizationContext</c> 时，直接在服务端线程上
@@ -701,7 +760,8 @@ public sealed class PluginManager
         string hook,
         Func<CancellationToken, ValueTask<T>> call,
         List<string> reports,
-        out T result)
+        out T result
+    )
         where T : struct
     {
         var name = slot.Manifest.Name;
@@ -726,9 +786,11 @@ public sealed class PluginManager
             catch (OperationCanceledException)
             {
                 // 预算到点与钩子自己取消是同一种结局：不再等它（FX-0059 / 0063）。
-                reports.Add(budget.IsCancellationRequested
-                    ? CoreText.Get("Manager_HookTimeout", name, hook, _hookTimeout)
-                    : CoreText.Get("Manager_HookCanceled", name, hook));
+                reports.Add(
+                    budget.IsCancellationRequested
+                        ? CoreText.Get("Manager_HookTimeout", name, hook, _hookTimeout)
+                        : CoreText.Get("Manager_HookCanceled", name, hook)
+                );
                 result = default;
                 return false;
             }
@@ -747,7 +809,8 @@ public sealed class PluginManager
         Slot slot,
         string hook,
         Func<CancellationToken, ValueTask> call,
-        List<string> reports) =>
+        List<string> reports
+    ) =>
         TryInvokeHook<bool>(
             slot,
             hook,
@@ -757,7 +820,8 @@ public sealed class PluginManager
                 return true;
             },
             reports,
-            out _);
+            out _
+        );
 
     /// <summary>
     /// 在专起的一根线程上跑钩子，而不是 <see cref="Task.Run(Func{Task})"/>。
@@ -768,7 +832,9 @@ public sealed class PluginManager
     /// </summary>
     private static Task<T> RunOffPool<T>(Func<ValueTask<T>> call)
     {
-        var completion = new TaskCompletionSource<T>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var completion = new TaskCompletionSource<T>(
+            TaskCreationOptions.RunContinuationsAsynchronously
+        );
         var thread = new Thread(() =>
         {
             try
@@ -780,27 +846,30 @@ public sealed class PluginManager
                     return;
                 }
 
-                pending.AsTask().ContinueWith(
-                    static (finished, state) =>
-                    {
-                        var target = (TaskCompletionSource<T>)state!;
-                        if (finished.IsCompletedSuccessfully)
+                pending
+                    .AsTask()
+                    .ContinueWith(
+                        static (finished, state) =>
                         {
-                            target.TrySetResult(finished.Result);
-                        }
-                        else if (finished.IsCanceled)
-                        {
-                            target.TrySetCanceled();
-                        }
-                        else
-                        {
-                            target.TrySetException(finished.Exception!);
-                        }
-                    },
-                    completion,
-                    CancellationToken.None,
-                    TaskContinuationOptions.ExecuteSynchronously,
-                    TaskScheduler.Default);
+                            var target = (TaskCompletionSource<T>)state!;
+                            if (finished.IsCompletedSuccessfully)
+                            {
+                                target.TrySetResult(finished.Result);
+                            }
+                            else if (finished.IsCanceled)
+                            {
+                                target.TrySetCanceled();
+                            }
+                            else
+                            {
+                                target.TrySetException(finished.Exception!);
+                            }
+                        },
+                        completion,
+                        CancellationToken.None,
+                        TaskContinuationOptions.ExecuteSynchronously,
+                        TaskScheduler.Default
+                    );
             }
             catch (Exception ex)
             {
@@ -838,7 +907,8 @@ public sealed class PluginManager
         bool enable,
         ref List<string>? reports,
         out Slot? faulted,
-        out PluginDiagnostic? fault)
+        out PluginDiagnostic? fault
+    )
     {
         fault = null;
         faulted = null;
@@ -855,7 +925,9 @@ public sealed class PluginManager
         // 从没启用过的插件收到停用仍会调一次 OnDisable —— 父级就是这么驱动新交付的包的。
         if (enable ? slot.Enabled : slot.Stopped)
         {
-            (reports ??= []).Add(CoreText.Get(enable ? "Manager_AlreadyEnabled" : "Manager_AlreadyDisabled", name));
+            (reports ??= []).Add(
+                CoreText.Get(enable ? "Manager_AlreadyEnabled" : "Manager_AlreadyDisabled", name)
+            );
             return true;
         }
 
@@ -873,7 +945,12 @@ public sealed class PluginManager
             if (enable)
             {
                 var enabled = TryInvokeHook(
-                    slot, "OnEnable", slot.Handle!.Plugin!.OnEnable, reportList, out var enableResult);
+                    slot,
+                    "OnEnable",
+                    slot.Handle!.Plugin!.OnEnable,
+                    reportList,
+                    out var enableResult
+                );
                 // 钩子里报的故障（本线程或别的线程）与抛错同级：交给调用方在锁外卸掉。
                 if (TakePendingFault(slot.Id) is { } enableFault)
                 {
@@ -890,10 +967,13 @@ public sealed class PluginManager
 
                 if (!enableResult.Allowed)
                 {
-                    reportList.Add(CoreText.Get(
-                        "Manager_EnableRefused",
-                        name,
-                        enableResult.Reason ?? CoreText.Get("Common_NoReason")));
+                    reportList.Add(
+                        CoreText.Get(
+                            "Manager_EnableRefused",
+                            name,
+                            enableResult.Reason ?? CoreText.Get("Common_NoReason")
+                        )
+                    );
                     return false;
                 }
 
@@ -912,7 +992,12 @@ public sealed class PluginManager
             }
 
             var stopped = TryInvokeHook(
-                slot, "OnDisable", slot.Handle!.Plugin!.OnDisable, reportList, out var disableResult);
+                slot,
+                "OnDisable",
+                slot.Handle!.Plugin!.OnDisable,
+                reportList,
+                out var disableResult
+            );
             if (TakePendingFault(slot.Id) is { } disableFault)
             {
                 // 已经停下就继续按停用算账；故障本身交给调用方卸掉。
@@ -936,15 +1021,16 @@ public sealed class PluginManager
                     {
                         scope.Open();
                     }
-                    catch (ObjectDisposedException)
-                    {
-                    }
+                    catch (ObjectDisposedException) { }
                 }
 
-                reportList.Add(CoreText.Get(
-                    "Manager_DisableRefused",
-                    name,
-                    disableResult.Reason ?? CoreText.Get("Common_NoReason")));
+                reportList.Add(
+                    CoreText.Get(
+                        "Manager_DisableRefused",
+                        name,
+                        disableResult.Reason ?? CoreText.Get("Common_NoReason")
+                    )
+                );
                 return false;
             }
 
@@ -954,16 +1040,20 @@ public sealed class PluginManager
         }
         catch (Exception ex)
         {
-            (reports ??= []).Add(CoreText.Get(
-                enable ? "Manager_EnableThrew" : "Manager_DisableThrew",
-                name,
-                ex.Demystify()));
+            (reports ??= []).Add(
+                CoreText.Get(
+                    enable ? "Manager_EnableThrew" : "Manager_DisableThrew",
+                    name,
+                    ex.Demystify()
+                )
+            );
             faulted = slot;
             // 不带 Exception：异常对象攥着 MethodBase，会经诊断把插件的 ALC 钉住，回收验证过不去。
             // 栈已经进了报告文本（Demystify），可读性不损失。
             fault = PluginDiagnostic.Error(
                 enable ? "enable-threw" : "disable-threw",
-                CoreText.Get(enable ? "Manager_EnableFault" : "Manager_DisableFault"));
+                CoreText.Get(enable ? "Manager_EnableFault" : "Manager_DisableFault")
+            );
             return false;
         }
     }
@@ -1012,7 +1102,9 @@ public sealed class PluginManager
         var unloaded = Unload(name);
         if (!unloaded.Released)
         {
-            return ReloadResult.Failed(unloaded.Error ?? CoreText.Get("Manager_ReloadUnloadFailed", name));
+            return ReloadResult.Failed(
+                unloaded.Error ?? CoreText.Get("Manager_ReloadUnloadFailed", name)
+            );
         }
 
         if (!Load(Path.Combine(_pluginsRoot, name)))
@@ -1038,7 +1130,10 @@ public sealed class PluginManager
                 continue;
             }
 
-            if (!_slots.TryGetValue(dependency.Name, out var slot) || slot.State != PluginState.Loaded)
+            if (
+                !_slots.TryGetValue(dependency.Name, out var slot)
+                || slot.State != PluginState.Loaded
+            )
             {
                 return CoreText.Get("Manager_DependencyNotLoaded", dependency.Name);
             }
@@ -1096,7 +1191,11 @@ public sealed class PluginManager
     /// 而父级线程可能正握着那把锁等 <see cref="_gate"/>；在锁内回调会互相等死。
     /// 钩子与回收验证各有一段预算（FX-0063）；前者超时只在结果上标注，后者超时才是失败。
     /// </summary>
-    private UnloadResult UnloadCore(string name, Guid? expectedInstanceId, ref List<string>? reports)
+    private UnloadResult UnloadCore(
+        string name,
+        Guid? expectedInstanceId,
+        ref List<string>? reports
+    )
     {
         Slot slot;
         Task<bool> verification;
@@ -1104,8 +1203,10 @@ public sealed class PluginManager
         var hookThrew = false;
         lock (_gate)
         {
-            if (!_slots.TryGetValue(name, out slot!)
-                || (expectedInstanceId is { } expected && slot.Id != expected))
+            if (
+                !_slots.TryGetValue(name, out slot!)
+                || (expectedInstanceId is { } expected && slot.Id != expected)
+            )
             {
                 return UnloadResult.Failed(CoreText.Get("Manager_NotLoaded", name));
             }
@@ -1118,7 +1219,8 @@ public sealed class PluginManager
 
             if (slot.State == PluginState.Loaded)
             {
-                var dependents = _slots.Values
+                var dependents = _slots
+                    .Values
                     // 待回收的插件已经放下实例，重试时仍要依赖在场，所以也算。
                     .Where(loaded => loaded.State is PluginState.Loaded or PluginState.Detached)
                     .Where(p => p.Manifest.Dependencies.Any(d => d.Name == name))
@@ -1127,7 +1229,8 @@ public sealed class PluginManager
                 if (dependents.Length > 0)
                 {
                     return UnloadResult.Failed(
-                        CoreText.Get("Manager_HasDependents", string.Join(", ", dependents)));
+                        CoreText.Get("Manager_HasDependents", string.Join(", ", dependents))
+                    );
                 }
 
                 var refusal = Detach(slot, ref reports, out hookTimedOut, out hookThrew);
@@ -1135,7 +1238,8 @@ public sealed class PluginManager
                 {
                     return UnloadResult.Failed(
                         CoreText.Get("Manager_DisableRefusedByPlugin", name, refusal),
-                        UnloadFailure.HookRefused);
+                        UnloadFailure.HookRefused
+                    );
                 }
 
                 // 钩子超时只是那一段不再等；回收验证照常进行，结局如实标注是哪一段超的。
@@ -1144,8 +1248,7 @@ public sealed class PluginManager
 
             if (slot.State != PluginState.Detached)
             {
-                return UnloadResult.Failed(
-                    CoreText.Get("Manager_StateAnomaly", name, slot.State));
+                return UnloadResult.Failed(CoreText.Get("Manager_StateAnomaly", name, slot.State));
             }
 
             if (slot.Verification is null)
@@ -1163,21 +1266,22 @@ public sealed class PluginManager
         var timedOut = false;
         try
         {
-            released = _unloadVerificationTimeout == Timeout.InfiniteTimeSpan
-                ? verification.GetAwaiter().GetResult()
-                : verification.WaitAsync(_unloadVerificationTimeout).GetAwaiter().GetResult();
+            released =
+                _unloadVerificationTimeout == Timeout.InfiniteTimeSpan
+                    ? verification.GetAwaiter().GetResult()
+                    : verification.WaitAsync(_unloadVerificationTimeout).GetAwaiter().GetResult();
         }
         catch (TimeoutException)
         {
             (reports ??= []).Add(
-                CoreText.Get("Manager_UnloadTimeout", name, _unloadVerificationTimeout));
+                CoreText.Get("Manager_UnloadTimeout", name, _unloadVerificationTimeout)
+            );
             released = false;
             timedOut = true;
         }
         catch (Exception ex)
         {
-            (reports ??= []).Add(
-                CoreText.Get("Manager_UnloadVerifyThrew", name, ex.Demystify()));
+            (reports ??= []).Add(CoreText.Get("Manager_UnloadVerifyThrew", name, ex.Demystify()));
             released = false;
         }
 
@@ -1207,15 +1311,19 @@ public sealed class PluginManager
             {
                 return UnloadResult.Failed(
                     CoreText.Get("Manager_UnloadTimeoutRetry", name, _unloadVerificationTimeout),
-                    hookTimedOut ? UnloadFailure.HookAndReclamationTimedOut : UnloadFailure.ReclamationTimedOut,
-                    hookTimedOut);
+                    hookTimedOut
+                        ? UnloadFailure.HookAndReclamationTimedOut
+                        : UnloadFailure.ReclamationTimedOut,
+                    hookTimedOut
+                );
             }
 
             // 说"回收"而不是"ALC"：释放句柄长什么样是 Loader 自己的事（FX-0010）。
             return UnloadResult.Failed(
                 CoreText.Get("Manager_UnloadVerifyFailedRetry", name),
                 hookThrew ? UnloadFailure.HookThrew : UnloadFailure.ReclamationFailed,
-                hookTimedOut);
+                hookTimedOut
+            );
         }
     }
 
@@ -1269,9 +1377,11 @@ public sealed class PluginManager
         var present = false;
         lock (_gate)
         {
-            if (_slots.TryGetValue(name, out var current)
+            if (
+                _slots.TryGetValue(name, out var current)
                 && current.Id == instanceId
-                && current.State == PluginState.Loaded)
+                && current.State == PluginState.Loaded
+            )
             {
                 present = true;
                 (reports ??= []).Add(Describe("Manager_Fault", name, diagnostic));
@@ -1296,12 +1406,16 @@ public sealed class PluginManager
         }
         else
         {
-            _reportFault(CoreText.Get(
-                "Manager_FaultUnloadIncomplete",
-                name,
-                result.Error ?? CoreText.Get("Common_Unknown")));
+            _reportFault(
+                CoreText.Get(
+                    "Manager_FaultUnloadIncomplete",
+                    name,
+                    result.Error ?? CoreText.Get("Common_Unknown")
+                )
+            );
         }
     }
+
     /// <summary>
     /// 停用、卸载、放下句柄与作用域，只留下回收验证。单独一个不内联的方法，是为了让本方法返回后，
     /// 插件与它的 ALC 在栈上再无强引用 —— 回收验证的前提（FX-0023）。
@@ -1309,7 +1423,12 @@ public sealed class PluginManager
     /// 停用被拒绝时返回原因，此时什么都不放开（FX-0030）。
     /// </summary>
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private string? Detach(Slot slot, ref List<string>? reports, out bool hookTimedOut, out bool hookThrew)
+    private string? Detach(
+        Slot slot,
+        ref List<string>? reports,
+        out bool hookTimedOut,
+        out bool hookThrew
+    )
     {
         var name = slot.Manifest.Name;
         var handle = slot.Handle!;
@@ -1327,7 +1446,15 @@ public sealed class PluginManager
             {
                 // 闸门在世界里已经关了，作用域照常关闭即可。
             }
-            else if (!TryInvokeHook(slot, "OnDisable", plugin.OnDisable, reportList, out var disableResult))
+            else if (
+                !TryInvokeHook(
+                    slot,
+                    "OnDisable",
+                    plugin.OnDisable,
+                    reportList,
+                    out var disableResult
+                )
+            )
             {
                 // 超时只是不再等它：闸门保持关闭，停用按已发生记账，卸载继续（FX-0063）。
                 hookTimedOut = true;
@@ -1416,15 +1543,19 @@ public sealed class PluginManager
                     }
                     catch (Exception ex)
                     {
-                        _loggerFactory.CreateLogger("Hosihikari.Events").LogError(
-                            ex,
-                            "{Message}",
-                            CoreText.Get("Manager_StatePublishFailed", name));
+                        _loggerFactory
+                            .CreateLogger("Hosihikari.Events")
+                            .LogError(
+                                ex,
+                                "{Message}",
+                                CoreText.Get("Manager_StatePublishFailed", name)
+                            );
                     }
                 },
                 CancellationToken.None,
                 TaskContinuationOptions.None,
-                TaskScheduler.Default);
+                TaskScheduler.Default
+            );
         }
     }
 
@@ -1449,7 +1580,8 @@ public sealed class PluginManager
         PluginPackage package,
         bool enable,
         List<string> reports,
-        out (string Name, Guid Id, PluginDiagnostic Fault)? lateFault)
+        out (string Name, Guid Id, PluginDiagnostic Fault)? lateFault
+    )
     {
         lateFault = null;
         var manifest = package.Manifest;
@@ -1485,7 +1617,8 @@ public sealed class PluginManager
                 catch (Exception ex)
                 {
                     reports.Add(
-                        CoreText.Get("Manager_DiagnosticsThrew", manifest.Name, ex.Demystify()));
+                        CoreText.Get("Manager_DiagnosticsThrew", manifest.Name, ex.Demystify())
+                    );
                     return false;
                 }
 
@@ -1494,7 +1627,8 @@ public sealed class PluginManager
                     foreach (var problem in problems)
                     {
                         reports.Add(
-                            $"{manifest.Name}: [{problem.Code}/{problem.Severity}] {problem.Message}");
+                            $"{manifest.Name}: [{problem.Code}/{problem.Severity}] {problem.Message}"
+                        );
                     }
 
                     return false;
@@ -1516,7 +1650,8 @@ public sealed class PluginManager
                 this,
                 slot.Id,
                 isLoader,
-                reports.Add);
+                reports.Add
+            );
 
             // 加载器与插件钩子拿到同一份视图：普通包的 OnLoad 也不能转成 ILoaderContext（FX-0059）。
             var pluginContext = context.ForPlugin();
@@ -1529,11 +1664,14 @@ public sealed class PluginManager
 
             var plugin = handle.Plugin;
             loadStarted = true;
-            if (!TryInvokeHook(
+            if (
+                !TryInvokeHook(
                     slot,
                     "OnLoad",
                     token => plugin.OnLoad(pluginContext, token),
-                    reports))
+                    reports
+                )
+            )
             {
                 // 取消或超时都按装载回滚处理（FX-0059），下面的 finally 收起已经跑过的部分。
                 return false;
@@ -1548,21 +1686,21 @@ public sealed class PluginManager
             if (enable)
             {
                 enableStarted = true;
-                if (!TryInvokeHook(
-                        slot,
-                        "OnEnable",
-                        plugin.OnEnable,
-                        reports,
-                        out var enableResult))
+                if (
+                    !TryInvokeHook(slot, "OnEnable", plugin.OnEnable, reports, out var enableResult)
+                )
                 {
                     // 自持态在装载里顺带启用：超时保持停用、仍算装上（FX-0059）。
                 }
                 else if (!enableResult.Allowed)
                 {
-                    reports.Add(CoreText.Get(
-                        "Manager_EnableRefusedStaysLoaded",
-                        manifest.Name,
-                        enableResult.Reason ?? CoreText.Get("Common_NoReason")));
+                    reports.Add(
+                        CoreText.Get(
+                            "Manager_EnableRefusedStaysLoaded",
+                            manifest.Name,
+                            enableResult.Reason ?? CoreText.Get("Common_NoReason")
+                        )
+                    );
                 }
                 else
                 {
@@ -1589,8 +1727,7 @@ public sealed class PluginManager
         }
         catch (Exception ex)
         {
-            reports.Add(
-                CoreText.Get("Manager_LoadThrewRolledBack", manifest.Name, ex.Demystify()));
+            reports.Add(CoreText.Get("Manager_LoadThrewRolledBack", manifest.Name, ex.Demystify()));
             return false;
         }
         finally
@@ -1621,10 +1758,13 @@ public sealed class PluginManager
             {
                 if (enableStarted)
                 {
-                    CleanupHook("OnDisable", async token =>
-                    {
-                        await handle!.Plugin!.OnDisable(token).ConfigureAwait(false);
-                    });
+                    CleanupHook(
+                        "OnDisable",
+                        async token =>
+                        {
+                            await handle!.Plugin!.OnDisable(token).ConfigureAwait(false);
+                        }
+                    );
                 }
 
                 if (loadStarted)
@@ -1656,7 +1796,8 @@ public sealed class PluginManager
             catch (Exception ex)
             {
                 reports.Add(
-                    CoreText.Get("Manager_LoadRollbackThrew", manifest.Name, ex.Demystify()));
+                    CoreText.Get("Manager_LoadRollbackThrew", manifest.Name, ex.Demystify())
+                );
             }
 
             // 回滚钩子里报的故障同样进待报账；这里不取就再没人取（Codex 指出）。
@@ -1675,7 +1816,8 @@ public sealed class PluginManager
             catch (Exception ex)
             {
                 reports.Add(
-                    CoreText.Get("Manager_LoadRollbackThrew", manifest.Name, ex.Demystify()));
+                    CoreText.Get("Manager_LoadRollbackThrew", manifest.Name, ex.Demystify())
+                );
             }
         }
     }

@@ -25,7 +25,10 @@ public sealed class ReloadablePlugin : IPlugin
     {
         if (_dataDirectory is { } directory)
         {
-            File.AppendAllText(Path.Combine(directory, "disable.log"), "disable" + Environment.NewLine);
+            File.AppendAllText(
+                Path.Combine(directory, "disable.log"),
+                "disable" + Environment.NewLine
+            );
         }
 
         return ValueTask.FromResult(PluginHookResult.Allow());

@@ -8,8 +8,11 @@ namespace Hosihikari.Internal;
 /// 卸载验证永远过不去 —— 而且订阅当时毫无异样，只有卸载时才暴露（FX-0004）。
 /// 框架知道是哪一次订阅属于哪个插件，就不该把这件事留给作者自觉。
 /// </summary>
-internal sealed class PluginScope(IEventBus events, IScheduler scheduler, PluginServiceRegistry registry)
-    : IEventBus, IScheduler, IPluginServiceRegistry
+internal sealed class PluginScope(
+    IEventBus events,
+    IScheduler scheduler,
+    PluginServiceRegistry registry
+) : IEventBus, IScheduler, IPluginServiceRegistry
 {
     private readonly Lock _gate = new();
     private readonly HashSet<Handle> _owned = [];
@@ -17,14 +20,22 @@ internal sealed class PluginScope(IEventBus events, IScheduler scheduler, Plugin
     private volatile bool _enabled;
     private bool _released;
 
-    public IDisposable Subscribe<TEvent>(Action<TEvent> handler, EventPriority priority = EventPriority.Normal) =>
-        Track(() => events.Subscribe<TEvent>(@event =>
-        {
-            if (_enabled)
-            {
-                handler(@event);
-            }
-        }, priority));
+    public IDisposable Subscribe<TEvent>(
+        Action<TEvent> handler,
+        EventPriority priority = EventPriority.Normal
+    ) =>
+        Track(() =>
+            events.Subscribe<TEvent>(
+                @event =>
+                {
+                    if (_enabled)
+                    {
+                        handler(@event);
+                    }
+                },
+                priority
+            )
+        );
 
     public void Publish<TEvent>(TEvent @event) => events.Publish(@event);
 
@@ -36,25 +47,30 @@ internal sealed class PluginScope(IEventBus events, IScheduler scheduler, Plugin
         var completed = false;
         Handle? handle = null;
 
-        var tracked = Track(() => scheduler.ScheduleOnce(delay, () =>
-        {
-            try
-            {
-                if (_enabled)
+        var tracked = Track(() =>
+            scheduler.ScheduleOnce(
+                delay,
+                () =>
                 {
-                    work();
+                    try
+                    {
+                        if (_enabled)
+                        {
+                            work();
+                        }
+                    }
+                    finally
+                    {
+                        lock (gate)
+                        {
+                            completed = true;
+                            handle?.Dispose();
+                            handle = null;
+                        }
+                    }
                 }
-            }
-            finally
-            {
-                lock (gate)
-                {
-                    completed = true;
-                    handle?.Dispose();
-                    handle = null;
-                }
-            }
-        }));
+            )
+        );
 
         lock (gate)
         {
@@ -70,15 +86,21 @@ internal sealed class PluginScope(IEventBus events, IScheduler scheduler, Plugin
     }
 
     public IDisposable SchedulePeriodic(TimeSpan interval, Action work) =>
-        Track(() => scheduler.SchedulePeriodic(interval, () =>
-        {
-            if (_enabled)
-            {
-                work();
-            }
-        }));
+        Track(() =>
+            scheduler.SchedulePeriodic(
+                interval,
+                () =>
+                {
+                    if (_enabled)
+                    {
+                        work();
+                    }
+                }
+            )
+        );
 
-    public bool Register<T>(T service) where T : class
+    public bool Register<T>(T service)
+        where T : class
     {
         lock (_gate)
         {
@@ -93,7 +115,8 @@ internal sealed class PluginScope(IEventBus events, IScheduler scheduler, Plugin
         }
     }
 
-    public T? Get<T>() where T : class => registry.Get<T>();
+    public T? Get<T>()
+        where T : class => registry.Get<T>();
 
     /// <summary>打开闸门：之后到达的事件与定时器回调才会交给插件（FX-0035）。</summary>
     internal void Open()

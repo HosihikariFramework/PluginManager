@@ -17,7 +17,11 @@ public sealed class PluginTestHost : IDisposable
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
 
         Plugin = plugin;
-        _root = Path.Combine(Path.GetTempPath(), "hosihikari-testing", Guid.NewGuid().ToString("N"));
+        _root = Path.Combine(
+            Path.GetTempPath(),
+            "hosihikari-testing",
+            Guid.NewGuid().ToString("N")
+        );
         Context = new TestPluginContext(name, _root);
     }
 
@@ -46,7 +50,9 @@ public sealed class PluginTestHost : IDisposable
             Context.Scope.Open();
         }
 
-        _hooks.Add(result.Allowed ? "enable" : $"enable:refused({result.Reason ?? "no reason given"})");
+        _hooks.Add(
+            result.Allowed ? "enable" : $"enable:refused({result.Reason ?? "no reason given"})"
+        );
         return result;
     }
 
@@ -59,7 +65,9 @@ public sealed class PluginTestHost : IDisposable
             Context.Scope.Open();
         }
 
-        _hooks.Add(result.Allowed ? "disable" : $"disable:refused({result.Reason ?? "no reason given"})");
+        _hooks.Add(
+            result.Allowed ? "disable" : $"disable:refused({result.Reason ?? "no reason given"})"
+        );
         return result;
     }
 
@@ -84,13 +92,17 @@ public sealed class PluginTestHost : IDisposable
         var enabled = Enable();
         if (!enabled.Allowed)
         {
-            throw new InvalidOperationException($"Enable refused: {enabled.Reason ?? "no reason given"}");
+            throw new InvalidOperationException(
+                $"Enable refused: {enabled.Reason ?? "no reason given"}"
+            );
         }
 
         var disabled = Disable();
         if (!disabled.Allowed)
         {
-            throw new InvalidOperationException($"Disable refused: {disabled.Reason ?? "no reason given"}");
+            throw new InvalidOperationException(
+                $"Disable refused: {disabled.Reason ?? "no reason given"}"
+            );
         }
 
         Unload();
@@ -113,11 +125,7 @@ public sealed class PluginTestHost : IDisposable
                 Directory.Delete(_root, recursive: true);
             }
         }
-        catch (IOException)
-        {
-        }
-        catch (UnauthorizedAccessException)
-        {
-        }
+        catch (IOException) { }
+        catch (UnauthorizedAccessException) { }
     }
 }

@@ -27,21 +27,26 @@ public sealed class FooPlugin : IPlugin
         var lib = typeof(Lib.Marker).Assembly;
         File.WriteAllText(
             Path.Combine(context.DataDirectory, "lib.txt"),
-            $"{lib.Location} | {System.Runtime.Loader.AssemblyLoadContext.GetLoadContext(lib)?.Name}");
+            $"{lib.Location} | {System.Runtime.Loader.AssemblyLoadContext.GetLoadContext(lib)?.Name}"
+        );
 
         // 配置按「包内默认 → 包外覆盖」叠好交过来（FX-0018）。
         File.WriteAllText(
             Path.Combine(context.DataDirectory, "greeting.txt"),
-            context.Configuration["greeting"] ?? "（没有）");
+            context.Configuration["greeting"] ?? "（没有）"
+        );
 
         // 一个 handler 故意抛，另一个照常收到 —— 隔离到 handler（FX-0014）。
         context.Events.Subscribe<string>(_ => throw new InvalidOperationException("故意抛出"));
         context.Events.Subscribe<string>(payload =>
-            File.WriteAllText(Path.Combine(context.DataDirectory, "heard.txt"), payload));
+            File.WriteAllText(Path.Combine(context.DataDirectory, "heard.txt"), payload)
+        );
 
         // 调度器跑在线程池上（FX-0007）。
-        context.Scheduler.ScheduleOnce(TimeSpan.FromMilliseconds(50), () =>
-            File.WriteAllText(Path.Combine(context.DataDirectory, "scheduled.txt"), "ran"));
+        context.Scheduler.ScheduleOnce(
+            TimeSpan.FromMilliseconds(50),
+            () => File.WriteAllText(Path.Combine(context.DataDirectory, "scheduled.txt"), "ran")
+        );
 
         // 这两个句柄**故意不保存、不退订**：框架应当在卸载时自己收回（FX-0004）。
         return ValueTask.CompletedTask;

@@ -1,5 +1,4 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <PackageId>Hosihikari.Plugin.Build</PackageId>
@@ -19,17 +18,25 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="../Pack/Hosihikari.Plugin.Pack.csproj"
-                      ReferenceOutputAssembly="false" />
-    <None Include="build/Hosihikari.Plugin.Build.targets"
-          Pack="true"
-          PackagePath="build/Hosihikari.Plugin.Build.targets" />
-    <None Include="build/Hosihikari.Plugin.Build.targets"
-          Pack="true"
-          PackagePath="buildTransitive/Hosihikari.Plugin.Build.targets" />
-    <None Include="buildMultiTargeting/Hosihikari.Plugin.Build.targets"
-          Pack="true"
-          PackagePath="buildMultiTargeting/Hosihikari.Plugin.Build.targets" />
+    <ProjectReference
+      Include="../Pack/Hosihikari.Plugin.Pack.csproj"
+      ReferenceOutputAssembly="false"
+    />
+    <None
+      Include="build/Hosihikari.Plugin.Build.targets"
+      Pack="true"
+      PackagePath="build/Hosihikari.Plugin.Build.targets"
+    />
+    <None
+      Include="build/Hosihikari.Plugin.Build.targets"
+      Pack="true"
+      PackagePath="buildTransitive/Hosihikari.Plugin.Build.targets"
+    />
+    <None
+      Include="buildMultiTargeting/Hosihikari.Plugin.Build.targets"
+      Pack="true"
+      PackagePath="buildMultiTargeting/Hosihikari.Plugin.Build.targets"
+    />
   </ItemGroup>
 
   <Target Name="IncludePackTool" DependsOnTargets="Build">
@@ -39,5 +46,4 @@
       </TfmSpecificPackageFile>
     </ItemGroup>
   </Target>
-
 </Project>

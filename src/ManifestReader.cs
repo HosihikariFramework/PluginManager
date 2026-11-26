@@ -33,9 +33,11 @@ internal static class ManifestReader
             // 旧信封的 type 也不是 hosihikari 的目录，不吭声。
             if (File.Exists(Path.Combine(directory, FileName)))
             {
-                if (Read(directory, report) is { } package
+                if (
+                    Read(directory, report) is { } package
                     // 载体包就是垫片自己，不是插件（FX-0006）。
-                    && package.Manifest.PackageKind != "carrier")
+                    && package.Manifest.PackageKind != "carrier"
+                )
                 {
                     packages.Add(package);
                 }
@@ -57,15 +59,20 @@ internal static class ManifestReader
         if (!File.Exists(manifestPath))
         {
             // 父级只把路由给我们的包交过来，所以这里的旧信封一定是旧包（FX-0058）。
-            report(File.Exists(Path.Combine(directory, LegacyFileName))
-                ? CoreText.Get("Manifest_LegacyPackage", folderName)
-                : CoreText.Get("Manifest_MissingFile", folderName, FileName));
+            report(
+                File.Exists(Path.Combine(directory, LegacyFileName))
+                    ? CoreText.Get("Manifest_LegacyPackage", folderName)
+                    : CoreText.Get("Manifest_MissingFile", folderName, FileName)
+            );
             return null;
         }
 
         try
         {
-            var manifest = JsonSerializer.Deserialize<PluginManifest>(File.ReadAllText(manifestPath), Options);
+            var manifest = JsonSerializer.Deserialize<PluginManifest>(
+                File.ReadAllText(manifestPath),
+                Options
+            );
             if (manifest is null)
             {
                 report(CoreText.Get("Manifest_Empty", folderName));
@@ -102,54 +109,77 @@ internal static class ManifestReader
 
             // type 在 hosihikari.json 里可省；写了就必须对。它是父级的路由键，写错的包
             // 不会被父级交过来，所以在自持态下也一并拦下（FX-0012）。
-            if (!string.IsNullOrWhiteSpace(manifest.ParentName)
-                && manifest.ParentName != PluginContractInfo.ParentName)
+            if (
+                !string.IsNullOrWhiteSpace(manifest.ParentName)
+                && manifest.ParentName != PluginContractInfo.ParentName
+            )
             {
-                report(CoreText.Get(
-                    "Manifest_ParentMismatch",
-                    folderName,
-                    PluginContractInfo.ParentName,
-                    manifest.ParentName));
+                report(
+                    CoreText.Get(
+                        "Manifest_ParentMismatch",
+                        folderName,
+                        PluginContractInfo.ParentName,
+                        manifest.ParentName
+                    )
+                );
                 return null;
             }
 
-            if (manifest.EffectiveApiVersion is not { } apiVersion
-                || apiVersion.ToString(CultureInfo.InvariantCulture) != PluginContractInfo.CurrentApiVersion)
+            if (
+                manifest.EffectiveApiVersion is not { } apiVersion
+                || apiVersion.ToString(CultureInfo.InvariantCulture)
+                    != PluginContractInfo.CurrentApiVersion
+            )
             {
-                report(CoreText.Get(
-                    "Manifest_ApiMismatch",
-                    folderName,
-                    manifest.EffectiveApiVersion?.ToString(CultureInfo.InvariantCulture)
-                        ?? CoreText.Get("Common_Undeclared"),
-                    PluginContractInfo.CurrentApiVersion));
+                report(
+                    CoreText.Get(
+                        "Manifest_ApiMismatch",
+                        folderName,
+                        manifest.EffectiveApiVersion?.ToString(CultureInfo.InvariantCulture)
+                            ?? CoreText.Get("Common_Undeclared"),
+                        PluginContractInfo.CurrentApiVersion
+                    )
+                );
                 return null;
             }
 
             // 清单 schema 版本（FX-0012）：解析器只认这一个版本。
-            if (manifest.EffectiveSchemaVersion is not { } schemaVersion
-                || schemaVersion.ToString(CultureInfo.InvariantCulture) != PluginContractInfo.CurrentManifestVersion)
+            if (
+                manifest.EffectiveSchemaVersion is not { } schemaVersion
+                || schemaVersion.ToString(CultureInfo.InvariantCulture)
+                    != PluginContractInfo.CurrentManifestVersion
+            )
             {
-                report(CoreText.Get(
-                    "Manifest_ManifestVersionMismatch",
-                    folderName,
-                    manifest.EffectiveSchemaVersion?.ToString(CultureInfo.InvariantCulture)
-                        ?? CoreText.Get("Common_Undeclared"),
-                    PluginContractInfo.CurrentManifestVersion));
+                report(
+                    CoreText.Get(
+                        "Manifest_ManifestVersionMismatch",
+                        folderName,
+                        manifest.EffectiveSchemaVersion?.ToString(CultureInfo.InvariantCulture)
+                            ?? CoreText.Get("Common_Undeclared"),
+                        PluginContractInfo.CurrentManifestVersion
+                    )
+                );
                 return null;
             }
 
             // JSON null 会绕过集合初始化；ManifestDependency 也可能被写成 null。
             // 这里统一拒绝，别让依赖图在后面抛 NRE。
-            if (manifest.Dependencies.Any(dependency =>
-                    dependency is null || string.IsNullOrWhiteSpace(dependency.Name)))
+            if (
+                manifest.Dependencies.Any(dependency =>
+                    dependency is null || string.IsNullOrWhiteSpace(dependency.Name)
+                )
+            )
             {
                 report(CoreText.Get("Manifest_DependencyName", folderName));
                 return null;
             }
 
             // 父级态不跑依赖图；自依赖会让卸载永远看到“还有依赖者”。
-            if (manifest.Dependencies.Any(dependency =>
-                    string.Equals(dependency.Name, manifest.Name, StringComparison.Ordinal)))
+            if (
+                manifest.Dependencies.Any(dependency =>
+                    string.Equals(dependency.Name, manifest.Name, StringComparison.Ordinal)
+                )
+            )
             {
                 report(CoreText.Get("Manifest_SelfDependency", folderName));
                 return null;
@@ -171,9 +201,16 @@ internal static class ManifestReader
 
             // 对框架的依赖（FX-0006）：缺了父级会把它排到垫片前面，判成 Unknown mod type。
             // 载体包就是垫片自己，不依赖自己。
-            if (kind != "carrier"
+            if (
+                kind != "carrier"
                 && !manifest.Dependencies.Any(dependency =>
-                    string.Equals(dependency.Name, PluginContractInfo.ParentName, StringComparison.Ordinal)))
+                    string.Equals(
+                        dependency.Name,
+                        PluginContractInfo.ParentName,
+                        StringComparison.Ordinal
+                    )
+                )
+            )
             {
                 report(CoreText.Get("Manifest_MissingFrameworkDependency", folderName));
                 return null;
@@ -216,7 +253,8 @@ internal static class ManifestReader
                 && type.ValueKind == JsonValueKind.String
                 && type.GetString() == PluginContractInfo.ParentName;
         }
-        catch (Exception ex) when (ex is JsonException or IOException or UnauthorizedAccessException)
+        catch (Exception ex)
+            when (ex is JsonException or IOException or UnauthorizedAccessException)
         {
             return false;
         }
@@ -254,14 +292,17 @@ internal static class ManifestReader
             }
 
             var root = Path.GetFullPath(packageDirectory);
-            var prefix = root.EndsWith(Path.DirectorySeparatorChar) ? root : root + Path.DirectorySeparatorChar;
+            var prefix = root.EndsWith(Path.DirectorySeparatorChar)
+                ? root
+                : root + Path.DirectorySeparatorChar;
             var full = Path.GetFullPath(Path.Combine(root, entry));
             var comparison = OperatingSystem.IsWindows()
                 ? StringComparison.OrdinalIgnoreCase
                 : StringComparison.Ordinal;
             return full.StartsWith(prefix, comparison);
         }
-        catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
+        catch (Exception ex)
+            when (ex is ArgumentException or NotSupportedException or PathTooLongException)
         {
             return false;
         }

@@ -4,7 +4,10 @@ namespace Hosihikari.Internal;
 internal static class DependencyGraph
 {
     /// <summary>返回加载顺序；缺失依赖或成环的包被剔出来单独报告，不牵连其余包（FX-0009）。</summary>
-    internal static List<PluginPackage> Resolve(IReadOnlyList<PluginPackage> packages, Action<string> report)
+    internal static List<PluginPackage> Resolve(
+        IReadOnlyList<PluginPackage> packages,
+        Action<string> report
+    )
     {
         var byName = packages.ToDictionary(p => p.Manifest.Name, StringComparer.Ordinal);
         var order = new List<PluginPackage>();
@@ -26,7 +29,8 @@ internal static class DependencyGraph
         Dictionary<string, PluginPackage> byName,
         Dictionary<string, int> state,
         List<PluginPackage> order,
-        Action<string> report)
+        Action<string> report
+    )
     {
         var name = package.Manifest.Name;
         if (state.TryGetValue(name, out var mark))
