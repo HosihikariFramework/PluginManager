@@ -15,11 +15,16 @@ public sealed class TestPluginContext : ILoaderContext
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
         ArgumentException.ThrowIfNullOrWhiteSpace(root);
-        if (Path.IsPathRooted(name)
+        if (
+            Path.IsPathRooted(name)
             || name is "." or ".."
-            || name.IndexOfAny([Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar]) >= 0)
+            || name.IndexOfAny([Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar]) >= 0
+        )
         {
-            throw new ArgumentException("Test plugin name must be a single directory name", nameof(name));
+            throw new ArgumentException(
+                "Test plugin name must be a single directory name",
+                nameof(name)
+            );
         }
 
         Name = name;

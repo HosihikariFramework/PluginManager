@@ -1,5 +1,4 @@
 <Project>
-
   <!--
     外层多目标构建没有具体的 TargetPath；NuGet 的 buildMultiTargeting 是唯一会
     在这里导入的接缝。给出可读要求，内层由普通 targets 里的完整目标接管。
@@ -9,9 +8,10 @@
   </PropertyGroup>
 
   <Target Name="PackPlugin">
-    <Error Condition="!Exists('$(HosihikariPackToolPath)')"
-           Text="Hosihikari packer not found: $(HosihikariPackToolPath)" />
+    <Error
+      Condition="!Exists('$(HosihikariPackToolPath)')"
+      Text="Hosihikari packer not found: $(HosihikariPackToolPath)"
+    />
     <Exec Command="dotnet &quot;$(HosihikariPackToolPath)&quot; message MultiTargetFramework" />
   </Target>
-
 </Project>

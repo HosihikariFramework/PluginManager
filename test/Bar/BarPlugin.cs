@@ -17,13 +17,15 @@ public sealed class BarPlugin : IPlugin
         var conflicted = context.PluginServices.Register<IPlugin>(this);
         File.WriteAllText(
             Path.Combine(context.DataDirectory, "peer.txt"),
-            $"{peer?.GetType().FullName ?? "（取不到）"} | 冲突登记={conflicted}");
+            $"{peer?.GetType().FullName ?? "（取不到）"} | 冲突登记={conflicted}"
+        );
 
         // 探针：Bar 这边的 Lib 是哪一份（FX-0026）。
         var lib = typeof(Lib.Marker).Assembly;
         File.WriteAllText(
             Path.Combine(context.DataDirectory, "lib.txt"),
-            $"{lib.Location} | {System.Runtime.Loader.AssemblyLoadContext.GetLoadContext(lib)?.Name}");
+            $"{lib.Location} | {System.Runtime.Loader.AssemblyLoadContext.GetLoadContext(lib)?.Name}"
+        );
         return ValueTask.CompletedTask;
     }
 

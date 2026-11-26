@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using System.Text;
-
 using Microsoft.Extensions.Logging;
 
 namespace Hosihikari.Internal;
@@ -28,13 +27,12 @@ internal sealed unsafe class NativeForwardingLoggerProvider : ILoggerProvider
 
     public ILogger CreateLogger(string categoryName) => new Logger(categoryName);
 
-    public void Dispose()
-    {
-    }
+    public void Dispose() { }
 
     private sealed class Logger(string category) : ILogger
     {
-        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+        public IDisposable? BeginScope<TState>(TState state)
+            where TState : notnull => null;
 
         public bool IsEnabled(LogLevel logLevel) => logLevel >= LogLevel.Information;
 
@@ -43,7 +41,8 @@ internal sealed unsafe class NativeForwardingLoggerProvider : ILoggerProvider
             EventId eventId,
             TState state,
             Exception? error,
-            Func<TState, Exception?, string> formatter)
+            Func<TState, Exception?, string> formatter
+        )
         {
             var callback = Volatile.Read(ref s_callback);
             if (!IsEnabled(logLevel) || callback == IntPtr.Zero)
@@ -63,18 +62,22 @@ internal sealed unsafe class NativeForwardingLoggerProvider : ILoggerProvider
             fixed (byte* text = bytes)
             {
                 ((delegate* unmanaged[Cdecl]<IntPtr, int, byte*, void>)callback)(
-                    Volatile.Read(ref s_user), Level(logLevel), text);
+                    Volatile.Read(ref s_user),
+                    Level(logLevel),
+                    text
+                );
             }
         }
 
         /// <summary>0 调试、1 信息、2 警告、3 错误、4 致命 —— 与两个载体的桥一致。</summary>
-        private static int Level(LogLevel level) => level switch
-        {
-            LogLevel.Trace or LogLevel.Debug => 0,
-            LogLevel.Information => 1,
-            LogLevel.Warning => 2,
-            LogLevel.Error => 3,
-            _ => 4,
-        };
+        private static int Level(LogLevel level) =>
+            level switch
+            {
+                LogLevel.Trace or LogLevel.Debug => 0,
+                LogLevel.Information => 1,
+                LogLevel.Warning => 2,
+                LogLevel.Error => 3,
+                _ => 4,
+            };
     }
 }

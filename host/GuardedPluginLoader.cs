@@ -21,10 +21,17 @@ public sealed class GuardedPluginLoader : IPluginLoader
 
     public bool CanLoad(PluginManifest manifest) => manifest.Loader == Id;
 
-    public PluginHandle? Load(PluginManifest manifest, string packageDirectory, IPluginContext context) =>
-        new TestPluginHandle(new GuardedPlugin(manifest.Name, this, context));
+    public PluginHandle? Load(
+        PluginManifest manifest,
+        string packageDirectory,
+        IPluginContext context
+    ) => new TestPluginHandle(new GuardedPlugin(manifest.Name, this, context));
 
-    private sealed class GuardedPlugin(string name, GuardedPluginLoader loader, IPluginContext context) : IPlugin
+    private sealed class GuardedPlugin(
+        string name,
+        GuardedPluginLoader loader,
+        IPluginContext context
+    ) : IPlugin
     {
         public ValueTask OnLoad(IPluginContext loadedContext, CancellationToken cancellationToken)
         {
@@ -33,7 +40,8 @@ public sealed class GuardedPluginLoader : IPluginLoader
                 // 模拟 Loader 在钩子之外发现的死亡：钩子返回后，从后台报告故障。
                 context.Scheduler.ScheduleOnce(
                     TimeSpan.FromMilliseconds(50),
-                    () => context.ReportFault(PluginDiagnostic.Error("async-death", "模拟异步死亡")));
+                    () => context.ReportFault(PluginDiagnostic.Error("async-death", "模拟异步死亡"))
+                );
             }
 
             return ValueTask.CompletedTask;
@@ -46,13 +54,17 @@ public sealed class GuardedPluginLoader : IPluginLoader
                 throw new InvalidOperationException("故意在启用时抛出");
             }
 
-            return ValueTask.FromResult(loader.RefuseEnable
-                ? PluginHookResult.Refuse("现在不行")
-                : PluginHookResult.Allow());
+            return ValueTask.FromResult(
+                loader.RefuseEnable ? PluginHookResult.Refuse("现在不行") : PluginHookResult.Allow()
+            );
         }
 
         public ValueTask<PluginHookResult> OnDisable(CancellationToken cancellationToken) =>
-            ValueTask.FromResult(loader.RefuseDisable ? PluginHookResult.Refuse("还不想停") : PluginHookResult.Allow());
+            ValueTask.FromResult(
+                loader.RefuseDisable
+                    ? PluginHookResult.Refuse("还不想停")
+                    : PluginHookResult.Allow()
+            );
 
         public ValueTask OnUnload(CancellationToken cancellationToken) => ValueTask.CompletedTask;
     }

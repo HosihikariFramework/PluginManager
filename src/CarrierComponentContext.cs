@@ -6,7 +6,8 @@ namespace Hosihikari.Internal;
 internal sealed class CarrierComponentContext(
     IEventBus events,
     ILogger logger,
-    IServiceProvider carrierServices) : ICarrierComponentContext
+    IServiceProvider carrierServices
+) : ICarrierComponentContext
 {
     public IEventBus Events => events;
 

@@ -12,13 +12,21 @@ namespace Hosihikari.Internal.Pack;
 /// <param name="Succeeded">是否成功。</param>
 /// <param name="PackageDirectory">成功时的包目录。</param>
 /// <param name="Problems">失败原因，逐条可读。</param>
-public readonly record struct PackResult(bool Succeeded, string? PackageDirectory, IReadOnlyList<string> Problems);
+public readonly record struct PackResult(
+    bool Succeeded,
+    string? PackageDirectory,
+    IReadOnlyList<string> Problems
+);
 
 /// <summary>一次 migrate 的结果。</summary>
 /// <param name="Succeeded">是否成功。</param>
 /// <param name="Problems">失败原因，逐条可读。</param>
 /// <param name="Notes">要人工补的字段。</param>
-public readonly record struct MigrateResult(bool Succeeded, IReadOnlyList<string> Problems, IReadOnlyList<string> Notes);
+public readonly record struct MigrateResult(
+    bool Succeeded,
+    IReadOnlyList<string> Problems,
+    IReadOnlyList<string> Notes
+);
 
 /// <summary>
 /// 把一份构建输出 + 一份清单装配成插件包，并在这里检查那些**报错点离病因很远**的规则。
@@ -37,7 +45,8 @@ public static class Packager
         string sourceDirectory,
         string manifestPath,
         string outputRoot,
-        IReadOnlyList<string> sharedLayer)
+        IReadOnlyList<string> sharedLayer
+    )
     {
         var problems = new List<string>();
 
@@ -46,7 +55,8 @@ public static class Packager
         {
             manifest = JsonSerializer.Deserialize<PluginManifest>(
                 File.ReadAllText(manifestPath),
-                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
+            );
         }
         catch (Exception ex)
         {
@@ -60,9 +70,12 @@ public static class Packager
         }
 
         // name 直接参与包目录拼装，必须是一个目录名 —— 分隔符、. 与 .. 会跑出输出根。
-        if (manifest.Name is "." or ".."
-            || manifest.Name.EndsWith('.') || manifest.Name.EndsWith(' ')
-            || manifest.Name.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0)
+        if (
+            manifest.Name is "." or ".."
+            || manifest.Name.EndsWith('.')
+            || manifest.Name.EndsWith(' ')
+            || manifest.Name.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0
+        )
         {
             problems.Add(PackText.Get("InvalidName", manifest.Name));
             return new PackResult(false, null, problems);
@@ -91,36 +104,47 @@ public static class Packager
         }
 
         // 契约主版本（FX-0012）。
-        if (manifest.EffectiveApiVersion?.ToString(CultureInfo.InvariantCulture)
-            != PluginContractInfo.CurrentApiVersion)
+        if (
+            manifest.EffectiveApiVersion?.ToString(CultureInfo.InvariantCulture)
+            != PluginContractInfo.CurrentApiVersion
+        )
         {
-            problems.Add(PackText.Get(
-                "ApiMismatch",
-                manifest.EffectiveApiVersion?.ToString(CultureInfo.InvariantCulture)
-                    ?? PackText.Get("Undeclared"),
-                PluginContractInfo.CurrentApiVersion));
+            problems.Add(
+                PackText.Get(
+                    "ApiMismatch",
+                    manifest.EffectiveApiVersion?.ToString(CultureInfo.InvariantCulture)
+                        ?? PackText.Get("Undeclared"),
+                    PluginContractInfo.CurrentApiVersion
+                )
+            );
         }
 
         // 清单 schema 版本（FX-0012）。
-        if (manifest.EffectiveSchemaVersion?.ToString(CultureInfo.InvariantCulture)
-            != PluginContractInfo.CurrentManifestVersion)
+        if (
+            manifest.EffectiveSchemaVersion?.ToString(CultureInfo.InvariantCulture)
+            != PluginContractInfo.CurrentManifestVersion
+        )
         {
-            problems.Add(PackText.Get(
-                "ManifestVersionMismatch",
-                manifest.EffectiveSchemaVersion?.ToString(CultureInfo.InvariantCulture)
-                    ?? PackText.Get("Undeclared"),
-                PluginContractInfo.CurrentManifestVersion));
+            problems.Add(
+                PackText.Get(
+                    "ManifestVersionMismatch",
+                    manifest.EffectiveSchemaVersion?.ToString(CultureInfo.InvariantCulture)
+                        ?? PackText.Get("Undeclared"),
+                    PluginContractInfo.CurrentManifestVersion
+                )
+            );
         }
 
         // type 是父级的路由键（FX-0006）。写错的包在父级态下根本到不了我们手里，
         // 而且失败点离病因很远 —— 所以在这里就拦下。hosihikari.json 里可以省略。
-        if (!string.IsNullOrWhiteSpace(manifest.ParentName)
-            && manifest.ParentName != PluginContractInfo.ParentName)
+        if (
+            !string.IsNullOrWhiteSpace(manifest.ParentName)
+            && manifest.ParentName != PluginContractInfo.ParentName
+        )
         {
-            problems.Add(PackText.Get(
-                "TypeMismatch",
-                PluginContractInfo.ParentName,
-                manifest.ParentName));
+            problems.Add(
+                PackText.Get("TypeMismatch", PluginContractInfo.ParentName, manifest.ParentName)
+            );
         }
 
         // 包类型（FX-0006）：写错的在加载期会被当成插件，也在打包期拦。
@@ -136,9 +160,16 @@ public static class Packager
 
         // 对框架的依赖（FX-0006）：缺了父级会把包排到垫片前面，判成 Unknown mod type。
         // 载体包就是垫片自己，不依赖自己。
-        if (kind != "carrier"
+        if (
+            kind != "carrier"
             && !manifest.Dependencies.Any(dependency =>
-                string.Equals(dependency?.Name, PluginContractInfo.ParentName, StringComparison.Ordinal)))
+                string.Equals(
+                    dependency?.Name,
+                    PluginContractInfo.ParentName,
+                    StringComparison.Ordinal
+                )
+            )
+        )
         {
             problems.Add(PackText.Get("MissingFrameworkDependency"));
         }
@@ -204,7 +235,13 @@ public static class Packager
         try
         {
             Directory.CreateDirectory(staging);
-            foreach (var file in Directory.EnumerateFiles(sourceDirectory, "*", SearchOption.AllDirectories))
+            foreach (
+                var file in Directory.EnumerateFiles(
+                    sourceDirectory,
+                    "*",
+                    SearchOption.AllDirectories
+                )
+            )
             {
                 var relative = Path.GetRelativePath(sourceDirectory, file);
                 var target = Path.Combine(staging, relative);
@@ -214,7 +251,10 @@ public static class Packager
 
             // 作者清单永远落成规范名：运行时只认 hosihikari.json，别的名字打出来的包装不上（Codex）。
             File.Copy(manifestPath, Path.Combine(staging, ManifestFileName), overwrite: true);
-            File.WriteAllText(Path.Combine(staging, LegacyEnvelopeFileName), BuildEnvelope(manifest));
+            File.WriteAllText(
+                Path.Combine(staging, LegacyEnvelopeFileName),
+                BuildEnvelope(manifest)
+            );
 
             // 清单里声明的第三方包在**这里**还原 —— 供应链留在打包那一刻，服务端加载时不联网。
             if (!RestorePackages(packages, staging, sharedLayer, problems))
@@ -258,7 +298,8 @@ public static class Packager
     private static List<string> ReadPackages(
         PluginManifest manifest,
         string sourceDirectory,
-        List<string> problems)
+        List<string> problems
+    )
     {
         var packages = new List<string>();
         if (manifest.Pack is { } pack)
@@ -284,7 +325,11 @@ public static class Packager
     /// 跑 <c>pack.prepack</c>。字符串与数组都收（与 <c>command</c> 同形）：字符串按单个程序名处理，
     /// 在包目录里执行，5 分钟不结束算失败（FX-0031）。装的是 node_modules、venv 这类构建期依赖。
     /// </summary>
-    private static void Prepack(PluginManifest manifest, string sourceDirectory, List<string> problems)
+    private static void Prepack(
+        PluginManifest manifest,
+        string sourceDirectory,
+        List<string> problems
+    )
     {
         if (manifest.Pack?.Prepack is not { } value)
         {
@@ -299,9 +344,12 @@ public static class Packager
         else if (value.ValueKind == JsonValueKind.Array)
         {
             // 空字符串是合法参数（例如 `cmd /c ""`），只按类型过滤。
-            command.AddRange(value.EnumerateArray()
-                .Where(item => item.ValueKind == JsonValueKind.String)
-                .Select(item => item.GetString()!));
+            command.AddRange(
+                value
+                    .EnumerateArray()
+                    .Where(item => item.ValueKind == JsonValueKind.String)
+                    .Select(item => item.GetString()!)
+            );
         }
 
         if (command.Count == 0)
@@ -347,7 +395,10 @@ public static class Packager
             }
 
             var remaining = deadline - Stopwatch.GetElapsedTime(started);
-            if (!Task.WhenAll(stdout, stderr).Wait(remaining > TimeSpan.Zero ? remaining : TimeSpan.Zero))
+            if (
+                !Task.WhenAll(stdout, stderr)
+                    .Wait(remaining > TimeSpan.Zero ? remaining : TimeSpan.Zero)
+            )
             {
                 KillTree(process);
                 problems.Add(PackText.Get("PrepackTimeout", PrepackTimeoutSeconds));
@@ -375,7 +426,8 @@ public static class Packager
         {
             process.Kill(entireProcessTree: true);
         }
-        catch (Exception ex) when (ex is InvalidOperationException or Win32Exception or NotSupportedException)
+        catch (Exception ex)
+            when (ex is InvalidOperationException or Win32Exception or NotSupportedException)
         {
             // 进程已经退出，或者平台不支持整棵树；这里只是尽力收尾。
         }
@@ -385,16 +437,19 @@ public static class Packager
         string sourceDirectory,
         PluginManifest manifest,
         List<string> packages,
-        List<string> problems)
+        List<string> problems
+    )
     {
         var root = Path.GetFullPath(sourceDirectory);
-        var prefix = root.EndsWith(Path.DirectorySeparatorChar) ? root : root + Path.DirectorySeparatorChar;
+        var prefix = root.EndsWith(Path.DirectorySeparatorChar)
+            ? root
+            : root + Path.DirectorySeparatorChar;
         var comparison = OperatingSystem.IsWindows()
             ? StringComparison.OrdinalIgnoreCase
             : StringComparison.Ordinal;
-        var visited = new HashSet<string>(OperatingSystem.IsWindows()
-            ? StringComparer.OrdinalIgnoreCase
-            : StringComparer.Ordinal);
+        var visited = new HashSet<string>(
+            OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal
+        );
 
         string Full(string path)
         {
@@ -475,7 +530,9 @@ public static class Packager
                             var fullBase = Path.Combine(root, baseDirectory);
                             if (!Directory.Exists(fullBase))
                             {
-                                problems.Add(PackText.Get("IncludeDirectoryMissing", path, include));
+                                problems.Add(
+                                    PackText.Get("IncludeDirectoryMissing", path, include)
+                                );
                                 continue;
                             }
 
@@ -524,7 +581,9 @@ public static class Packager
         return Directory
             .EnumerateFiles(packageRoot, "*", SearchOption.AllDirectories)
             .Where(file => file.EndsWith(".cs", StringComparison.OrdinalIgnoreCase))
-            .Where(file => regex.IsMatch(Path.GetRelativePath(baseDirectory, file).Replace('\\', '/')))
+            .Where(file =>
+                regex.IsMatch(Path.GetRelativePath(baseDirectory, file).Replace('\\', '/'))
+            )
             .OrderBy(file => file, StringComparer.Ordinal)
             .ToArray();
     }
@@ -576,14 +635,18 @@ public static class Packager
         IReadOnlyList<string> references,
         string packageDirectory,
         IReadOnlyList<string> sharedLayer,
-        List<string> problems)
+        List<string> problems
+    )
     {
         if (references.Count == 0)
         {
             return true;
         }
 
-        var workspace = Path.Combine(Path.GetTempPath(), "hosihikari-pack-" + Guid.NewGuid().ToString("N"));
+        var workspace = Path.Combine(
+            Path.GetTempPath(),
+            "hosihikari-pack-" + Guid.NewGuid().ToString("N")
+        );
         try
         {
             Directory.CreateDirectory(workspace);
@@ -595,20 +658,31 @@ public static class Packager
                     var parts = reference.Split('/', 2);
                     var version = parts.Length > 1 ? parts[1] : "*";
                     return $"    <PackageReference Include=\"{parts[0]}\" Version=\"{version}\" />";
-                }));
+                })
+            );
 
             var project = Path.Combine(workspace, "restore.csproj");
             File.WriteAllText(
                 project,
-                "<Project Sdk=\"Microsoft.NET.Sdk\">" + Environment.NewLine
-                + "  <PropertyGroup>" + Environment.NewLine
-                + "    <TargetFramework>net10.0</TargetFramework>" + Environment.NewLine
-                + "    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>" + Environment.NewLine
-                + "  </PropertyGroup>" + Environment.NewLine
-                + "  <ItemGroup>" + Environment.NewLine
-                + items + Environment.NewLine
-                + "  </ItemGroup>" + Environment.NewLine
-                + "</Project>" + Environment.NewLine);
+                "<Project Sdk=\"Microsoft.NET.Sdk\">"
+                    + Environment.NewLine
+                    + "  <PropertyGroup>"
+                    + Environment.NewLine
+                    + "    <TargetFramework>net10.0</TargetFramework>"
+                    + Environment.NewLine
+                    + "    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>"
+                    + Environment.NewLine
+                    + "  </PropertyGroup>"
+                    + Environment.NewLine
+                    + "  <ItemGroup>"
+                    + Environment.NewLine
+                    + items
+                    + Environment.NewLine
+                    + "  </ItemGroup>"
+                    + Environment.NewLine
+                    + "</Project>"
+                    + Environment.NewLine
+            );
 
             var output = Path.Combine(workspace, "out");
             var start = new ProcessStartInfo("dotnet")
@@ -616,7 +690,20 @@ public static class Packager
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
             };
-            foreach (var argument in new[] { "publish", project, "-c", "Release", "-o", output, "--nologo", "-v", "q" })
+            foreach (
+                var argument in new[]
+                {
+                    "publish",
+                    project,
+                    "-c",
+                    "Release",
+                    "-o",
+                    output,
+                    "--nologo",
+                    "-v",
+                    "q",
+                }
+            )
             {
                 start.ArgumentList.Add(argument);
             }
@@ -629,10 +716,9 @@ public static class Packager
             var errorText = errorTask.Result;
             if (process.ExitCode != 0)
             {
-                problems.Add(PackText.Get(
-                    "RestoreFailed",
-                    string.Join(", ", references),
-                    errorText.Trim()));
+                problems.Add(
+                    PackText.Get("RestoreFailed", string.Join(", ", references), errorText.Trim())
+                );
                 return false;
             }
 
@@ -640,8 +726,12 @@ public static class Packager
             // 递归复制是为了保留 runtimes/<rid>/native 的本机资产（FX-0034）。
             var restoreArtifacts = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
             {
-                "restore.dll", "restore.exe", "restore", "restore.pdb",
-                "restore.deps.json", "restore.runtimeconfig.json",
+                "restore.dll",
+                "restore.exe",
+                "restore",
+                "restore.pdb",
+                "restore.deps.json",
+                "restore.runtimeconfig.json",
             };
             foreach (var file in Directory.EnumerateFiles(output, "*", SearchOption.AllDirectories))
             {
@@ -661,10 +751,7 @@ public static class Packager
         }
         catch (Exception ex)
         {
-            problems.Add(PackText.Get(
-                "RestoreFailed",
-                string.Join(", ", references),
-                ex.Message));
+            problems.Add(PackText.Get("RestoreFailed", string.Join(", ", references), ex.Message));
             return false;
         }
         finally
@@ -695,10 +782,15 @@ public static class Packager
         try
         {
             var full = Path.GetFullPath(entryPath);
-            var references = Directory.EnumerateFiles(Path.GetDirectoryName(full)!, "*.dll")
+            var references = Directory
+                .EnumerateFiles(Path.GetDirectoryName(full)!, "*.dll")
                 // 契约不在构建输出里（复制进去会被这条规则自己拦下），所以显式补上。
                 .Append(typeof(PluginContractInfo).Assembly.Location)
-                .Concat(((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(Path.PathSeparator));
+                .Concat(
+                    ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(
+                        Path.PathSeparator
+                    )
+                );
 
             using var metadata = new MetadataLoadContext(new PathAssemblyResolver(references));
             var inspection = metadata.LoadFromAssemblyPath(full);
@@ -706,10 +798,7 @@ public static class Packager
             var declared = inspection.GetCustomAttributesData().Count(IsEntryPoint);
             if (declared != 1)
             {
-                problems.Add(PackText.Get(
-                    "EntryCount",
-                    Path.GetFileName(entryPath),
-                    declared));
+                problems.Add(PackText.Get("EntryCount", Path.GetFileName(entryPath), declared));
                 return false;
             }
 
@@ -717,10 +806,7 @@ public static class Packager
         }
         catch (Exception ex)
         {
-            problems.Add(PackText.Get(
-                "EntryReadFailed",
-                Path.GetFileName(entryPath),
-                ex.Message));
+            problems.Add(PackText.Get("EntryReadFailed", Path.GetFileName(entryPath), ex.Message));
             return false;
         }
     }
@@ -769,9 +855,16 @@ public static class Packager
             {
                 writer.WriteStartObject();
                 writer.WriteString("name", PluginContractInfo.ParentName);
-                if (manifest.Dependencies.FirstOrDefault(dependency =>
-                        string.Equals(dependency?.Name, PluginContractInfo.ParentName, StringComparison.Ordinal))
-                    is { VersionRange: { Length: > 0 } parentRange })
+                if (
+                    manifest.Dependencies.FirstOrDefault(dependency =>
+                        string.Equals(
+                            dependency?.Name,
+                            PluginContractInfo.ParentName,
+                            StringComparison.Ordinal
+                        )
+                    ) is
+                    { VersionRange: { Length: > 0 } parentRange }
+                )
                 {
                     writer.WriteString("version", parentRange);
                 }
@@ -781,9 +874,15 @@ public static class Packager
 
             foreach (var dependency in manifest.Dependencies)
             {
-                if (dependency is null
+                if (
+                    dependency is null
                     || string.IsNullOrWhiteSpace(dependency.Name)
-                    || string.Equals(dependency.Name, PluginContractInfo.ParentName, StringComparison.Ordinal))
+                    || string.Equals(
+                        dependency.Name,
+                        PluginContractInfo.ParentName,
+                        StringComparison.Ordinal
+                    )
+                )
                 {
                     continue;
                 }
@@ -812,7 +911,8 @@ public static class Packager
     private static void ValidateCarrier(
         PluginManifest manifest,
         string sourceDirectory,
-        List<string> problems)
+        List<string> problems
+    )
     {
         if (manifest.Carrier is not { } carrier)
         {
@@ -835,10 +935,15 @@ public static class Packager
         }
 
         var bootstrap = carrier.Bootstrap;
-        var hasBootstrap = bootstrap is not null
-                           && (bootstrap.Assembly.Length > 0 || bootstrap.Type.Length > 0);
-        if (hasBootstrap
-            && (string.IsNullOrWhiteSpace(bootstrap!.Assembly) || string.IsNullOrWhiteSpace(bootstrap.Type)))
+        var hasBootstrap =
+            bootstrap is not null && (bootstrap.Assembly.Length > 0 || bootstrap.Type.Length > 0);
+        if (
+            hasBootstrap
+            && (
+                string.IsNullOrWhiteSpace(bootstrap!.Assembly)
+                || string.IsNullOrWhiteSpace(bootstrap.Type)
+            )
+        )
         {
             problems.Add(PackText.Get("CarrierBootstrapShape"));
             hasBootstrap = false;
@@ -860,22 +965,34 @@ public static class Packager
         }
 
         // 只读元数据地看一遍，不把任何程序集装进可执行上下文。
-        var references = Directory.EnumerateFiles(sourceDirectory, "*.dll", SearchOption.AllDirectories)
+        var references = Directory
+            .EnumerateFiles(sourceDirectory, "*.dll", SearchOption.AllDirectories)
             .Append(typeof(PluginContractInfo).Assembly.Location)
             .Append(typeof(ICarrierComponent).Assembly.Location)
-            .Concat(((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(Path.PathSeparator));
+            .Concat(
+                ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(
+                    Path.PathSeparator
+                )
+            );
 
         using var metadata = new MetadataLoadContext(new PathAssemblyResolver(references));
         if (hasBootstrap)
         {
-            DeclaresCarrierBootstrap(metadata, Path.Combine(sourceDirectory, bootstrap!.Assembly), bootstrap, problems);
+            DeclaresCarrierBootstrap(
+                metadata,
+                Path.Combine(sourceDirectory, bootstrap!.Assembly),
+                bootstrap,
+                problems
+            );
         }
 
         foreach (var component in carrier.Components)
         {
-            if (component is null
+            if (
+                component is null
                 || string.IsNullOrWhiteSpace(component.Assembly)
-                || string.IsNullOrWhiteSpace(component.Type))
+                || string.IsNullOrWhiteSpace(component.Type)
+            )
             {
                 problems.Add(PackText.Get("CarrierComponentShape"));
                 continue;
@@ -926,7 +1043,12 @@ public static class Packager
                 if (item.GetString() is { } text)
                 {
                     // 1.x 允许一条字符串里写好几项：拆开、去空白、丢空项（Codex 指出）。
-                    foreach (var part in text.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
+                    foreach (
+                        var part in text.Split(
+                            ',',
+                            StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries
+                        )
+                    )
                     {
                         packages.Add(part);
                     }
@@ -934,14 +1056,18 @@ public static class Packager
                     return;
                 }
             }
-            else if (item.ValueKind == JsonValueKind.Object
-                     && item.TryGetProperty("id", out var id)
-                     && id.ValueKind == JsonValueKind.String
-                     && id.GetString() is { Length: > 0 } name)
+            else if (
+                item.ValueKind == JsonValueKind.Object
+                && item.TryGetProperty("id", out var id)
+                && id.ValueKind == JsonValueKind.String
+                && id.GetString() is { Length: > 0 } name
+            )
             {
-                var version = item.TryGetProperty("version", out var raw) && raw.ValueKind == JsonValueKind.String
-                    ? raw.GetString()
-                    : null;
+                var version =
+                    item.TryGetProperty("version", out var raw)
+                    && raw.ValueKind == JsonValueKind.String
+                        ? raw.GetString()
+                        : null;
                 packages.Add(string.IsNullOrEmpty(version) ? name : $"{name}/{version}");
                 return;
             }
@@ -975,23 +1101,29 @@ public static class Packager
 
         var root = Path.GetFullPath(sourceDirectory);
         var full = Path.GetFullPath(Path.Combine(root, relative));
-        return full.StartsWith(root + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)
-               || string.Equals(full, root, StringComparison.OrdinalIgnoreCase);
+        return full.StartsWith(
+                root + Path.DirectorySeparatorChar,
+                StringComparison.OrdinalIgnoreCase
+            ) || string.Equals(full, root, StringComparison.OrdinalIgnoreCase);
     }
 
     private static bool DeclaresCarrierBootstrap(
         MetadataLoadContext metadata,
         string assemblyPath,
         ManifestBootstrap bootstrap,
-        List<string> problems)
+        List<string> problems
+    )
     {
         try
         {
-            var type = metadata.LoadFromAssemblyPath(Path.GetFullPath(assemblyPath))
+            var type = metadata
+                .LoadFromAssemblyPath(Path.GetFullPath(assemblyPath))
                 .GetType(bootstrap.Type, throwOnError: false);
             if (type is null)
             {
-                problems.Add(PackText.Get("CarrierTypeMissing", bootstrap.Type, bootstrap.Assembly));
+                problems.Add(
+                    PackText.Get("CarrierTypeMissing", bootstrap.Type, bootstrap.Assembly)
+                );
                 return false;
             }
 
@@ -1001,10 +1133,14 @@ public static class Packager
                 return false;
             }
 
-            if (type.ContainsGenericParameters
+            if (
+                type.ContainsGenericParameters
                 || type.GetConstructor(
                     System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance,
-                    Type.EmptyTypes) is null)
+                    Type.EmptyTypes
+                )
+                    is null
+            )
             {
                 problems.Add(PackText.Get("CarrierTypeNotCreatable", bootstrap.Type));
                 return false;
@@ -1020,25 +1156,26 @@ public static class Packager
     }
 
     private static bool ImplementsConfigurator(Type type) =>
-        type.GetInterfaces().Any(candidate =>
-            candidate.FullName == typeof(ICarrierServicesConfigurator).FullName);
+        type.GetInterfaces()
+            .Any(candidate => candidate.FullName == typeof(ICarrierServicesConfigurator).FullName);
 
     private static bool DeclaresCarrierComponent(
         MetadataLoadContext metadata,
         string assemblyPath,
         ManifestCarrierComponent component,
-        List<string> problems)
+        List<string> problems
+    )
     {
         try
         {
-            var type = metadata.LoadFromAssemblyPath(Path.GetFullPath(assemblyPath))
+            var type = metadata
+                .LoadFromAssemblyPath(Path.GetFullPath(assemblyPath))
                 .GetType(component.Type, throwOnError: false);
             if (type is null)
             {
-                problems.Add(PackText.Get(
-                    "CarrierTypeMissing",
-                    component.Type,
-                    component.Assembly));
+                problems.Add(
+                    PackText.Get("CarrierTypeMissing", component.Type, component.Assembly)
+                );
                 return false;
             }
 
@@ -1051,10 +1188,14 @@ public static class Packager
             }
 
             // 核心用无参构造函数装配：开泛型与没有公开无参构造的类型到运行期必然起不来（Copilot）。
-            if (type.ContainsGenericParameters
+            if (
+                type.ContainsGenericParameters
                 || type.GetConstructor(
                     System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance,
-                    Type.EmptyTypes) is null)
+                    Type.EmptyTypes
+                )
+                    is null
+            )
             {
                 problems.Add(PackText.Get("CarrierTypeNotCreatable", component.Type));
                 return false;
@@ -1073,8 +1214,11 @@ public static class Packager
     {
         for (var current = type; current is not null; current = current.BaseType)
         {
-            if (current.GetInterfaces().Any(candidate =>
-                    candidate.FullName == typeof(ICarrierComponent).FullName))
+            if (
+                current
+                    .GetInterfaces()
+                    .Any(candidate => candidate.FullName == typeof(ICarrierComponent).FullName)
+            )
             {
                 return true;
             }
@@ -1111,7 +1255,8 @@ public static class Packager
         {
             manifest = JsonSerializer.Deserialize<PluginManifest>(
                 File.ReadAllText(legacyPath),
-                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
+            );
         }
         catch (JsonException ex)
         {
@@ -1162,8 +1307,10 @@ public static class Packager
             writer.WriteString("loader", manifest.Loader);
             // 1.x 的 packageKind 改名成 kind（FX-0058）。
             writer.WriteString("kind", manifest.PackageKind);
-            writer.WriteNumber("apiVersion", int.Parse(
-                PluginContractInfo.CurrentApiVersion, CultureInfo.InvariantCulture));
+            writer.WriteNumber(
+                "apiVersion",
+                int.Parse(PluginContractInfo.CurrentApiVersion, CultureInfo.InvariantCulture)
+            );
 
             if (manifest.Description is { } description)
             {
@@ -1258,7 +1405,7 @@ public static class Packager
             ? normalizedRoot
             : normalizedRoot + Path.DirectorySeparatorChar;
         return string.Equals(normalizedPath, normalizedRoot, comparison)
-               || normalizedPath.StartsWith(prefix, comparison);
+            || normalizedPath.StartsWith(prefix, comparison);
     }
 
     /// <summary>按名字认，因为在只读元数据里契约是另一套类型对象。</summary>

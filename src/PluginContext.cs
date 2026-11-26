@@ -14,7 +14,8 @@ internal sealed class PluginContext(
     PluginManager host,
     Guid instanceId,
     bool isLoader,
-    Action<string> reportFault) : ILoaderContext
+    Action<string> reportFault
+) : ILoaderContext
 {
     internal static readonly IServiceProvider Empty = new EmptyServices();
 
@@ -60,6 +61,7 @@ internal sealed class PluginContext(
         public IScheduler Scheduler => inner.Scheduler;
         public IPluginServiceRegistry PluginServices => inner.PluginServices;
         public IServiceProvider CarrierServices => inner.CarrierServices;
+
         public void ReportFault(PluginDiagnostic diagnostic) => inner.ReportFault(diagnostic);
     }
 

@@ -25,7 +25,11 @@ public sealed class HookPluginLoader : IPluginLoader
 
     public bool CanLoad(PluginManifest manifest) => manifest.Loader == Id;
 
-    public PluginHandle? Load(PluginManifest manifest, string packageDirectory, IPluginContext context)
+    public PluginHandle? Load(
+        PluginManifest manifest,
+        string packageDirectory,
+        IPluginContext context
+    )
     {
         SawLoaderContext[manifest.Name] = context is ILoaderContext;
         return new TestPluginHandle(new HookPlugin(manifest.Name, this));

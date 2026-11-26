@@ -9,20 +9,34 @@ namespace Hosihikari.Testing;
 public sealed class TestEventBus : IEventBus
 {
     private static readonly EventPriority[] Bands =
-        [EventPriority.Lowest, EventPriority.Low, EventPriority.Normal, EventPriority.High, EventPriority.Highest, EventPriority.Monitor];
+    [
+        EventPriority.Lowest,
+        EventPriority.Low,
+        EventPriority.Normal,
+        EventPriority.High,
+        EventPriority.Highest,
+        EventPriority.Monitor,
+    ];
 
     private readonly Dictionary<Type, List<Delegate>[]> _handlers = [];
     private readonly List<Exception> _errors = [];
 
     public IReadOnlyList<Exception> HandlerErrors => _errors;
 
-    public IDisposable Subscribe<TEvent>(Action<TEvent> handler, EventPriority priority = EventPriority.Normal)
+    public IDisposable Subscribe<TEvent>(
+        Action<TEvent> handler,
+        EventPriority priority = EventPriority.Normal
+    )
     {
         ArgumentNullException.ThrowIfNull(handler);
         var bucket = Array.IndexOf(Bands, priority);
         if (bucket < 0)
         {
-            throw new ArgumentOutOfRangeException(nameof(priority), priority, "Unknown event priority");
+            throw new ArgumentOutOfRangeException(
+                nameof(priority),
+                priority,
+                "Unknown event priority"
+            );
         }
 
         if (!_handlers.TryGetValue(typeof(TEvent), out var buckets))
@@ -69,7 +83,8 @@ public sealed class TestEventBus : IEventBus
         }
     }
 
-    private static List<Delegate>[] CreateBuckets() => [.. Bands.Select(static _ => new List<Delegate>())];
+    private static List<Delegate>[] CreateBuckets() =>
+        [.. Bands.Select(static _ => new List<Delegate>())];
 
     private sealed class Subscription(Action unsubscribe) : IDisposable
     {

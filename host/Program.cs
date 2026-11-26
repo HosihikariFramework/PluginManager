@@ -10,8 +10,11 @@ using Hosihikari.Spike;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
-if (args.Length > 0 && args[0] == "publish"
-    && Environment.GetEnvironmentVariable("HOSHI_PACK_OUTPUT_FIXTURE") == "1")
+if (
+    args.Length > 0
+    && args[0] == "publish"
+    && Environment.GetEnvironmentVariable("HOSHI_PACK_OUTPUT_FIXTURE") == "1"
+)
 {
     Console.Out.Write(new string('o', 2 * 1024 * 1024));
     Console.Error.Write(new string('e', 2 * 1024 * 1024));
@@ -72,10 +75,12 @@ StageHooking("LoaderKind", packageKind: "loader");
 // Loader 的可读失败原因走插件日志，所以测试同时收一份。
 var providerLogs = new System.Collections.Concurrent.ConcurrentQueue<string>();
 var collection = new ServiceCollection();
-collection.AddLogging(builder => builder
-    .AddSimpleConsole(options => options.SingleLine = true)
-    .AddProvider(new CapturingLoggerProvider(providerLogs))
-    .SetMinimumLevel(LogLevel.Information));
+collection.AddLogging(builder =>
+    builder
+        .AddSimpleConsole(options => options.SingleLine = true)
+        .AddProvider(new CapturingLoggerProvider(providerLogs))
+        .SetMinimumLevel(LogLevel.Information)
+);
 collection.AddSingleton(typeof(ICarrierInfo), new StubCarrier("stub"));
 var services = collection.BuildServiceProvider();
 
@@ -101,7 +106,8 @@ var host = new PluginManager(
         Console.WriteLine($"[框架] 已移除 {name}");
     },
     // 验证宿主模拟自持态：管理器拥有插件集，Reload 可用（FX-0062）。
-    new PluginManagerOptions { OwnsPluginSet = true });
+    new PluginManagerOptions { OwnsPluginSet = true }
+);
 var pinnedLoader = new PinnedPluginLoader();
 var guardedLoader = new GuardedPluginLoader();
 host.RegisterLoader(new AssemblyPluginLoader(typeof(StubCarrier).Assembly));
@@ -123,42 +129,46 @@ var checks = new List<(string Name, bool Passed, string Detail)>();
 
 // A25：同名 Loader 再登记会被拒并报出来，先来的那个不变（FX-0009）
 var duplicateRefused = !host.RegisterLoader(new ScriptPluginLoader());
-checks.Add((
-    "A25 同名 Loader 被拒并报错",
-    duplicateRefused && reported.Any(entry => entry.Contains("插件种类名必须唯一")),
-    reported.LastOrDefault(entry => entry.Contains("插件种类名必须唯一")) ?? "（没有报告）"
-));
+checks.Add(
+    (
+        "A25 同名 Loader 被拒并报错",
+        duplicateRefused && reported.Any(entry => entry.Contains("插件种类名必须唯一")),
+        reported.LastOrDefault(entry => entry.Contains("插件种类名必须唯一")) ?? "（没有报告）"
+    )
+);
 
 // A48：加载器诊断在 Load 之前把问题并入报告（FX-0041）
-var diagnosticProblem = reported.FirstOrDefault(
-    entry => entry.Contains("Diagnostic") && entry.Contains("缺少入口文件"));
-checks.Add((
-    "A48 加载器诊断进入加载报告",
-    diagnosticProblem is not null && !host.LoadedNames.Contains("Diagnostic"),
-    diagnosticProblem ?? "（没有诊断报告）"
-));
+var diagnosticProblem = reported.FirstOrDefault(entry =>
+    entry.Contains("Diagnostic") && entry.Contains("缺少入口文件")
+);
+checks.Add(
+    (
+        "A48 加载器诊断进入加载报告",
+        diagnosticProblem is not null && !host.LoadedNames.Contains("Diagnostic"),
+        diagnosticProblem ?? "（没有诊断报告）"
+    )
+);
 
 // A49：状态快照是只读视图，带版本、加载器、启用状态与依赖（FX-0041）
 var fooSnapshot = host.Plugins.FirstOrDefault(plugin => plugin.Name == "Foo");
-var snapshotFound = host.TryGetPlugin("Foo", out var fooInfo)
+var snapshotFound =
+    host.TryGetPlugin("Foo", out var fooInfo)
     && fooInfo is { Name: "Foo", State: PluginState.Loaded, Enabled: true };
-var snapshotOk = fooSnapshot is
-{
-    Version: "1.0.0",
-    Loader: "assembly",
-    State: PluginState.Loaded,
-    Enabled: true,
-}
-&& fooSnapshot.Dependencies.Any(dependency => dependency.Name == PluginContractInfo.ParentName)
-&& snapshotFound;
-checks.Add((
-    "A49 插件状态快照读出依赖与启用状态",
-    snapshotOk,
-    fooSnapshot is null
-        ? "（没有 Foo 快照）"
-        : $"{fooSnapshot.Name} {fooSnapshot.Version} {fooSnapshot.Loader} "
-            + $"{fooSnapshot.State} enabled={fooSnapshot.Enabled} deps={fooSnapshot.Dependencies.Count}"
-));
+var snapshotOk =
+    fooSnapshot
+        is { Version: "1.0.0", Loader: "assembly", State: PluginState.Loaded, Enabled: true }
+    && fooSnapshot.Dependencies.Any(dependency => dependency.Name == PluginContractInfo.ParentName)
+    && snapshotFound;
+checks.Add(
+    (
+        "A49 插件状态快照读出依赖与启用状态",
+        snapshotOk,
+        fooSnapshot is null
+            ? "（没有 Foo 快照）"
+            : $"{fooSnapshot.Name} {fooSnapshot.Version} {fooSnapshot.Loader} "
+                + $"{fooSnapshot.State} enabled={fooSnapshot.Enabled} deps={fooSnapshot.Dependencies.Count}"
+    )
+);
 
 // A9：一个 handler 抛出，其余照常收到（FX-0014）
 var heardFile = Path.Combine(dataRoot, "Foo", "heard.txt");
@@ -174,7 +184,13 @@ while (!File.Exists(scheduledFile) && scheduledDeadline.Elapsed < TimeSpan.FromS
     Thread.Sleep(50);
 }
 
-checks.Add(("A10 调度器的一次性任务执行", File.Exists(scheduledFile), File.Exists(scheduledFile) ? "已执行" : "没跑"));
+checks.Add(
+    (
+        "A10 调度器的一次性任务执行",
+        File.Exists(scheduledFile),
+        File.Exists(scheduledFile) ? "已执行" : "没跑"
+    )
+);
 
 // A40：停用关闭作用域闸门，事件不再投递；启用后恢复（FX-0035）
 var fooDisabled = host.Disable("Foo");
@@ -185,35 +201,34 @@ var fooEnabled = host.Enable("Foo");
 host.Events.Publish("after-enable");
 Thread.Sleep(100);
 var heardAfterEnable = File.Exists(heardFile) ? File.ReadAllText(heardFile) : "（没收到）";
-checks.Add((
-    "A40 停用后不再回调，启用后恢复",
-    fooDisabled && fooEnabled && heardWhileDisabled == "ping" && heardAfterEnable == "after-enable",
-    $"disabled={fooDisabled} while={heardWhileDisabled} enabled={fooEnabled} after={heardAfterEnable}"
-));
+checks.Add(
+    (
+        "A40 停用后不再回调，启用后恢复",
+        fooDisabled
+            && fooEnabled
+            && heardWhileDisabled == "ping"
+            && heardAfterEnable == "after-enable",
+        $"disabled={fooDisabled} while={heardWhileDisabled} enabled={fooEnabled} after={heardAfterEnable}"
+    )
+);
 
 // A16：普通依赖（非契约、不在共享层）按 ALC 各一份 —— 这正是可卸载性的代价，
 // 也是"插件之间不共享类型"的另一面（FX-0026）。
 var fooLib = File.ReadAllText(Path.Combine(dataRoot, "Foo", "lib.txt"));
 var barLib = File.ReadAllText(Path.Combine(dataRoot, "Bar", "lib.txt"));
-checks.Add((
-    "A16 普通依赖按 ALC 各一份",
-    fooLib != barLib,
-    $"Foo: {fooLib} ／ Bar: {barLib}"
-));
+checks.Add(("A16 普通依赖按 ALC 各一份", fooLib != barLib, $"Foo: {fooLib} ／ Bar: {barLib}"));
 
 // A21：插件之间只走通道 —— 用共享层里的类型登记与解析，两个 ALC 看到同一个类型对象；
 // 同类型再次登记被拒、先来的留着（FX-0009 / 0026 / 0027）。
 // 收回这条不单独断言：登记没被摘掉的话，Foo 的 ALC 就被钉住，下面那条卸载断言会失败。
 var peerFile = Path.Combine(dataRoot, "Bar", "peer.txt");
 var peer = File.Exists(peerFile) ? File.ReadAllText(peerFile) : "（插件没写出东西）";
-checks.Add((
-    "A21 跨插件服务登记与解析",
-    peer == "Foo.FooPlugin | 冲突登记=False",
-    peer
-));
+checks.Add(("A21 跨插件服务登记与解析", peer == "Foo.FooPlugin | 冲突登记=False", peer));
 
 // A11：两个测试插件都经打包工具装配成了包
-var packedOk = Directory.Exists(Path.Combine(pluginsRoot, "Foo")) && Directory.Exists(Path.Combine(pluginsRoot, "Bar"));
+var packedOk =
+    Directory.Exists(Path.Combine(pluginsRoot, "Foo"))
+    && Directory.Exists(Path.Combine(pluginsRoot, "Bar"));
 checks.Add(("A11 打包工具产出包", packedOk, packedOk ? "Foo / Bar" : "缺包"));
 
 // A12：误把契约打进包里的构建输出，打包必须拦下（FX-0004 / 0019）—— 这条在运行期是静默的
@@ -222,32 +237,58 @@ Directory.CreateDirectory(badSource);
 File.Copy(
     Path.Combine(AppContext.BaseDirectory, "Hosihikari.Plugin.Abstractions.dll"),
     Path.Combine(badSource, "Hosihikari.Plugin.Abstractions.dll"),
-    overwrite: true);
-var bad = Packager.Pack(badSource, Path.Combine(repoRoot, "test", "Foo", "hosihikari.json"), Path.Combine(stage, "bad-out"), sharedLayer);
+    overwrite: true
+);
+var bad = Packager.Pack(
+    badSource,
+    Path.Combine(repoRoot, "test", "Foo", "hosihikari.json"),
+    Path.Combine(stage, "bad-out"),
+    sharedLayer
+);
 var sharedProblem = bad.Problems.FirstOrDefault(problem => problem.Contains("共享层"));
-checks.Add(("A12 打包拒绝共享层副本", !bad.Succeeded && sharedProblem is not null, sharedProblem ?? "（未拦下）"));
+checks.Add(
+    (
+        "A12 打包拒绝共享层副本",
+        !bad.Succeeded && sharedProblem is not null,
+        sharedProblem ?? "（未拦下）"
+    )
+);
 
 // A6：apiVersion 不匹配必须被拒载并留下可读报告（FX-0012）
-var rejected = !host.LoadedNames.Contains("Broken") && reported.Any(entry => entry.Contains("apiVersion 不匹配"));
-checks.Add(("A6 apiVersion 不匹配时拒载", rejected, reported.LastOrDefault(entry => entry.Contains("apiVersion 不匹配")) ?? "（无报告）"));
+var rejected =
+    !host.LoadedNames.Contains("Broken")
+    && reported.Any(entry => entry.Contains("apiVersion 不匹配"));
+checks.Add(
+    (
+        "A6 apiVersion 不匹配时拒载",
+        rejected,
+        reported.LastOrDefault(entry => entry.Contains("apiVersion 不匹配")) ?? "（无报告）"
+    )
+);
 
 // A33：schemaVersion 不匹配必须被拒载（FX-0012）
-var formatRefused = !host.LoadedNames.Contains("BadFormat")
+var formatRefused =
+    !host.LoadedNames.Contains("BadFormat")
     && reported.Any(entry => entry.Contains("schemaVersion 不匹配"));
-checks.Add((
-    "A33 schemaVersion 不匹配时拒载",
-    formatRefused,
-    reported.LastOrDefault(entry => entry.Contains("schemaVersion")) ?? "（无报告）"
-));
+checks.Add(
+    (
+        "A33 schemaVersion 不匹配时拒载",
+        formatRefused,
+        reported.LastOrDefault(entry => entry.Contains("schemaVersion")) ?? "（无报告）"
+    )
+);
 
 // A34：entry 必须留在包内 —— 绝对路径与 .. 都不能把包外的东西装进插件的 ALC（FX-0006）
-var escapingRefused = !host.LoadedNames.Contains("Escaping")
+var escapingRefused =
+    !host.LoadedNames.Contains("Escaping")
     && reported.Any(entry => entry.Contains("entry 必须是包内相对路径"));
-checks.Add((
-    "A34 entry 出界时拒载",
-    escapingRefused,
-    reported.LastOrDefault(entry => entry.Contains("entry 必须是包内相对路径")) ?? "（无报告）"
-));
+checks.Add(
+    (
+        "A34 entry 出界时拒载",
+        escapingRefused,
+        reported.LastOrDefault(entry => entry.Contains("entry 必须是包内相对路径")) ?? "（无报告）"
+    )
+);
 
 // A5：载体绑定程序集也走共享层 —— 转型成功才拿得到，副本会拿到另一种身份（FX-0019）
 var carrierFile = Path.Combine(dataRoot, "Foo", "carrier.txt");
@@ -257,31 +298,53 @@ checks.Add(("A5 载体绑定也走共享层", seen == "stub-carrier:stub", seen)
 // A8：包内默认被包外覆盖，且没写配置的插件照样加载（FX-0018）
 var greetingFile = Path.Combine(dataRoot, "Foo", "greeting.txt");
 var greeting = File.Exists(greetingFile) ? File.ReadAllText(greetingFile) : "（插件没写出东西）";
-checks.Add(("A8 配置分层：包外覆盖包内", greeting == "overridden" && host.LoadedNames.Contains("Bar"), greeting));
+checks.Add(
+    (
+        "A8 配置分层：包外覆盖包内",
+        greeting == "overridden" && host.LoadedNames.Contains("Bar"),
+        greeting
+    )
+);
 
 // A7：另一种插件类型（不碰 ALC）走的是同一套契约与同一套生命周期（FX-0002 / FX-0010）
 var ranFile = Path.Combine(dataRoot, "Lua", "ran.txt");
-checks.Add(("A7 非 ALC 的插件类型走同一契约", File.Exists(ranFile), File.Exists(ranFile) ? "脚本已执行" : "脚本没跑"));
+checks.Add(
+    (
+        "A7 非 ALC 的插件类型走同一契约",
+        File.Exists(ranFile),
+        File.Exists(ranFile) ? "脚本已执行" : "脚本没跑"
+    )
+);
 
 // A4：Bar 依赖 Foo，此时卸 Foo 必须被拒，且如实返回（FX-0004）
 var refused = host.Unload("Foo");
-checks.Add(("A4 有依赖者时拒绝卸载", !refused.Released && !string.IsNullOrEmpty(refused.Error), refused.Error ?? "（未拒绝）"));
+checks.Add(
+    (
+        "A4 有依赖者时拒绝卸载",
+        !refused.Released && !string.IsNullOrEmpty(refused.Error),
+        refused.Error ?? "（未拒绝）"
+    )
+);
 
 // A24：传递依赖的第二段 —— Bar 现在依赖者是 Lua，卸它同样要被拒（FX-0004）
 var barRefused = host.Unload("Bar");
-checks.Add((
-    "A24 传递依赖上仍然拒绝卸载",
-    !barRefused.Released && barRefused.Error?.Contains("Lua") == true,
-    barRefused.Error ?? "（未拒绝）"
-));
+checks.Add(
+    (
+        "A24 传递依赖上仍然拒绝卸载",
+        !barRefused.Released && barRefused.Error?.Contains("Lua") == true,
+        barRefused.Error ?? "（未拒绝）"
+    )
+);
 
 // A13：父级态下父级把包逐个交过来（FX-0003）—— 这个包不在 plugins/ 下，只有交付能让它进来
 var delivered = host.Load(Path.Combine(stage, "parented", "Pinned"));
-checks.Add((
-    "A13 父级交付的包装上了",
-    delivered && host.LoadedNames.Contains("Pinned"),
-    delivered ? string.Join(", ", host.LoadedNames) : "交付被拒"
-));
+checks.Add(
+    (
+        "A13 父级交付的包装上了",
+        delivered && host.LoadedNames.Contains("Pinned"),
+        delivered ? string.Join(", ", host.LoadedNames) : "交付被拒"
+    )
+);
 
 // A20：父级态下启停由父级驱动（FX-0003）—— 交付时不自动启用，父级一发话钩子就该到
 var hookFile = Path.Combine(dataRoot, "Pinned", "hook.txt");
@@ -290,28 +353,38 @@ var disabled = host.Disable("Pinned");
 var afterDisable = File.ReadAllText(hookFile);
 var enabled = host.Enable("Pinned");
 var afterEnable = File.ReadAllText(hookFile);
-checks.Add((
-    "A20 父级驱动启停，交付时不自动启用",
-    afterDelivery == "loaded" && disabled && afterDisable == "disabled" && enabled && afterEnable == "enabled",
-    $"交付后 {afterDelivery} → 停用 {afterDisable} → 启用 {afterEnable}"
-));
+checks.Add(
+    (
+        "A20 父级驱动启停，交付时不自动启用",
+        afterDelivery == "loaded"
+            && disabled
+            && afterDisable == "disabled"
+            && enabled
+            && afterEnable == "enabled",
+        $"交付后 {afterDelivery} → 停用 {afterDisable} → 启用 {afterEnable}"
+    )
+);
 
 // A14：放下之后回收验证没过，就是没卸掉 —— 照实报失败（FX-0004）
 var pinnedFirst = host.Unload("Pinned");
-checks.Add((
-    "A14 回收没过时如实报失败",
-    !pinnedFirst.Released && pinnedFirst.Error?.Contains("回收") == true,
-    pinnedFirst.Error ?? "（居然说卸掉了）"
-));
+checks.Add(
+    (
+        "A14 回收没过时如实报失败",
+        !pinnedFirst.Released && pinnedFirst.Error?.Contains("回收") == true,
+        pinnedFirst.Error ?? "（居然说卸掉了）"
+    )
+);
 
 // A15：再问一次是重新验证，不是"未加载"；外面那根没了就真卸掉
 pinnedLoader.Pinned = false;
 var pinnedSecond = host.Unload("Pinned");
-checks.Add((
-    "A15 待回收的插件可以再卸一次",
-    pinnedSecond.Released && !host.LoadedNames.Contains("Pinned"),
-    pinnedSecond.Error ?? "已回收"
-));
+checks.Add(
+    (
+        "A15 待回收的插件可以再卸一次",
+        pinnedSecond.Released && !host.LoadedNames.Contains("Pinned"),
+        pinnedSecond.Error ?? "已回收"
+    )
+);
 
 // A47：并发卸载共享同一个进行中的回收验证，验证等待不占 _gate。
 pinnedLoader.Pinned = true;
@@ -325,18 +398,22 @@ Thread.Sleep(300);
 pinnedLoader.Pinned = false;
 var concurrentFinished = Task.WaitAll(
     new[] { concurrentFirst, concurrentSecond },
-    TimeSpan.FromSeconds(5));
-var concurrentReleased = concurrentFinished
-    && concurrentFirst.Result.Released
-    && concurrentSecond.Result.Released;
-checks.Add((
-    "A47 并发卸载共享同一个回收验证",
-    concurrentLoaded && firstWaiting && concurrentReleased
-        && pinnedLoader.WaitCalls - waitsBefore == 1
-        && !host.LoadedNames.Contains("Pinned"),
-    $"loaded={concurrentLoaded} waiting={firstWaiting} released={concurrentReleased} "
-        + $"waits={pinnedLoader.WaitCalls - waitsBefore}"
-));
+    TimeSpan.FromSeconds(5)
+);
+var concurrentReleased =
+    concurrentFinished && concurrentFirst.Result.Released && concurrentSecond.Result.Released;
+checks.Add(
+    (
+        "A47 并发卸载共享同一个回收验证",
+        concurrentLoaded
+            && firstWaiting
+            && concurrentReleased
+            && pinnedLoader.WaitCalls - waitsBefore == 1
+            && !host.LoadedNames.Contains("Pinned"),
+        $"loaded={concurrentLoaded} waiting={firstWaiting} released={concurrentReleased} "
+            + $"waits={pinnedLoader.WaitCalls - waitsBefore}"
+    )
+);
 
 // A50：回收验证超时按失败记，槽位留在待回收；下一次卸载复用同一个验证任务（FX-0042）。
 var timeoutLoader = new PinnedPluginLoader { Pinned = true };
@@ -347,24 +424,31 @@ var timeoutHost = new PluginManager(
     _ => { },
     null,
     null,
-    new PluginManagerOptions { UnloadVerificationTimeout = TimeSpan.FromMilliseconds(150) });
+    new PluginManagerOptions { UnloadVerificationTimeout = TimeSpan.FromMilliseconds(150) }
+);
 timeoutHost.RegisterLoader(timeoutLoader);
 var timeoutLoaded = timeoutHost.Load(Path.Combine(stage, "parented", "Pinned"));
 var timeoutFirst = timeoutHost.Unload("Pinned");
-var timeoutDetached = timeoutHost.TryGetPlugin("Pinned", out var timeoutInfo)
+var timeoutDetached =
+    timeoutHost.TryGetPlugin("Pinned", out var timeoutInfo)
     && timeoutInfo is { State: PluginState.Detached, Enabled: false };
 timeoutLoader.Pinned = false;
 var timeoutSecond = timeoutHost.Unload("Pinned");
 var timeoutGone = !timeoutHost.TryGetPlugin("Pinned", out _);
-checks.Add((
-    "A50 回收验证超时按失败记并保留待回收",
-    timeoutLoaded && !timeoutFirst.Released
-        && timeoutFirst.Error?.Contains("回收验证超时") == true
-        && timeoutDetached && timeoutSecond.Released && timeoutGone
-        && timeoutLoader.WaitCalls == 1,
-    $"loaded={timeoutLoaded} first={timeoutFirst.Error ?? "成功"} detached={timeoutDetached} "
-        + $"second={timeoutSecond.Released} waits={timeoutLoader.WaitCalls}"
-));
+checks.Add(
+    (
+        "A50 回收验证超时按失败记并保留待回收",
+        timeoutLoaded
+            && !timeoutFirst.Released
+            && timeoutFirst.Error?.Contains("回收验证超时") == true
+            && timeoutDetached
+            && timeoutSecond.Released
+            && timeoutGone
+            && timeoutLoader.WaitCalls == 1,
+        $"loaded={timeoutLoaded} first={timeoutFirst.Error ?? "成功"} detached={timeoutDetached} "
+            + $"second={timeoutSecond.Released} waits={timeoutLoader.WaitCalls}"
+    )
+);
 
 // A51：WaitAsync 计时器不支持的超时在构造期拒绝，避免每次卸载都失败且不验证。
 var invalidTimeoutRefused = false;
@@ -377,18 +461,21 @@ try
         _ => { },
         null,
         null,
-        new PluginManagerOptions { UnloadVerificationTimeout = TimeSpan.FromDays(60) });
+        new PluginManagerOptions { UnloadVerificationTimeout = TimeSpan.FromDays(60) }
+    );
 }
 catch (ArgumentOutOfRangeException)
 {
     invalidTimeoutRefused = true;
 }
 
-checks.Add((
-    "A51 拒绝超出计时器范围的卸载超时",
-    invalidTimeoutRefused,
-    invalidTimeoutRefused ? "构造期已拒绝" : "（没有拒绝）"
-));
+checks.Add(
+    (
+        "A51 拒绝超出计时器范围的卸载超时",
+        invalidTimeoutRefused,
+        invalidTimeoutRefused ? "构造期已拒绝" : "（没有拒绝）"
+    )
+);
 
 // A51b：InfiniteTimeSpan 关闭计时器，一直等到加载器的验证通过（FX-0042）。
 var infiniteLoader = new PinnedPluginLoader { Pinned = true };
@@ -399,20 +486,26 @@ var infiniteHost = new PluginManager(
     _ => { },
     null,
     null,
-    new PluginManagerOptions { UnloadVerificationTimeout = Timeout.InfiniteTimeSpan });
+    new PluginManagerOptions { UnloadVerificationTimeout = Timeout.InfiniteTimeSpan }
+);
 infiniteHost.RegisterLoader(infiniteLoader);
 var infiniteLoaded = infiniteHost.Load(Path.Combine(stage, "parented", "Pinned"));
 var infinitePending = Task.Run(() => infiniteHost.Unload("Pinned"));
 Thread.Sleep(300);
 var infiniteStillWaiting = !infinitePending.IsCompleted;
 infiniteLoader.Pinned = false;
-var infiniteReleased = infinitePending.Wait(TimeSpan.FromSeconds(5)) && infinitePending.Result.Released;
-checks.Add((
-    "A51b InfiniteTimeSpan 不设计时器，等验证通过才返回",
-    infiniteLoaded && infiniteStillWaiting && infiniteReleased
-        && !infiniteHost.LoadedNames.Contains("Pinned"),
-    $"loaded={infiniteLoaded} waiting={infiniteStillWaiting} released={infiniteReleased}"
-));
+var infiniteReleased =
+    infinitePending.Wait(TimeSpan.FromSeconds(5)) && infinitePending.Result.Released;
+checks.Add(
+    (
+        "A51b InfiniteTimeSpan 不设计时器，等验证通过才返回",
+        infiniteLoaded
+            && infiniteStillWaiting
+            && infiniteReleased
+            && !infiniteHost.LoadedNames.Contains("Pinned"),
+        $"loaded={infiniteLoaded} waiting={infiniteStillWaiting} released={infiniteReleased}"
+    )
+);
 
 // A53：服务端线程上装着 SynchronizationContext 时，钩子里的 await 不能把同步等待挂死（FX-0059）。
 // 复现的就是这个：装上下文后直接 GetAwaiter().GetResult() 等 Task.Delay / Task.Yield / Task.Run 会永久阻塞。
@@ -422,7 +515,8 @@ var hookedHost = new PluginManager(
     pluginsRoot,
     Path.Combine(stage, "hooks", "data"),
     Path.Combine(stage, "hooks", "config"),
-    _ => { });
+    _ => { }
+);
 hookedHost.RegisterLoader(hookLoader);
 var hookedPackage = Path.Combine(stage, "parented", "Awaiting");
 var awaited = false;
@@ -433,15 +527,21 @@ var awaitingThread = new Thread(() =>
     var loaded = hookedHost.Load(hookedPackage);
     var enabled = loaded && hookedHost.Enable("Awaiting");
     var unloaded = enabled && hookedHost.Unload("Awaiting").Released;
-    awaited = loaded && enabled && unloaded && hookLoader.DelaysCompleted.GetValueOrDefault("Awaiting");
-}) { IsBackground = true };
+    awaited =
+        loaded && enabled && unloaded && hookLoader.DelaysCompleted.GetValueOrDefault("Awaiting");
+})
+{
+    IsBackground = true,
+};
 awaitingThread.Start();
 deadlocked = !awaitingThread.Join(TimeSpan.FromSeconds(5));
-checks.Add((
-    "A53 装着服务端上下文时钩子不挂死",
-    awaited && !deadlocked,
-    $"completed={awaited} deadlocked={deadlocked}"
-));
+checks.Add(
+    (
+        "A53 装着服务端上下文时钩子不挂死",
+        awaited && !deadlocked,
+        $"completed={awaited} deadlocked={deadlocked}"
+    )
+);
 
 // A54：钩子超时是独立一段，回收验证照走；结果如实标注是钩子超的（FX-0063）。
 // Hanging 的 OnDisable / OnUnload 等到令牌取消才返回，回收验证本身是快的。
@@ -453,21 +553,26 @@ var hangHost = new PluginManager(
     _ => { },
     null,
     null,
-    new PluginManagerOptions { HookTimeout = TimeSpan.FromMilliseconds(150) });
+    new PluginManagerOptions { HookTimeout = TimeSpan.FromMilliseconds(150) }
+);
 hangHost.RegisterLoader(hangLoader);
 var hangLoaded = hangHost.Load(Path.Combine(stage, "parented", "Hanging"));
 var hangStarted = System.Diagnostics.Stopwatch.StartNew();
 var hangUnload = hangHost.Unload("Hanging");
 hangStarted.Stop();
-checks.Add((
-    "A54 钩子超时不再等待并继续回收验证",
-    hangLoaded && hangUnload.Released && hangUnload.HookTimedOut
-        && hangUnload.Failure == UnloadFailure.None
-        && hangStarted.Elapsed < TimeSpan.FromSeconds(5)
-        && !hangHost.TryGetPlugin("Hanging", out _),
-    $"released={hangUnload.Released} hookTimedOut={hangUnload.HookTimedOut} "
-        + $"failure={hangUnload.Failure} elapsed={hangStarted.ElapsedMilliseconds}ms"
-));
+checks.Add(
+    (
+        "A54 钩子超时不再等待并继续回收验证",
+        hangLoaded
+            && hangUnload.Released
+            && hangUnload.HookTimedOut
+            && hangUnload.Failure == UnloadFailure.None
+            && hangStarted.Elapsed < TimeSpan.FromSeconds(5)
+            && !hangHost.TryGetPlugin("Hanging", out _),
+        $"released={hangUnload.Released} hookTimedOut={hangUnload.HookTimedOut} "
+            + $"failure={hangUnload.Failure} elapsed={hangStarted.ElapsedMilliseconds}ms"
+    )
+);
 
 // A55：钩子超时在自持态的装载/E启用里也成立：OnLoad 取消按回滚处理，OnEnable 取消保持停用（FX-0059）。
 var enableHangLoader = new HookPluginLoader();
@@ -478,7 +583,8 @@ var enableHangHost = new PluginManager(
     _ => { },
     null,
     null,
-    new PluginManagerOptions { HookTimeout = TimeSpan.FromMilliseconds(150) });
+    new PluginManagerOptions { HookTimeout = TimeSpan.FromMilliseconds(150) }
+);
 enableHangHost.RegisterLoader(enableHangLoader);
 var loadTimedOut = true;
 var hangingLoaded = false;
@@ -493,13 +599,19 @@ catch (Exception)
 }
 
 var enableTimedOut = !enableHangHost.Enable("Hanging");
-checks.Add((
-    "A55 OnEnable 超时保持停用且不挂死",
-    loadTimedOut && hangingLoaded && enableTimedOut && enableHangHost.LoadedNames.Contains("Hanging")
-        && enableHangHost.TryGetPlugin("Hanging", out var hangInfo) && hangInfo.Enabled == false,
-    $"load={loadTimedOut} loaded={hangingLoaded} refusedEnable={enableTimedOut} "
-        + $"names=[{string.Join(", ", enableHangHost.LoadedNames)}]"
-));
+checks.Add(
+    (
+        "A55 OnEnable 超时保持停用且不挂死",
+        loadTimedOut
+            && hangingLoaded
+            && enableTimedOut
+            && enableHangHost.LoadedNames.Contains("Hanging")
+            && enableHangHost.TryGetPlugin("Hanging", out var hangInfo)
+            && hangInfo.Enabled == false,
+        $"load={loadTimedOut} loaded={hangingLoaded} refusedEnable={enableTimedOut} "
+            + $"names=[{string.Join(", ", enableHangHost.LoadedNames)}]"
+    )
+);
 
 // A56：普通包与加载器包拿到的上下文不同（FX-0059）；判别认清单的 packageKind。
 var contextKindLoader = new HookPluginLoader();
@@ -507,24 +619,28 @@ var kindHost = new PluginManager(
     pluginsRoot,
     Path.Combine(stage, "contexts", "data"),
     Path.Combine(stage, "contexts", "config"),
-    _ => { });
+    _ => { }
+);
 kindHost.RegisterLoader(contextKindLoader);
 var plainPackage = Path.Combine(stage, "parented", "Awaiting");
 var loaderPackage = Path.Combine(stage, "parented", "LoaderKind");
 var plainLoaded = kindHost.Load(plainPackage);
 var loaderLoaded = kindHost.Load(loaderPackage);
-checks.Add((
-    "A56 普通包拿不到 ILoaderContext，加载器包拿得到（装载与 OnLoad 都算）",
-    plainLoaded && loaderLoaded
-        && contextKindLoader.SawLoaderContext.GetValueOrDefault("Awaiting") == false
-        && contextKindLoader.SawLoaderContext.GetValueOrDefault("LoaderKind") == true
-        && contextKindLoader.SawLoaderContextInHook.GetValueOrDefault("Awaiting") == false
-        && contextKindLoader.SawLoaderContextInHook.GetValueOrDefault("LoaderKind") == true,
-    $"plain={contextKindLoader.SawLoaderContext.GetValueOrDefault("Awaiting")}/"
-        + $"{contextKindLoader.SawLoaderContextInHook.GetValueOrDefault("Awaiting")} "
-        + $"loader={contextKindLoader.SawLoaderContext.GetValueOrDefault("LoaderKind")}/"
-        + $"{contextKindLoader.SawLoaderContextInHook.GetValueOrDefault("LoaderKind")}"
-));
+checks.Add(
+    (
+        "A56 普通包拿不到 ILoaderContext，加载器包拿得到（装载与 OnLoad 都算）",
+        plainLoaded
+            && loaderLoaded
+            && contextKindLoader.SawLoaderContext.GetValueOrDefault("Awaiting") == false
+            && contextKindLoader.SawLoaderContext.GetValueOrDefault("LoaderKind") == true
+            && contextKindLoader.SawLoaderContextInHook.GetValueOrDefault("Awaiting") == false
+            && contextKindLoader.SawLoaderContextInHook.GetValueOrDefault("LoaderKind") == true,
+        $"plain={contextKindLoader.SawLoaderContext.GetValueOrDefault("Awaiting")}/"
+            + $"{contextKindLoader.SawLoaderContextInHook.GetValueOrDefault("Awaiting")} "
+            + $"loader={contextKindLoader.SawLoaderContext.GetValueOrDefault("LoaderKind")}/"
+            + $"{contextKindLoader.SawLoaderContextInHook.GetValueOrDefault("LoaderKind")}"
+    )
+);
 
 // A66：钩子里报的故障不能在 _gate 上等死（Codex 指出的死锁形状）——
 // Enable 期间 _gate 被握着，插件线程 ReportFault 必须先进待报账，钩子返回后立刻卸掉。
@@ -538,21 +654,26 @@ var faultHost = new PluginManager(
     faultReports.Add,
     services,
     null,
-    new PluginManagerOptions { HookTimeout = TimeSpan.FromSeconds(5) });
+    new PluginManagerOptions { HookTimeout = TimeSpan.FromSeconds(5) }
+);
 faultHost.RegisterLoader(faultLoader);
 var faultLoaded = faultHost.Load(Path.Combine(stage, "parented", "Awaiting"));
 var faultWatch = System.Diagnostics.Stopwatch.StartNew();
 var faultEnable = faultHost.Enable("Awaiting");
 var faultElapsed = faultWatch.Elapsed;
 Thread.Sleep(100);
-checks.Add((
-    "A66 钩子里的故障先进待报账，不在 _gate 上等到超时",
-    faultLoaded && !faultEnable && !faultHost.LoadedNames.Contains("Awaiting")
-        && faultElapsed < TimeSpan.FromSeconds(2)
-        && faultReports.Any(report => report.Contains("故障", StringComparison.Ordinal)),
-    $"loaded={faultLoaded} enable={faultEnable} elapsed={faultElapsed.TotalMilliseconds:0}ms "
-        + $"names=[{string.Join(", ", faultHost.LoadedNames)}]"
-));
+checks.Add(
+    (
+        "A66 钩子里的故障先进待报账，不在 _gate 上等到超时",
+        faultLoaded
+            && !faultEnable
+            && !faultHost.LoadedNames.Contains("Awaiting")
+            && faultElapsed < TimeSpan.FromSeconds(2)
+            && faultReports.Any(report => report.Contains("故障", StringComparison.Ordinal)),
+        $"loaded={faultLoaded} enable={faultEnable} elapsed={faultElapsed.TotalMilliseconds:0}ms "
+            + $"names=[{string.Join(", ", faultHost.LoadedNames)}]"
+    )
+);
 
 // A59：状态迁移事件照实发出 —— 装载成功发 →Loaded，放下发 Loaded→Detached（FX-0062 / 0062 的接线）。
 // 事件在线程池上发，所以等一小会儿再收。
@@ -561,7 +682,8 @@ var stateHost = new PluginManager(
     pluginsRoot,
     Path.Combine(stage, "states", "data"),
     Path.Combine(stage, "states", "config"),
-    _ => { });
+    _ => { }
+);
 stateHost.RegisterLoader(statePlugin);
 var stateTransitions = new System.Collections.Concurrent.ConcurrentQueue<PluginStateChanged>();
 stateHost.Events.Subscribe<PluginStateChanged>(change => stateTransitions.Enqueue(change));
@@ -569,19 +691,31 @@ var stateLoaded = stateHost.Load(Path.Combine(stage, "parented", "Awaiting"));
 var stateUnloaded = stateHost.Unload("Awaiting").Released;
 Thread.Sleep(300);
 var transitions = stateTransitions.ToArray();
-checks.Add((
-    "A59 装载与放下各发一次状态事件",
-    stateLoaded && stateUnloaded
-        && transitions.Any(change => change is { Previous: PluginState.Detached, Current: PluginState.Loaded })
-        && transitions.Any(change => change is { Previous: PluginState.Loaded, Current: PluginState.Detached }),
-    string.Join(", ", transitions.Select(change => $"{change.Previous}→{change.Current}"))
-        is { Length: > 0 } text ? text : "（没有事件）"
-));
+checks.Add(
+    (
+        "A59 装载与放下各发一次状态事件",
+        stateLoaded
+            && stateUnloaded
+            && transitions.Any(change =>
+                change is { Previous: PluginState.Detached, Current: PluginState.Loaded }
+            )
+            && transitions.Any(change =>
+                change is { Previous: PluginState.Loaded, Current: PluginState.Detached }
+            ),
+        string.Join(", ", transitions.Select(change => $"{change.Previous}→{change.Current}"))
+            is { Length: > 0 } text
+            ? text
+            : "（没有事件）"
+    )
+);
+
 // A57：只有旧 manifest.json 的包在载入前拒载，报错指向 migrate（FX-0058）。
 // 父级自己的插件住在同一个 plugins/ 下，它们的信封 type 不是 hosihikari，不该被报出来。
 var legacyPackage = Path.Combine(pluginsRoot, "LegacyOnly");
 Directory.CreateDirectory(legacyPackage);
-File.WriteAllText(Path.Combine(legacyPackage, "manifest.json"), """
+File.WriteAllText(
+    Path.Combine(legacyPackage, "manifest.json"),
+    """
     {
       "name": "LegacyOnly",
       "entry": "LegacyOnly.dll",
@@ -589,21 +723,27 @@ File.WriteAllText(Path.Combine(legacyPackage, "manifest.json"), """
       "dependencies": [ { "name": "hosihikari" } ],
       "extraInfo": { "api_version": "2", "manifest_version": "1" }
     }
-    """);
+    """
+);
 var parentPackage = Path.Combine(pluginsRoot, "ParentMod");
 Directory.CreateDirectory(parentPackage);
-File.WriteAllText(Path.Combine(parentPackage, "manifest.json"), """
+File.WriteAllText(
+    Path.Combine(parentPackage, "manifest.json"),
+    """
     { "name": "ParentMod", "entry": "ParentMod.dll", "type": "native" }
-    """);
+    """
+);
 var foreignReports = new List<string>();
 ManifestReader.Scan(pluginsRoot, foreignReports.Add);
-checks.Add((
-    "A57 旧包拒载并给出 migrate，父级 mod 不吭声",
-    foreignReports.Any(report => report.Contains("hosihikari-pack migrate LegacyOnly"))
-        && !foreignReports.Any(report => report.Contains("ParentMod"))
-        && !host.LoadedNames.Contains("LegacyOnly"),
-    foreignReports.FirstOrDefault() ?? "（无报告）"
-));
+checks.Add(
+    (
+        "A57 旧包拒载并给出 migrate，父级 mod 不吭声",
+        foreignReports.Any(report => report.Contains("hosihikari-pack migrate LegacyOnly"))
+            && !foreignReports.Any(report => report.Contains("ParentMod"))
+            && !host.LoadedNames.Contains("LegacyOnly"),
+        foreignReports.FirstOrDefault() ?? "（无报告）"
+    )
+);
 
 // A58：carrier 组声明的程序集与类型要真的存在且实现 ICarrierComponent（FX-0061）。
 // 核心按名字装配组件，等到启动阶段才发现就太晚了。入口只是占位：载体包不由父级加载。
@@ -613,87 +753,120 @@ File.WriteAllText(Path.Combine(carrierSource, "entry.dll"), "placeholder");
 File.Copy(
     Path.Combine(AppContext.BaseDirectory, "Hosihikari.Bindings.Stub.dll"),
     Path.Combine(carrierSource, "probe.dll"),
-    overwrite: true);
-string CarrierManifest(string components) => WriteManifest("carrier-" + Guid.NewGuid().ToString("N"), $$"""
-    {
-      "schemaVersion": 1,
-      "name": "hosihikari",
-      "entry": "entry.dll",
-      "loader": "stub",
-      "kind": "carrier",
-      "apiVersion": 3,
-      "carrier": { "components": {{components}} }
-    }
-    """);
+    overwrite: true
+);
+string CarrierManifest(string components) =>
+    WriteManifest(
+        "carrier-" + Guid.NewGuid().ToString("N"),
+        $$"""
+        {
+          "schemaVersion": 1,
+          "name": "hosihikari",
+          "entry": "entry.dll",
+          "loader": "stub",
+          "kind": "carrier",
+          "apiVersion": 3,
+          "carrier": { "components": {{components}} }
+        }
+        """
+    );
+
 // 替身里有一个真实现与一个抽象实现：类型不存在、类型没实现、抽象类都必须拒。
 var carrierMissingType = Packager.Pack(
     carrierSource,
     CarrierManifest("""[ { "assembly": "probe.dll", "type": "Hosihikari.NoSuchComponent" } ]"""),
     Path.Combine(stage, "carrier-missing-type"),
-    sharedLayer);
+    sharedLayer
+);
 var carrierMissingAssembly = Packager.Pack(
     carrierSource,
     CarrierManifest("""[ { "assembly": "nope.dll", "type": "Some.Component" } ]"""),
     Path.Combine(stage, "carrier-missing-assembly"),
-    sharedLayer);
+    sharedLayer
+);
 var carrierAbstract = Packager.Pack(
     carrierSource,
-    CarrierManifest("""[ { "assembly": "probe.dll", "type": "Hosihikari.Bindings.AbstractCarrierComponent" } ]"""),
+    CarrierManifest(
+        """[ { "assembly": "probe.dll", "type": "Hosihikari.Bindings.AbstractCarrierComponent" } ]"""
+    ),
     Path.Combine(stage, "carrier-abstract"),
-    sharedLayer);
+    sharedLayer
+);
 var carrierRealType = Packager.Pack(
     carrierSource,
-    CarrierManifest("""[ { "assembly": "probe.dll", "type": "Hosihikari.Bindings.StubCarrierComponent" } ]"""),
+    CarrierManifest(
+        """[ { "assembly": "probe.dll", "type": "Hosihikari.Bindings.StubCarrierComponent" } ]"""
+    ),
     Path.Combine(stage, "carrier-real"),
-    sharedLayer);
+    sharedLayer
+);
+
 // 引导（FX-0064）：同样要在打包期校验——不是配置器、类型不存在都要拒。
-string BootstrapManifest(string bootstrap) => WriteManifest("carrier-" + Guid.NewGuid().ToString("N"), $$"""
-    {
-      "schemaVersion": 1,
-      "name": "hosihikari",
-      "entry": "entry.dll",
-      "loader": "stub",
-      "kind": "carrier",
-      "apiVersion": 3,
-      "carrier": { "bootstrap": {{bootstrap}} }
-    }
-    """);
+string BootstrapManifest(string bootstrap) =>
+    WriteManifest(
+        "carrier-" + Guid.NewGuid().ToString("N"),
+        $$"""
+        {
+          "schemaVersion": 1,
+          "name": "hosihikari",
+          "entry": "entry.dll",
+          "loader": "stub",
+          "kind": "carrier",
+          "apiVersion": 3,
+          "carrier": { "bootstrap": {{bootstrap}} }
+        }
+        """
+    );
 var bootstrapNotConfigurator = Packager.Pack(
     carrierSource,
-    BootstrapManifest("""{ "assembly": "probe.dll", "type": "Hosihikari.Bindings.StubCarrierComponent" }"""),
+    BootstrapManifest(
+        """{ "assembly": "probe.dll", "type": "Hosihikari.Bindings.StubCarrierComponent" }"""
+    ),
     Path.Combine(stage, "carrier-bootstrap-wrong"),
-    sharedLayer);
+    sharedLayer
+);
 var bootstrapMissingType = Packager.Pack(
     carrierSource,
     BootstrapManifest("""{ "assembly": "probe.dll", "type": "Hosihikari.NoSuchConfigurator" }"""),
     Path.Combine(stage, "carrier-bootstrap-missing"),
-    sharedLayer);
+    sharedLayer
+);
 var bootstrapRealType = Packager.Pack(
     carrierSource,
-    BootstrapManifest("""{ "assembly": "probe.dll", "type": "Hosihikari.Bindings.ProbeConfigurator" }"""),
+    BootstrapManifest(
+        """{ "assembly": "probe.dll", "type": "Hosihikari.Bindings.ProbeConfigurator" }"""
+    ),
     Path.Combine(stage, "carrier-bootstrap-real"),
-    sharedLayer);
-checks.Add((
-    "A58 carrier 组校验程序集与类型",
-    !carrierMissingType.Succeeded
-        && carrierMissingType.Problems.Any(problem => problem.Contains("NoSuchComponent"))
-        && !carrierMissingAssembly.Succeeded
-        && carrierMissingAssembly.Problems.Any(problem => problem.Contains("nope.dll"))
-        && !carrierAbstract.Succeeded
-        && carrierRealType.Succeeded
-        && !bootstrapNotConfigurator.Succeeded
-        && bootstrapNotConfigurator.Problems.Any(problem => problem.Contains("ICarrierServicesConfigurator"))
-        && !bootstrapMissingType.Succeeded
-        && bootstrapMissingType.Problems.Any(problem => problem.Contains("NoSuchConfigurator"))
-        && bootstrapRealType.Succeeded,
-    string.Join(" | ", carrierMissingType.Problems
-        .Concat(carrierMissingAssembly.Problems)
-        .Concat(carrierAbstract.Problems)
-        .Concat(carrierRealType.Problems)
-        .Concat(bootstrapNotConfigurator.Problems)
-        .Concat(bootstrapMissingType.Problems)
-        .Concat(bootstrapRealType.Problems))
-));
+    sharedLayer
+);
+checks.Add(
+    (
+        "A58 carrier 组校验程序集与类型",
+        !carrierMissingType.Succeeded
+            && carrierMissingType.Problems.Any(problem => problem.Contains("NoSuchComponent"))
+            && !carrierMissingAssembly.Succeeded
+            && carrierMissingAssembly.Problems.Any(problem => problem.Contains("nope.dll"))
+            && !carrierAbstract.Succeeded
+            && carrierRealType.Succeeded
+            && !bootstrapNotConfigurator.Succeeded
+            && bootstrapNotConfigurator.Problems.Any(problem =>
+                problem.Contains("ICarrierServicesConfigurator")
+            )
+            && !bootstrapMissingType.Succeeded
+            && bootstrapMissingType.Problems.Any(problem => problem.Contains("NoSuchConfigurator"))
+            && bootstrapRealType.Succeeded,
+        string.Join(
+            " | ",
+            carrierMissingType
+                .Problems.Concat(carrierMissingAssembly.Problems)
+                .Concat(carrierAbstract.Problems)
+                .Concat(carrierRealType.Problems)
+                .Concat(bootstrapNotConfigurator.Problems)
+                .Concat(bootstrapMissingType.Problems)
+                .Concat(bootstrapRealType.Problems)
+        )
+    )
+);
 
 // A61：组件阶段按清单装配、逆序停止，且拿到的是总线与日志（FX-0061）。
 // A62：停止超时只记账、不再等待，退出不被挂住的组件拖住（FX-0063 的第三段）。
@@ -704,43 +877,58 @@ var componentHost = new PluginManager(
     _ => { },
     services,
     null,
-    new PluginManagerOptions { ComponentStopTimeout = TimeSpan.FromMilliseconds(200) });
+    new PluginManagerOptions { ComponentStopTimeout = TimeSpan.FromMilliseconds(200) }
+);
 var componentSource = Path.Combine(stage, "component-source");
 Directory.CreateDirectory(componentSource);
 File.Copy(
     Path.Combine(AppContext.BaseDirectory, "Hosihikari.Bindings.Stub.dll"),
     Path.Combine(componentSource, "probe.dll"),
-    overwrite: true);
+    overwrite: true
+);
 var componentStarted = componentHost.StartComponents(
     componentSource,
-    [new ManifestCarrierComponent
-    {
-        Assembly = "probe.dll",
-        Type = "Hosihikari.Bindings.ProbeCarrierComponent",
-    }]);
+    [
+        new ManifestCarrierComponent
+        {
+            Assembly = "probe.dll",
+            Type = "Hosihikari.Bindings.ProbeCarrierComponent",
+        },
+    ]
+);
 var componentSawBus = ProbeCarrierComponent.SeenBus is not null;
+
 // 载体服务出口与插件侧同一份：组件从它取宿主句柄（Endstone 的 Plugin/Server）。
-var componentSawCarrierServices = ReferenceEquals(ProbeCarrierComponent.SeenCarrierServices, services);
+var componentSawCarrierServices = ReferenceEquals(
+    ProbeCarrierComponent.SeenCarrierServices,
+    services
+);
 ProbeCarrierComponent.HangOnStop = true;
 var componentStopWatch = System.Diagnostics.Stopwatch.StartNew();
 componentHost.StopComponents();
 componentStopWatch.Stop();
-checks.Add((
-    "A61 组件按清单启动并拿到总线与载体服务，停止超时不拖住退出",
-    componentStarted && componentSawBus && componentSawCarrierServices
-        && ProbeCarrierComponent.Started == 1 && ProbeCarrierComponent.Stopped >= 1
-        && componentStopWatch.Elapsed < TimeSpan.FromSeconds(5),
-    $"started={componentStarted} sawBus={componentSawBus} sawCarrierServices={componentSawCarrierServices} "
-        + $"starts={ProbeCarrierComponent.Started} stops={ProbeCarrierComponent.Stopped} "
-        + $"elapsed={componentStopWatch.ElapsedMilliseconds}ms"
-));
+checks.Add(
+    (
+        "A61 组件按清单启动并拿到总线与载体服务，停止超时不拖住退出",
+        componentStarted
+            && componentSawBus
+            && componentSawCarrierServices
+            && ProbeCarrierComponent.Started == 1
+            && ProbeCarrierComponent.Stopped >= 1
+            && componentStopWatch.Elapsed < TimeSpan.FromSeconds(5),
+        $"started={componentStarted} sawBus={componentSawBus} sawCarrierServices={componentSawCarrierServices} "
+            + $"starts={ProbeCarrierComponent.Started} stops={ProbeCarrierComponent.Stopped} "
+            + $"elapsed={componentStopWatch.ElapsedMilliseconds}ms"
+    )
+);
 
 // A62：组件类型不存在、程序集不存在时启动失败并记账，不抛。
 var badComponentHost = new PluginManager(
     pluginsRoot,
     Path.Combine(stage, "components-bad", "data"),
     Path.Combine(stage, "components-bad", "config"),
-    _ => { });
+    _ => { }
+);
 var badComponentStarted = badComponentHost.StartComponents(
     componentSource,
     [
@@ -750,64 +938,73 @@ var badComponentStarted = badComponentHost.StartComponents(
             Assembly = "probe.dll",
             Type = "Hosihikari.Bindings.NoSuchComponent",
         },
-    ]);
-checks.Add((
-    "A62 组件装配失败只记账",
-    !badComponentStarted,
-    $"started={badComponentStarted}"
-));
+    ]
+);
+checks.Add(("A62 组件装配失败只记账", !badComponentStarted, $"started={badComponentStarted}"));
 
 // A60：信封里的展示字段是单向派生副本：清单有就写，没有就不写（FX-0058）。
 // 它是父级与面板读的那一份，作者不该为它再手写一遍。
-var envelope = BuildEnvelopeProbe("""
+var envelope = BuildEnvelopeProbe(
+    """
     {
       "schemaVersion": 1, "name": "Shown", "entry": "Shown.dll", "version": "1.0.0",
       "loader": "stub", "kind": "plugin", "apiVersion": 3,
       "description": "一句话说明", "author": "某作者",
       "dependencies": [ { "name": "hosihikari" } ]
     }
-    """);
-var envelopePlain = BuildEnvelopeProbe("""
+    """
+);
+var envelopePlain = BuildEnvelopeProbe(
+    """
     {
       "schemaVersion": 1, "name": "Shown", "entry": "Shown.dll", "version": "1.0.0",
       "loader": "stub", "kind": "plugin", "apiVersion": 3,
       "dependencies": [ { "name": "hosihikari" } ]
     }
-    """);
+    """
+);
 using var envelopeDocument = envelope is null ? null : JsonDocument.Parse(envelope);
 var envelopeRoot = envelopeDocument?.RootElement;
-checks.Add((
-    "A60 信封按清单派生展示字段，缺了就省",
-    envelopeRoot is { } shown
-        && shown.GetProperty("description").GetString() == "一句话说明"
-        && shown.GetProperty("author").GetString() == "某作者"
-        && envelopePlain is not null
-        && !envelopePlain.Contains("\"description\"", StringComparison.Ordinal)
-        && !envelopePlain.Contains("\"author\"", StringComparison.Ordinal),
-    envelope ?? "（没打出包）"
-));
+checks.Add(
+    (
+        "A60 信封按清单派生展示字段，缺了就省",
+        envelopeRoot is { } shown
+            && shown.GetProperty("description").GetString() == "一句话说明"
+            && shown.GetProperty("author").GetString() == "某作者"
+            && envelopePlain is not null
+            && !envelopePlain.Contains("\"description\"", StringComparison.Ordinal)
+            && !envelopePlain.Contains("\"author\"", StringComparison.Ordinal),
+        envelope ?? "（没打出包）"
+    )
+);
 
 // A63：载体声明的共享层与基地清单并集；没有载体目录时只回基地清单（FX-0061）。
 // 打包期靠它把绑定程序集从插件包里剔掉，运行期也靠它判身份。
 var carrierHome = Path.Combine(stage, "carrier-with-bindings");
 Directory.CreateDirectory(carrierHome);
-File.WriteAllText(Path.Combine(carrierHome, "hosihikari.json"), """
+File.WriteAllText(
+    Path.Combine(carrierHome, "hosihikari.json"),
+    """
     {
       "schemaVersion": 1, "name": "hosihikari", "entry": "hosihikari.dll", "version": "1.2.3",
       "loader": "assembly", "kind": "carrier", "apiVersion": 3,
       "dependencies": [ { "name": "hosihikari" } ],
       "carrier": { "sharedAssemblies": [ "Hosihikari.Bindings.Stub.dll" ], "components": [] }
     }
-    """);
+    """
+);
 var mergedLayer = AssemblyPluginLoader.SharedLayerFor(carrierHome);
-checks.Add((
-    "A63 载体共享层并入基地清单",
-    mergedLayer.Contains("Hosihikari.Bindings.Stub.dll")
-        && mergedLayer.Contains("Hosihikari.Plugin.Abstractions.dll")
-        && !AssemblyPluginLoader.SharedLayerFor(Path.Combine(stage, "no-such-carrier"))
-            .Contains("Hosihikari.Bindings.Stub.dll"),
-    string.Join(", ", mergedLayer)
-));
+checks.Add(
+    (
+        "A63 载体共享层并入基地清单",
+        mergedLayer.Contains("Hosihikari.Bindings.Stub.dll")
+            && mergedLayer.Contains("Hosihikari.Plugin.Abstractions.dll")
+            && !AssemblyPluginLoader
+                .SharedLayerFor(Path.Combine(stage, "no-such-carrier"))
+                .Contains("Hosihikari.Bindings.Stub.dll"),
+        string.Join(", ", mergedLayer)
+    )
+);
 
 // A67：载体启动装配（FX-0064）——读清单、并共享层、跑配置器，句柄原样交到服务里，
 // 组件再从载体服务里取到配置器注册的东西。A68：没有载体目录时照常启动。
@@ -816,8 +1013,11 @@ Directory.CreateDirectory(startupHome);
 File.Copy(
     Path.Combine(AppContext.BaseDirectory, "Hosihikari.Bindings.Stub.dll"),
     Path.Combine(startupHome, "probe.dll"),
-    overwrite: true);
-File.WriteAllText(Path.Combine(startupHome, "hosihikari.json"), """
+    overwrite: true
+);
+File.WriteAllText(
+    Path.Combine(startupHome, "hosihikari.json"),
+    """
     {
       "schemaVersion": 1, "name": "hosihikari", "entry": "hosihikari.dll", "version": "2.0.0",
       "loader": "assembly", "kind": "carrier", "apiVersion": 3,
@@ -828,38 +1028,55 @@ File.WriteAllText(Path.Combine(startupHome, "hosihikari.json"), """
         "bootstrap": { "assembly": "probe.dll", "type": "Hosihikari.Bindings.ProbeConfigurator" }
       }
     }
-    """);
-var startupLoggerFactory = Microsoft.Extensions.Logging.LoggerFactory.Create(builder => builder.AddSimpleConsole());
-var carrierStartup = CarrierStartup.Create(startupHome, 0x2A, startupLoggerFactory, out var startupError);
-var startupService = carrierStartup.Services.GetService(typeof(ProbeCarrierService)) as ProbeCarrierService;
+    """
+);
+var startupLoggerFactory = Microsoft.Extensions.Logging.LoggerFactory.Create(builder =>
+    builder.AddSimpleConsole()
+);
+var carrierStartup = CarrierStartup.Create(
+    startupHome,
+    0x2A,
+    startupLoggerFactory,
+    out var startupError
+);
+var startupService =
+    carrierStartup.Services.GetService(typeof(ProbeCarrierService)) as ProbeCarrierService;
 var startupHost = new PluginManager(
     pluginsRoot,
     Path.Combine(stage, "carrier-startup", "data"),
     Path.Combine(stage, "carrier-startup", "config"),
     _ => { },
-    carrierStartup.Services);
+    carrierStartup.Services
+);
 var startupComponents = startupHost.StartComponents(startupHome, carrierStartup.Components);
-var componentService = ProbeCarrierComponent.SeenCarrierServices?.GetService(typeof(ProbeCarrierService))
+var componentService =
+    ProbeCarrierComponent.SeenCarrierServices?.GetService(typeof(ProbeCarrierService))
     as ProbeCarrierService;
 startupHost.StopComponents();
 ProbeCarrierComponent.HangOnStop = false;
-checks.Add((
-    "A67 载体启动装配：清单、共享层、配置器（目录+句柄，先于组件）",
-    startupError is null
-        && carrierStartup.Components.Count == 1
-        && carrierStartup.SharedAssemblies.Count == 1
-        && startupService?.HostHandle == 0x2A
-        && ProbeConfigurator.LastHost == 0x2A
-        && ProbeConfigurator.LastDirectory is { } seenDirectory
-        && string.Equals(Path.GetFullPath(seenDirectory), Path.GetFullPath(startupHome), StringComparison.OrdinalIgnoreCase)
-        && ProbeCarrierComponent.SawBootstrap
-        && startupComponents
-        && componentService?.HostHandle == 0x2A,
-    $"error={startupError ?? "无"} components={carrierStartup.Components.Count} "
-        + $"shared={carrierStartup.SharedAssemblies.Count} handle={startupService?.HostHandle} "
-        + $"hook={componentService?.HostHandle} dir={ProbeConfigurator.LastDirectory} "
-        + $"bootstrapFirst={ProbeCarrierComponent.SawBootstrap}"
-));
+checks.Add(
+    (
+        "A67 载体启动装配：清单、共享层、配置器（目录+句柄，先于组件）",
+        startupError is null
+            && carrierStartup.Components.Count == 1
+            && carrierStartup.SharedAssemblies.Count == 1
+            && startupService?.HostHandle == 0x2A
+            && ProbeConfigurator.LastHost == 0x2A
+            && ProbeConfigurator.LastDirectory is { } seenDirectory
+            && string.Equals(
+                Path.GetFullPath(seenDirectory),
+                Path.GetFullPath(startupHome),
+                StringComparison.OrdinalIgnoreCase
+            )
+            && ProbeCarrierComponent.SawBootstrap
+            && startupComponents
+            && componentService?.HostHandle == 0x2A,
+        $"error={startupError ?? "无"} components={carrierStartup.Components.Count} "
+            + $"shared={carrierStartup.SharedAssemblies.Count} handle={startupService?.HostHandle} "
+            + $"hook={componentService?.HostHandle} dir={ProbeConfigurator.LastDirectory} "
+            + $"bootstrapFirst={ProbeCarrierComponent.SawBootstrap}"
+    )
+);
 
 // A69：父级重载后换代载体服务——组件重新启动时看到的必须是新的提供器（FX-0065）。
 var republishOld = new Microsoft.Extensions.DependencyInjection.ServiceCollection()
@@ -878,37 +1095,48 @@ var republishHost = new PluginManager(
     Path.Combine(stage, "carrier-republish", "data"),
     Path.Combine(stage, "carrier-republish", "config"),
     _ => { },
-    republishOld);
+    republishOld
+);
 republishHost.RepublishCarrierServices(republishNew);
 var republishStarted = republishHost.StartComponents(
     startupHome,
-    [new ManifestCarrierComponent
-    {
-        Assembly = "probe.dll",
-        Type = "Hosihikari.Bindings.ProbeCarrierComponent",
-    }]);
-var republishedService = ProbeCarrierComponent.SeenCarrierServices?.GetService(typeof(ProbeCarrierService))
+    [
+        new ManifestCarrierComponent
+        {
+            Assembly = "probe.dll",
+            Type = "Hosihikari.Bindings.ProbeCarrierComponent",
+        },
+    ]
+);
+var republishedService =
+    ProbeCarrierComponent.SeenCarrierServices?.GetService(typeof(ProbeCarrierService))
     as ProbeCarrierService;
 republishHost.StopComponents();
-checks.Add((
-    "A69 重载后换代的载体服务对组件可见，旧容器被收掉",
-    republishStarted && ReferenceEquals(ProbeCarrierComponent.SeenCarrierServices, republishNew)
-        && republishedService?.HostHandle == 7
-        && oldProbe.Disposed
-        && oldAsyncProbe.Disposed,
-    $"started={republishStarted} handle={republishedService?.HostHandle} "
-        + $"oldDisposed={oldProbe.Disposed}/{oldAsyncProbe.Disposed}"
-));
+checks.Add(
+    (
+        "A69 重载后换代的载体服务对组件可见，旧容器被收掉",
+        republishStarted
+            && ReferenceEquals(ProbeCarrierComponent.SeenCarrierServices, republishNew)
+            && republishedService?.HostHandle == 7
+            && oldProbe.Disposed
+            && oldAsyncProbe.Disposed,
+        $"started={republishStarted} handle={republishedService?.HostHandle} "
+            + $"oldDisposed={oldProbe.Disposed}/{oldAsyncProbe.Disposed}"
+    )
+);
 
 var emptyStartup = CarrierStartup.Create(null, 0, startupLoggerFactory, out var emptyError);
-checks.Add((
-    "A68 没有载体目录时照常启动",
-    emptyError is null
-        && emptyStartup.Components.Count == 0
-        && emptyStartup.SharedAssemblies.Count == 0
-        && emptyStartup.Services.GetService(typeof(Microsoft.Extensions.Logging.ILoggerFactory)) is not null,
-    $"error={emptyError ?? "无"} components={emptyStartup.Components.Count}"
-));
+checks.Add(
+    (
+        "A68 没有载体目录时照常启动",
+        emptyError is null
+            && emptyStartup.Components.Count == 0
+            && emptyStartup.SharedAssemblies.Count == 0
+            && emptyStartup.Services.GetService(typeof(Microsoft.Extensions.Logging.ILoggerFactory))
+                is not null,
+        $"error={emptyError ?? "无"} components={emptyStartup.Components.Count}"
+    )
+);
 
 // A64：自持态能重载，父级态拒绝（FX-0062）。
 // Reloadable 没有任何依赖者，卸载不会撞上依赖图；父级态用一个不拥有插件集的管理器验证。
@@ -918,11 +1146,13 @@ var disableLog = Path.Combine(dataRoot, "Reloadable", "disable.log");
 var disableCalls = File.Exists(disableLog)
     ? File.ReadAllLines(disableLog).Count(line => line.Length > 0)
     : 0;
-checks.Add((
-    "A64 自持态 Reload 走完 Disable→Unload→Load→Enable，停用只调一次",
-    reloadedSelf && disableCalls == 1,
-    $"{reloadOutcome.Error ?? "已重载"} disableCalls={disableCalls}"
-));
+checks.Add(
+    (
+        "A64 自持态 Reload 走完 Disable→Unload→Load→Enable，停用只调一次",
+        reloadedSelf && disableCalls == 1,
+        $"{reloadOutcome.Error ?? "已重载"} disableCalls={disableCalls}"
+    )
+);
 
 var parentedManager = new PluginManager(
     pluginsRoot,
@@ -931,13 +1161,16 @@ var parentedManager = new PluginManager(
     _ => { },
     services,
     null,
-    new PluginManagerOptions { OwnsPluginSet = false });
+    new PluginManagerOptions { OwnsPluginSet = false }
+);
 var parentedReload = parentedManager.Reload("Reloadable");
-checks.Add((
-    "A65 父级态 Reload 返回 NotSupported",
-    parentedReload.NotSupported && !parentedReload.Reloaded && parentedReload.Error is not null,
-    parentedReload.Error ?? "（没给原因）"
-));
+checks.Add(
+    (
+        "A65 父级态 Reload 返回 NotSupported",
+        parentedReload.NotSupported && !parentedReload.Reloaded && parentedReload.Error is not null,
+        parentedReload.Error ?? "（没给原因）"
+    )
+);
 
 // A29：拒绝启用留在册、未启用（FX-0030）
 var guardedLoaded = host.Load(Path.Combine(stage, "parented", "Guarded"));
@@ -948,11 +1181,13 @@ var enableAllowed = host.Enable("Guarded");
 guardedLoader.RefuseEnable = true;
 var enableRepeated = host.Enable("Guarded");
 guardedLoader.RefuseEnable = false;
-checks.Add((
-    "A29 拒绝启用留在册、未启用；已启用时重复启用不再调钩子",
-    guardedLoaded && enableRefused && enableAllowed && enableRepeated,
-    $"loaded={guardedLoaded} refused={enableRefused} later={enableAllowed} repeated={enableRepeated}"
-));
+checks.Add(
+    (
+        "A29 拒绝启用留在册、未启用；已启用时重复启用不再调钩子",
+        guardedLoaded && enableRefused && enableAllowed && enableRepeated,
+        $"loaded={guardedLoaded} refused={enableRefused} later={enableAllowed} repeated={enableRepeated}"
+    )
+);
 
 // A30：拒绝停用让卸载中止；允许后才真正卸掉（FX-0030）
 guardedLoader.RefuseDisable = true;
@@ -961,41 +1196,56 @@ var unloadRefused = host.Unload("Guarded");
 var stillLoaded = host.LoadedNames.Contains("Guarded");
 guardedLoader.RefuseDisable = false;
 var unloadedAfter = host.Unload("Guarded");
-checks.Add((
-    "A30 拒绝停用中止卸载",
-    disableRefused && !unloadRefused.Released
-        && unloadRefused.Error?.Contains("拒绝停用") == true && stillLoaded && unloadedAfter.Released,
-    unloadRefused.Error ?? "（居然卸掉了）"
-));
+checks.Add(
+    (
+        "A30 拒绝停用中止卸载",
+        disableRefused
+            && !unloadRefused.Released
+            && unloadRefused.Error?.Contains("拒绝停用") == true
+            && stillLoaded
+            && unloadedAfter.Released,
+        unloadRefused.Error ?? "（居然卸掉了）"
+    )
+);
 
 // A31：钩子抛异常触发故障卸载，并通知载体（FX-0030）
 var faultyLoaded = host.Load(Path.Combine(stage, "parented", "Faulty"));
 var faultyEnable = host.Enable("Faulty");
-checks.Add((
-    "A31 钩子抛出触发故障卸载",
-    faultyLoaded && !faultyEnable && !host.LoadedNames.Contains("Faulty")
-        && removed.Any(name => name == "Faulty"),
-    $"removed=[{string.Join(", ", removed)}]"
-));
+checks.Add(
+    (
+        "A31 钩子抛出触发故障卸载",
+        faultyLoaded
+            && !faultyEnable
+            && !host.LoadedNames.Contains("Faulty")
+            && removed.Any(name => name == "Faulty"),
+        $"removed=[{string.Join(", ", removed)}]"
+    )
+);
 
 // A32：Loader 在钩子之外报告的故障走同一条路径（FX-0030）
 var vanishingLoaded = host.Load(Path.Combine(stage, "parented", "Vanishing"));
+
 // 先启用：闸门关闭时定时器不会跑（FX-0035）。
 host.Enable("Vanishing");
 Thread.Sleep(150);
-checks.Add((
-    "A32 钩子之外的故障也卸载并通知",
-    vanishingLoaded && !host.LoadedNames.Contains("Vanishing")
-        && removed.Any(name => name == "Vanishing"),
-    $"removed=[{string.Join(", ", removed)}]"
-));
+checks.Add(
+    (
+        "A32 钩子之外的故障也卸载并通知",
+        vanishingLoaded
+            && !host.LoadedNames.Contains("Vanishing")
+            && removed.Any(name => name == "Vanishing"),
+        $"removed=[{string.Join(", ", removed)}]"
+    )
+);
 
 // A43：故障报告必须先把 _gate 让出来再回调。父级线程可能正握着日志锁等 _gate，
 // 报告在锁内回调就会互相等死。这里用第二个管理器复现锁序：回调里让另一个线程去 Load，
 // 若 _gate 还攥在报告线程手里，那个 Load 在超时内完不成。
 var probePackage = Path.Combine(stage, "parented", "Probe");
 Directory.CreateDirectory(probePackage);
-File.WriteAllText(Path.Combine(probePackage, "hosihikari.json"), """
+File.WriteAllText(
+    Path.Combine(probePackage, "hosihikari.json"),
+    """
     {
       "name": "Probe",
       "entry": "Probe.dll",
@@ -1003,7 +1253,8 @@ File.WriteAllText(Path.Combine(probePackage, "hosihikari.json"), """
       "dependencies": [ { "name": "hosihikari" } ],
       "loader": "guarded"
     }
-    """);
+    """
+);
 PluginManager? probeHost = null;
 var probeTimedOut = false;
 probeHost = new PluginManager(
@@ -1023,16 +1274,19 @@ probeHost = new PluginManager(
         {
             probeTimedOut = true;
         }
-    });
+    }
+);
 probeHost.RegisterLoader(new GuardedPluginLoader());
 probeHost.Load(Path.Combine(stage, "parented", "Vanishing"));
 probeHost.Enable("Vanishing");
 Thread.Sleep(200);
-checks.Add((
-    "A43 故障报告先放锁再回调",
-    !probeTimedOut && probeHost.LoadedNames.Contains("Probe"),
-    $"timedOut={probeTimedOut} loaded=[{string.Join(", ", probeHost.LoadedNames)}]"
-));
+checks.Add(
+    (
+        "A43 故障报告先放锁再回调",
+        !probeTimedOut && probeHost.LoadedNames.Contains("Probe"),
+        $"timedOut={probeTimedOut} loaded=[{string.Join(", ", probeHost.LoadedNames)}]"
+    )
+);
 
 // A44：Enable/Disable 的异常路径同样必须先把 _gate 让出来再回调。
 // Faulty 的 OnEnable 抛异常；报告回调里让另一个线程去 Load，超时即说明外层锁没放。
@@ -1057,17 +1311,21 @@ enableHost = new PluginManager(
         {
             enableProbeTimedOut = true;
         }
-    });
+    }
+);
 enableHost.RegisterLoader(new GuardedPluginLoader());
 enableHost.Load(Path.Combine(stage, "parented", "Faulty"));
 var faultyEnabled = enableHost.Enable("Faulty");
-checks.Add((
-    "A44 启停异常先放锁再回调",
-    !faultyEnabled && !enableProbeTimedOut
-        && !enableHost.LoadedNames.Contains("Faulty")
-        && enableHost.LoadedNames.Contains("Probe"),
-    $"enabled={faultyEnabled} timedOut={enableProbeTimedOut} loaded=[{string.Join(", ", enableHost.LoadedNames)}]"
-));
+checks.Add(
+    (
+        "A44 启停异常先放锁再回调",
+        !faultyEnabled
+            && !enableProbeTimedOut
+            && !enableHost.LoadedNames.Contains("Faulty")
+            && enableHost.LoadedNames.Contains("Probe"),
+        $"enabled={faultyEnabled} timedOut={enableProbeTimedOut} loaded=[{string.Join(", ", enableHost.LoadedNames)}]"
+    )
+);
 
 // A45：故障属于抛出的那个实例。报告在锁外，期间同名插件可能已经重载 ——
 // 随后按名字报故障就会把健康的新实例卸掉。这里在报告回调里完成同名重载，
@@ -1090,19 +1348,25 @@ raceHost = new PluginManager(
         raceHost!.Unload("Faulty");
         raceLoader.ThrowOnEnable = false;
         raceHost.Load(Path.Combine(stage, "parented", "Faulty"));
-    });
+    }
+);
 raceHost.RegisterLoader(raceLoader);
 raceHost.Load(Path.Combine(stage, "parented", "Faulty"));
 var raceFaulted = raceHost.Enable("Faulty");
 var raceSurvived = raceHost.LoadedNames.Contains("Faulty");
 var raceReenabled = raceHost.Enable("Faulty");
-checks.Add((
-    "A45 故障不卸载同名新实例",
-    !raceFaulted && raceReloaded && raceSurvived && raceReenabled
-        && raceHost.LoadedNames.Contains("Faulty"),
-    $"faulted={raceFaulted} reloaded={raceReloaded} survived={raceSurvived} "
-        + $"reenabled={raceReenabled} loaded=[{string.Join(", ", raceHost.LoadedNames)}]"
-));
+checks.Add(
+    (
+        "A45 故障不卸载同名新实例",
+        !raceFaulted
+            && raceReloaded
+            && raceSurvived
+            && raceReenabled
+            && raceHost.LoadedNames.Contains("Faulty"),
+        $"faulted={raceFaulted} reloaded={raceReloaded} survived={raceSurvived} "
+            + $"reenabled={raceReenabled} loaded=[{string.Join(", ", raceHost.LoadedNames)}]"
+    )
+);
 
 // A46：上下文被外部保留时，故障卸载仍要能回收 ALC。
 // 上下文只带名字与装载编号；带上槽位、实例或委托，外部的这一份引用就会钉住整个 ALC。
@@ -1110,83 +1374,114 @@ var retainedPacked = Packager.Pack(
     OutputDirectory("Retained"),
     Path.Combine(repoRoot, "test", "Retained", "hosihikari.json"),
     Path.Combine(stage, "parented"),
-    sharedLayer);
-var retainedLoaded = retainedPacked.PackageDirectory is { } retainedPackage && host.Load(retainedPackage);
+    sharedLayer
+);
+var retainedLoaded =
+    retainedPacked.PackageDirectory is { } retainedPackage && host.Load(retainedPackage);
 var retainedFaulted = !host.Enable("Retained");
 var retainedRemoved = removed.Any(name => name == "Retained");
-var retainedFailure = reported.LastOrDefault(entry => entry.Contains("Retained") && entry.Contains("没完成"));
+var retainedFailure = reported.LastOrDefault(entry =>
+    entry.Contains("Retained") && entry.Contains("没完成")
+);
 ContextSink.Held = null;
-checks.Add((
-    "A46 外部保留上下文仍能回收 ALC",
-    retainedLoaded && retainedFaulted && retainedRemoved && retainedFailure is null,
-    $"packed={retainedPacked.Succeeded} loaded={retainedLoaded} faulted={retainedFaulted} "
-        + $"removed={retainedRemoved} failure={retainedFailure ?? "无"}"
-));
+checks.Add(
+    (
+        "A46 外部保留上下文仍能回收 ALC",
+        retainedLoaded && retainedFaulted && retainedRemoved && retainedFailure is null,
+        $"packed={retainedPacked.Succeeded} loaded={retainedLoaded} faulted={retainedFaulted} "
+            + $"removed={retainedRemoved} failure={retainedFailure ?? "无"}"
+    )
+);
 
 // A17：Loader 在装载时抛出 —— 如实把**完整异常**报出来，且这一个插件没装上（FX-0009）
 var thrown = reported.FirstOrDefault(entry => entry.Contains(ThrowingPluginLoader.ThrowMessage));
 var thrownFull = thrown is not null && thrown.Contains(nameof(InvalidOperationException));
-checks.Add((
-    "A17 装载抛出时如实报告且隔离",
-    !host.LoadedNames.Contains("Throwing") && thrownFull,
-    thrown ?? "（没有报告）"
-));
+checks.Add(
+    (
+        "A17 装载抛出时如实报告且隔离",
+        !host.LoadedNames.Contains("Throwing") && thrownFull,
+        thrown ?? "（没有报告）"
+    )
+);
 
 // A18：清单 type 不是 hosihikari 的包必须被拒 —— 父级态下它根本到不了我们手里（FX-0006）
-var typeRefused = !host.LoadedNames.Contains("WrongType")
-    && reported.Any(entry => entry.Contains("type 必须是"));
-checks.Add((
-    "A18 type 写错时拒载",
-    typeRefused,
-    reported.LastOrDefault(entry => entry.Contains("type 必须是")) ?? "（未拒载）"
-));
+var typeRefused =
+    !host.LoadedNames.Contains("WrongType") && reported.Any(entry => entry.Contains("type 必须是"));
+checks.Add(
+    (
+        "A18 type 写错时拒载",
+        typeRefused,
+        reported.LastOrDefault(entry => entry.Contains("type 必须是")) ?? "（未拒载）"
+    )
+);
 
 // A19：打包期同样要拦 —— 写错的包在父级那边连路由都过不去，失败点离病因很远（FX-0006）
 var wrongTypeManifest = Path.Combine(stage, "wrong-type.json");
 File.WriteAllText(
     wrongTypeManifest,
     File.ReadAllText(Path.Combine(repoRoot, "test", "Foo", "hosihikari.json"))
-        .Replace("\"loader\": \"assembly\",", "\"loader\": \"assembly\", \"type\": \"assembly\","));
+        .Replace("\"loader\": \"assembly\",", "\"loader\": \"assembly\", \"type\": \"assembly\",")
+);
 var wrongType = Packager.Pack(
-    OutputDirectory("Foo"), wrongTypeManifest, Path.Combine(stage, "wrong-type-out"), sharedLayer);
+    OutputDirectory("Foo"),
+    wrongTypeManifest,
+    Path.Combine(stage, "wrong-type-out"),
+    sharedLayer
+);
 var typeProblem = wrongType.Problems.FirstOrDefault(problem => problem.Contains("type 必须是"));
-checks.Add((
-    "A19 打包拒绝 type 写错的清单",
-    !wrongType.Succeeded && typeProblem is not null,
-    typeProblem ?? "（未拦下）"
-));
+checks.Add(
+    (
+        "A19 打包拒绝 type 写错的清单",
+        !wrongType.Succeeded && typeProblem is not null,
+        typeProblem ?? "（未拦下）"
+    )
+);
 
 // A22：entry 指向的文件不在构建输出里 —— 报错点离病因很远，所以拦在打包期（FX-0008）
 var missingEntry = Packager.Pack(
     OutputDirectory("Lib"),
     WriteManifest("missing-entry", ManifestLike("Lib", "Nope.dll")),
     Path.Combine(stage, "missing-entry-out"),
-    sharedLayer);
-var missingProblem = missingEntry.Problems.FirstOrDefault(problem => problem.Contains("不在构建输出里"));
-checks.Add((
-    "A22 打包拒绝不存在的入口",
-    !missingEntry.Succeeded && missingProblem is not null,
-    missingProblem ?? "（未拦下）"
-));
+    sharedLayer
+);
+var missingProblem = missingEntry.Problems.FirstOrDefault(problem =>
+    problem.Contains("不在构建输出里")
+);
+checks.Add(
+    (
+        "A22 打包拒绝不存在的入口",
+        !missingEntry.Succeeded && missingProblem is not null,
+        missingProblem ?? "（未拦下）"
+    )
+);
 
 // A23：入口特性不是恰好一个 —— Lib 一个都没声明
 var noEntry = Packager.Pack(
     OutputDirectory("Lib"),
     WriteManifest("no-entry", ManifestLike("Lib", "Lib.dll")),
     Path.Combine(stage, "no-entry-out"),
-    sharedLayer);
+    sharedLayer
+);
 var noEntryProblem = noEntry.Problems.FirstOrDefault(problem => problem.Contains("个入口"));
-checks.Add((
-    "A23 打包拒绝没有入口声明的程序集",
-    !noEntry.Succeeded && noEntryProblem is not null,
-    noEntryProblem ?? "（未拦下）"
-));
+checks.Add(
+    (
+        "A23 打包拒绝没有入口声明的程序集",
+        !noEntry.Succeeded && noEntryProblem is not null,
+        noEntryProblem ?? "（未拦下）"
+    )
+);
 
 // A35：入口程序集没有声明入口时，Loader 报出数量（FX-0008）
 var noEntryPackage = Path.Combine(stage, "parented", "NoEntry");
 Directory.CreateDirectory(noEntryPackage);
-File.Copy(Path.Combine(OutputDirectory("Lib"), "Lib.dll"), Path.Combine(noEntryPackage, "Lib.dll"), overwrite: true);
-File.WriteAllText(Path.Combine(noEntryPackage, "hosihikari.json"), """
+File.Copy(
+    Path.Combine(OutputDirectory("Lib"), "Lib.dll"),
+    Path.Combine(noEntryPackage, "Lib.dll"),
+    overwrite: true
+);
+File.WriteAllText(
+    Path.Combine(noEntryPackage, "hosihikari.json"),
+    """
     {
       "name": "NoEntry",
       "entry": "Lib.dll",
@@ -1194,18 +1489,23 @@ File.WriteAllText(Path.Combine(noEntryPackage, "hosihikari.json"), """
       "dependencies": [ { "name": "hosihikari" } ],
       "loader": "assembly"
     }
-    """);
+    """
+);
 var noEntryLoaded = host.Load(noEntryPackage);
-checks.Add((
-    "A35 入口程序集没有入口声明时报出数量",
-    !noEntryLoaded && providerLogs.Any(line => line.Contains("声明了 0 个入口")),
-    providerLogs.LastOrDefault(line => line.Contains("个入口")) ?? "（无报告）"
-));
+checks.Add(
+    (
+        "A35 入口程序集没有入口声明时报出数量",
+        !noEntryLoaded && providerLogs.Any(line => line.Contains("声明了 0 个入口")),
+        providerLogs.LastOrDefault(line => line.Contains("个入口")) ?? "（无报告）"
+    )
+);
 
 // A36：入口文件不在包里时，Loader 报出路径而不是文件异常（FX-0008）
 var missingEntryPackage = Path.Combine(stage, "parented", "NoEntryFile");
 Directory.CreateDirectory(missingEntryPackage);
-File.WriteAllText(Path.Combine(missingEntryPackage, "hosihikari.json"), """
+File.WriteAllText(
+    Path.Combine(missingEntryPackage, "hosihikari.json"),
+    """
     {
       "name": "NoEntryFile",
       "entry": "Nope.dll",
@@ -1213,16 +1513,21 @@ File.WriteAllText(Path.Combine(missingEntryPackage, "hosihikari.json"), """
       "dependencies": [ { "name": "hosihikari" } ],
       "loader": "assembly"
     }
-    """);
+    """
+);
 var missingEntryLoaded = host.Load(missingEntryPackage);
-checks.Add((
-    "A36 入口文件不在包里时报出路径",
-    !missingEntryLoaded && providerLogs.Any(line => line.Contains("不在包里")),
-    providerLogs.LastOrDefault(line => line.Contains("不在包里")) ?? "（无报告）"
-));
+checks.Add(
+    (
+        "A36 入口文件不在包里时报出路径",
+        !missingEntryLoaded && providerLogs.Any(line => line.Contains("不在包里")),
+        providerLogs.LastOrDefault(line => line.Contains("不在包里")) ?? "（无报告）"
+    )
+);
 
 // A37：打包期同样拦 schemaVersion（FX-0012）
-var badFormatManifest = WriteManifest("bad-format", """
+var badFormatManifest = WriteManifest(
+    "bad-format",
+    """
     {
       "name": "Foo",
       "entry": "Foo.dll",
@@ -1230,64 +1535,95 @@ var badFormatManifest = WriteManifest("bad-format", """
       "dependencies": [ { "name": "hosihikari" } ],
       "schemaVersion": 9
     }
-    """);
+    """
+);
 var badFormat = Packager.Pack(
-    OutputDirectory("Foo"), badFormatManifest, Path.Combine(stage, "bad-format-out"), sharedLayer);
-var badFormatProblem = badFormat.Problems.FirstOrDefault(problem => problem.Contains("schemaVersion"));
-checks.Add((
-    "A37 打包拒绝 schemaVersion 不匹配",
-    !badFormat.Succeeded && badFormatProblem is not null,
-    badFormatProblem ?? "（未拦下）"
-));
+    OutputDirectory("Foo"),
+    badFormatManifest,
+    Path.Combine(stage, "bad-format-out"),
+    sharedLayer
+);
+var badFormatProblem = badFormat.Problems.FirstOrDefault(problem =>
+    problem.Contains("schemaVersion")
+);
+checks.Add(
+    (
+        "A37 打包拒绝 schemaVersion 不匹配",
+        !badFormat.Succeeded && badFormatProblem is not null,
+        badFormatProblem ?? "（未拦下）"
+    )
+);
 
 // A38：打包期 entry 不能出界（FX-0006）
 var escapingManifest = WriteManifest("escaping-entry", ManifestLike("Lib", "../Lib.dll"));
 var escaping = Packager.Pack(
-    OutputDirectory("Lib"), escapingManifest, Path.Combine(stage, "escaping-entry-out"), sharedLayer);
+    OutputDirectory("Lib"),
+    escapingManifest,
+    Path.Combine(stage, "escaping-entry-out"),
+    sharedLayer
+);
 var escapingProblem = escaping.Problems.FirstOrDefault(problem => problem.Contains("包内相对路径"));
-checks.Add((
-    "A38 打包拒绝出界的入口",
-    !escaping.Succeeded && escapingProblem is not null,
-    escapingProblem ?? "（未拦下）"
-));
+checks.Add(
+    (
+        "A38 打包拒绝出界的入口",
+        !escaping.Succeeded && escapingProblem is not null,
+        escapingProblem ?? "（未拦下）"
+    )
+);
 
 // A41：输出目录落在构建输出里时拒绝，避免递归复制自我嵌套（FX-0034）
 var nested = Packager.Pack(
     OutputDirectory("Lib"),
     WriteManifest("nested-output", ManifestLike("Lib", "Lib.dll")),
     Path.Combine(OutputDirectory("Lib"), "pack-out"),
-    sharedLayer);
+    sharedLayer
+);
 var nestedProblem = nested.Problems.FirstOrDefault(problem => problem.Contains("打包输出"));
-checks.Add((
-    "A41 拒绝嵌套的打包输出",
-    !nested.Succeeded && nestedProblem is not null,
-    nestedProblem ?? "（未拦下）"
-));
+checks.Add(
+    (
+        "A41 拒绝嵌套的打包输出",
+        !nested.Succeeded && nestedProblem is not null,
+        nestedProblem ?? "（未拦下）"
+    )
+);
 
 // A42：清单 name 必须是单个目录名（不能带路径分隔符）
-var badNameManifest = WriteManifest("bad-name", """
+var badNameManifest = WriteManifest(
+    "bad-name",
+    """
     {
       "name": "../Evil",
       "entry": "Lib.dll",
       "schemaVersion": 1, "kind": "plugin", "apiVersion": 3,
       "dependencies": [ { "name": "hosihikari" } ]
     }
-    """);
+    """
+);
 var badName = Packager.Pack(
-    OutputDirectory("Lib"), badNameManifest, Path.Combine(stage, "bad-name-out"), sharedLayer);
-var badNameProblem = badName.Problems.FirstOrDefault(problem => problem.Contains("name 必须是单个目录名"));
-checks.Add((
-    "A42 打包拒绝带路径的 name",
-    !badName.Succeeded && badNameProblem is not null,
-    badNameProblem ?? "（未拦下）"
-));
+    OutputDirectory("Lib"),
+    badNameManifest,
+    Path.Combine(stage, "bad-name-out"),
+    sharedLayer
+);
+var badNameProblem = badName.Problems.FirstOrDefault(problem =>
+    problem.Contains("name 必须是单个目录名")
+);
+checks.Add(
+    (
+        "A42 打包拒绝带路径的 name",
+        !badName.Succeeded && badNameProblem is not null,
+        badNameProblem ?? "（未拦下）"
+    )
+);
 
 // A39：本机库按 RID 目录优先解析；卸载只回收托管 ALC（FX-0034）
 var nativeProbe = RunNativeProbe();
 checks.Add(("A39 本机库 RID 优先且不阻碍回收", nativeProbe.Ok, nativeProbe.Detail));
 
 // A26：清单里声明的第三方包在打包期还原并进包（供应链留在打包那一刻）
-var withPackages = WriteManifest("with-packages", """
+var withPackages = WriteManifest(
+    "with-packages",
+    """
     {
       "name": "Bar",
       "entry": "Bar.dll",
@@ -1295,25 +1631,52 @@ var withPackages = WriteManifest("with-packages", """
       "dependencies": [ { "name": "hosihikari" } ],
       "pack": { "packages": [ "System.IO.Hashing/10.0.0" ] }
     }
-    """);
+    """
+);
 var declared = Packager.Pack(
-    OutputDirectory("Bar"), withPackages, Path.Combine(stage, "with-packages-out"), sharedLayer);
+    OutputDirectory("Bar"),
+    withPackages,
+    Path.Combine(stage, "with-packages-out"),
+    sharedLayer
+);
 var restored = declared.PackageDirectory is null
     ? "（没打出包）"
-    : (File.Exists(Path.Combine(declared.PackageDirectory, "System.IO.Hashing.dll")) ? "已还原" : "缺 dll");
-checks.Add(("A26 清单声明的第三方包在打包期还原", declared.Succeeded && restored == "已还原",
-    declared.Succeeded ? restored : string.Join("；", declared.Problems)));
+    : (
+        File.Exists(Path.Combine(declared.PackageDirectory, "System.IO.Hashing.dll"))
+            ? "已还原"
+            : "缺 dll"
+    );
+checks.Add(
+    (
+        "A26 清单声明的第三方包在打包期还原",
+        declared.Succeeded && restored == "已还原",
+        declared.Succeeded ? restored : string.Join("；", declared.Problems)
+    )
+);
 
 // A1：每个插件一个 collectible ALC（FX-0004）
 var collectible = CollectibleContextCount();
-checks.Add(("A1 每插件一个 collectible ALC", collectible >= 2, $"进程内 collectible ALC 数 = {collectible}"));
+checks.Add(
+    (
+        "A1 每插件一个 collectible ALC",
+        collectible >= 2,
+        $"进程内 collectible ALC 数 = {collectible}"
+    )
+);
 
 // A2：插件包内不得有共享层副本 —— 这是会静默失败的那条规则（FX-0004 / FX-0007 / FX-0019）。
 // 清单用的是给打包工具的那一份，不再另写一份：同一份事实源（FX-0026）。
-var copies = Directory.EnumerateFiles(pluginsRoot, "*.dll", SearchOption.AllDirectories)
+var copies = Directory
+    .EnumerateFiles(pluginsRoot, "*.dll", SearchOption.AllDirectories)
     .Where(file => sharedLayer.Contains(Path.GetFileName(file)))
     .ToArray();
-checks.Add(("A2 插件包内无共享层副本", copies.Length == 0, copies.Length == 0 ? "无副本" : string.Join(", ", copies)));
+checks.Add(
+    (
+        "A2 插件包内无共享层副本",
+        copies.Length == 0,
+        copies.Length == 0 ? "无副本" : string.Join(", ", copies)
+    )
+);
 
 // 从链条末端往回卸：Lua 在前、Foo 在后。反序是依赖图的另一半承诺（FX-0004）。
 var lua = host.Unload("Lua");
@@ -1354,13 +1717,15 @@ var missingLanguages = languages
     .Select(language => language.Culture)
     .ToArray();
 CultureInfo.CurrentUICulture = CultureInfo.GetCultureInfo("zh-Hans");
-checks.Add((
-    "A52 操作员文本跟随 UI 文化",
-    missingLanguages.Length == 0,
-    missingLanguages.Length == 0
-        ? $"6 种语言（繁中回落简中）"
-        : $"缺少 {string.Join(", ", missingLanguages)}"
-));
+checks.Add(
+    (
+        "A52 操作员文本跟随 UI 文化",
+        missingLanguages.Length == 0,
+        missingLanguages.Length == 0
+            ? $"6 种语言（繁中回落简中）"
+            : $"缺少 {string.Join(", ", missingLanguages)}"
+    )
+);
 
 checks.AddRange(RegressionChecks.Run(Path.Combine(stage, "regressions")));
 Console.WriteLine("=== 断言 ===");
@@ -1385,7 +1750,10 @@ void Stage(string name, bool withConfig)
     if (withConfig)
     {
         // 作者给的默认值，随包更新（FX-0018）。
-        File.WriteAllText(Path.Combine(packed.PackageDirectory!, $"{name}.conf"), "greeting = \"default\"\n");
+        File.WriteAllText(
+            Path.Combine(packed.PackageDirectory!, $"{name}.conf"),
+            "greeting = \"default\"\n"
+        );
     }
 }
 
@@ -1394,14 +1762,17 @@ void StageBroken()
 {
     var package = Path.Combine(pluginsRoot, "Broken");
     Directory.CreateDirectory(package);
-    File.WriteAllText(Path.Combine(package, "hosihikari.json"), $$"""
+    File.WriteAllText(
+        Path.Combine(package, "hosihikari.json"),
+        $$"""
         {
           "name": "Broken",
           "entry": "Broken.dll",
           "dependencies": [ { "name": "hosihikari" } ],
           "apiVersion": 999
         }
-        """);
+        """
+    );
 }
 
 // 另一种插件类型的包：入口是脚本文件，清单与程序集型同形 —— 入口怎么找是各自 Loader 的事。
@@ -1410,7 +1781,9 @@ void StageScript()
     var package = Path.Combine(pluginsRoot, "Lua");
     Directory.CreateDirectory(package);
     File.WriteAllText(Path.Combine(package, "main.lua"), "print('hello from script')\n");
-    File.WriteAllText(Path.Combine(package, "hosihikari.json"), """
+    File.WriteAllText(
+        Path.Combine(package, "hosihikari.json"),
+        """
         {
           "name": "Lua",
           "entry": "main.lua",
@@ -1418,7 +1791,8 @@ void StageScript()
           "dependencies": [ { "name": "Bar" }, { "name": "hosihikari" } ],
           "loader": "script"
         }
-        """);
+        """
+    );
 }
 
 // 诊断加载器会拒掉这个包；入口文件故意不存在，证明装载没有开始。
@@ -1426,7 +1800,9 @@ void StageDiagnostic()
 {
     var package = Path.Combine(pluginsRoot, "Diagnostic");
     Directory.CreateDirectory(package);
-    File.WriteAllText(Path.Combine(package, "hosihikari.json"), """
+    File.WriteAllText(
+        Path.Combine(package, "hosihikari.json"),
+        """
         {
           "name": "Diagnostic",
           "entry": "Diagnostic.dll",
@@ -1434,7 +1810,8 @@ void StageDiagnostic()
           "dependencies": [ { "name": "hosihikari" } ],
           "loader": "diagnostic"
         }
-        """);
+        """
+    );
 }
 
 // 父级态的那个包：故意放在 plugins/ **外面** —— 只有父级交付能让它进来（FX-0003）。
@@ -1442,7 +1819,9 @@ void StagePinned()
 {
     var package = Path.Combine(stage, "parented", "Pinned");
     Directory.CreateDirectory(package);
-    File.WriteAllText(Path.Combine(package, "hosihikari.json"), """
+    File.WriteAllText(
+        Path.Combine(package, "hosihikari.json"),
+        """
         {
           "name": "Pinned",
           "entry": "Pinned.dll",
@@ -1450,7 +1829,8 @@ void StagePinned()
           "dependencies": [ { "name": "hosihikari" } ],
           "loader": "pinned"
         }
-        """);
+        """
+    );
 }
 
 // 钩子语义的检验包（FX-0059 / 0063）：Awaiting 的钩子真的 await，Hanging 的停用/卸载挂到取消为止。
@@ -1458,7 +1838,9 @@ void StageHooking(string name, string packageKind = "plugin")
 {
     var package = Path.Combine(stage, "parented", name);
     Directory.CreateDirectory(package);
-    File.WriteAllText(Path.Combine(package, "hosihikari.json"), $$"""
+    File.WriteAllText(
+        Path.Combine(package, "hosihikari.json"),
+        $$"""
         {
           "schemaVersion": 1,
           "name": "{{name}}",
@@ -1468,7 +1850,8 @@ void StageHooking(string name, string packageKind = "plugin")
           "kind": "{{packageKind}}",
           "dependencies": [ { "name": "hosihikari" } ]
         }
-        """);
+        """
+    );
 }
 
 // 拒绝与故障的检验包：同样放在 plugins/ 外面，由测试逐个交付（FX-0030）。
@@ -1476,7 +1859,9 @@ void StageGuarded(string name)
 {
     var package = Path.Combine(stage, "parented", name);
     Directory.CreateDirectory(package);
-    File.WriteAllText(Path.Combine(package, "hosihikari.json"), $$"""
+    File.WriteAllText(
+        Path.Combine(package, "hosihikari.json"),
+        $$"""
         {
           "name": "{{name}}",
           "entry": "{{name}}.dll",
@@ -1484,18 +1869,20 @@ void StageGuarded(string name)
           "dependencies": [ { "name": "hosihikari" } ],
           "loader": "guarded"
         }
-        """);
+        """
+    );
 }
 
 // 造一份只改一两处的清单，别把整份 JSON 复制到测试里。
-string ManifestLike(string name, string entry) => $$"""
-    {
-      "name": "{{name}}",
-      "entry": "{{entry}}",
-      "schemaVersion": 1, "kind": "plugin", "apiVersion": 3,
-      "dependencies": [ { "name": "hosihikari" } ]
-    }
-    """;
+string ManifestLike(string name, string entry) =>
+    $$"""
+        {
+          "name": "{{name}}",
+          "entry": "{{entry}}",
+          "schemaVersion": 1, "kind": "plugin", "apiVersion": 3,
+          "dependencies": [ { "name": "hosihikari" } ]
+        }
+        """;
 
 string WriteManifest(string name, string json)
 {
@@ -1514,7 +1901,8 @@ string? BuildEnvelopeProbe(string manifestJson)
         source,
         WriteManifest("envelope-" + Guid.NewGuid().ToString("N"), manifestJson),
         Path.Combine(stage, "envelope-out-" + Guid.NewGuid().ToString("N")),
-        sharedLayer);
+        sharedLayer
+    );
     var envelope = packed.PackageDirectory is null
         ? null
         : Path.Combine(packed.PackageDirectory, "manifest.json");
@@ -1526,7 +1914,9 @@ void StageThrowing()
 {
     var package = Path.Combine(pluginsRoot, "Throwing");
     Directory.CreateDirectory(package);
-    File.WriteAllText(Path.Combine(package, "hosihikari.json"), """
+    File.WriteAllText(
+        Path.Combine(package, "hosihikari.json"),
+        """
         {
           "name": "Throwing",
           "entry": "Throwing.dll",
@@ -1534,7 +1924,8 @@ void StageThrowing()
           "dependencies": [ { "name": "hosihikari" } ],
           "loader": "throwing"
         }
-        """);
+        """
+    );
 }
 
 // 清单 type 写错的那个包：别的都对，只有 type 是父级那边的另一个值。
@@ -1542,14 +1933,17 @@ void StageWrongType()
 {
     var package = Path.Combine(pluginsRoot, "WrongType");
     Directory.CreateDirectory(package);
-    File.WriteAllText(Path.Combine(package, "hosihikari.json"), """
+    File.WriteAllText(
+        Path.Combine(package, "hosihikari.json"),
+        """
         {
           "name": "WrongType",
           "entry": "WrongType.dll",
           "loader": "assembly",
           "type": "assembly"
         }
-        """);
+        """
+    );
 }
 
 // schemaVersion 不匹配的包：与 api 一样，拒载发生在载入之前（FX-0012）。
@@ -1557,7 +1951,9 @@ void StageBadFormat()
 {
     var package = Path.Combine(pluginsRoot, "BadFormat");
     Directory.CreateDirectory(package);
-    File.WriteAllText(Path.Combine(package, "hosihikari.json"), """
+    File.WriteAllText(
+        Path.Combine(package, "hosihikari.json"),
+        """
         {
           "name": "BadFormat",
           "entry": "BadFormat.dll",
@@ -1565,7 +1961,8 @@ void StageBadFormat()
           "schemaVersion": 9,
           "dependencies": [ { "name": "hosihikari" } ]
         }
-        """);
+        """
+    );
 }
 
 // entry 跑出包外的包：绝对路径与 .. 在清单读取时就被拒（FX-0006）。
@@ -1573,7 +1970,9 @@ void StageEscapingEntry()
 {
     var package = Path.Combine(pluginsRoot, "Escaping");
     Directory.CreateDirectory(package);
-    File.WriteAllText(Path.Combine(package, "hosihikari.json"), """
+    File.WriteAllText(
+        Path.Combine(package, "hosihikari.json"),
+        """
         {
           "name": "Escaping",
           "entry": "../Outside.dll",
@@ -1581,7 +1980,8 @@ void StageEscapingEntry()
           "dependencies": [ { "name": "hosihikari" } ],
           "loader": "assembly"
         }
-        """);
+        """
+    );
 }
 
 // 本机夹具：同一符号在包根与 RID 目录各放一份，只有 RID 那份是 42。RID 优先则插件读到 42。
@@ -1594,14 +1994,16 @@ void StageEscapingEntry()
     }
 
     var output = OutputDirectory("NativeProbe");
-    var fileName = OperatingSystem.IsWindows() ? "hosihikari_probe.dll"
+    var fileName =
+        OperatingSystem.IsWindows() ? "hosihikari_probe.dll"
         : OperatingSystem.IsMacOS() ? "libhosihikari_probe.dylib"
         : "libhosihikari_probe.so";
     var ridDirectory = Path.Combine(
         output,
         "runtimes",
         System.Runtime.InteropServices.RuntimeInformation.RuntimeIdentifier,
-        "native");
+        "native"
+    );
     Directory.CreateDirectory(ridDirectory);
     var source = Path.Combine(repoRoot, "test", "NativeProbe", "native", "probe.c");
     var ridCompile = CompileNative(compiler, source, Path.Combine(ridDirectory, fileName), "42");
@@ -1615,7 +2017,8 @@ void StageEscapingEntry()
         output,
         Path.Combine(repoRoot, "test", "NativeProbe", "hosihikari.json"),
         Path.Combine(stage, "parented"),
-        sharedLayer);
+        sharedLayer
+    );
     if (!packed.Succeeded || packed.PackageDirectory is null)
     {
         return (false, "打包失败：" + string.Join("；", packed.Problems));
@@ -1630,7 +2033,10 @@ void StageEscapingEntry()
     var value = File.Exists(valueFile) ? File.ReadAllText(valueFile).Trim() : "（没写出来）";
     // 卸 NativeProbe 自己：它没有依赖者，测的是「本机库钉死不影响托管侧回收」。
     var unload = host.Unload("NativeProbe");
-    return (value == "42" && unload.Released, $"value={value} released={unload.Released} {unload.Error}");
+    return (
+        value == "42" && unload.Released,
+        $"value={value} released={unload.Released} {unload.Error}"
+    );
 }
 
 static string? FindCCompiler()
@@ -1662,15 +2068,18 @@ static string? FindCCompiler()
                 return candidate;
             }
         }
-        catch (System.ComponentModel.Win32Exception)
-        {
-        }
+        catch (System.ComponentModel.Win32Exception) { }
     }
 
     return null;
 }
 
-static (bool Ok, string Error) CompileNative(string compiler, string source, string output, string value)
+static (bool Ok, string Error) CompileNative(
+    string compiler,
+    string source,
+    string output,
+    string value
+)
 {
     var start = new System.Diagnostics.ProcessStartInfo(compiler)
     {
@@ -1721,8 +2130,13 @@ string OutputDirectory(string name)
     const string configuration = "Release";
 #endif
     var bin = Path.Combine(repoRoot, "test", name, "bin");
-    var assembly = Directory.EnumerateFiles(bin, $"{name}.dll", SearchOption.AllDirectories)
-        .Where(file => file.Contains($"{Path.DirectorySeparatorChar}{configuration}{Path.DirectorySeparatorChar}"))
+    var assembly = Directory
+        .EnumerateFiles(bin, $"{name}.dll", SearchOption.AllDirectories)
+        .Where(file =>
+            file.Contains(
+                $"{Path.DirectorySeparatorChar}{configuration}{Path.DirectorySeparatorChar}"
+            )
+        )
         .OrderByDescending(File.GetLastWriteTimeUtc)
         .First();
     return Path.GetDirectoryName(assembly)!;
@@ -1731,8 +2145,10 @@ string OutputDirectory(string name)
 static string RepoRoot()
 {
     var directory = new DirectoryInfo(AppContext.BaseDirectory);
-    while (directory is not null &&
-           !File.Exists(Path.Combine(directory.FullName, "src", "Hosihikari.PluginManager.csproj")))
+    while (
+        directory is not null
+        && !File.Exists(Path.Combine(directory.FullName, "src", "Hosihikari.PluginManager.csproj"))
+    )
     {
         directory = directory.Parent;
     }
@@ -1740,16 +2156,18 @@ static string RepoRoot()
     return directory?.FullName ?? throw new InvalidOperationException("找不到仓库根");
 }
 
-sealed class CapturingLoggerProvider(System.Collections.Concurrent.ConcurrentQueue<string> lines) : ILoggerProvider{
+sealed class CapturingLoggerProvider(System.Collections.Concurrent.ConcurrentQueue<string> lines)
+    : ILoggerProvider
+{
     public ILogger CreateLogger(string categoryName) => new Logger(lines);
 
-    public void Dispose()
-    {
-    }
+    public void Dispose() { }
 
-    private sealed class Logger(System.Collections.Concurrent.ConcurrentQueue<string> lines) : ILogger
+    private sealed class Logger(System.Collections.Concurrent.ConcurrentQueue<string> lines)
+        : ILogger
     {
-        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+        public IDisposable? BeginScope<TState>(TState state)
+            where TState : notnull => null;
 
         public bool IsEnabled(LogLevel logLevel) => true;
 
@@ -1758,7 +2176,8 @@ sealed class CapturingLoggerProvider(System.Collections.Concurrent.ConcurrentQue
             EventId eventId,
             TState state,
             Exception? exception,
-            Func<TState, Exception?, string> formatter) => lines.Enqueue(formatter(state, exception));
+            Func<TState, Exception?, string> formatter
+        ) => lines.Enqueue(formatter(state, exception));
     }
 }
 
@@ -1768,7 +2187,10 @@ sealed class CapturingLoggerProvider(System.Collections.Concurrent.ConcurrentQue
 /// </summary>
 sealed class SingleThreadContext : SynchronizationContext
 {
-    private readonly System.Collections.Concurrent.BlockingCollection<(SendOrPostCallback Callback, object? State)> _queue = [];
+    private readonly System.Collections.Concurrent.BlockingCollection<(
+        SendOrPostCallback Callback,
+        object? State
+    )> _queue = [];
 
     public override void Post(SendOrPostCallback d, object? state) => _queue.Add((d, state));
 

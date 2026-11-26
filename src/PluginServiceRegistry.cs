@@ -10,7 +10,8 @@ internal sealed class PluginServiceRegistry
     private readonly Dictionary<Type, object> _carrierServices = [];
     private readonly Lock _gate = new();
 
-    internal bool Register<T>(T service) where T : class
+    internal bool Register<T>(T service)
+        where T : class
     {
         lock (_gate)
         {
@@ -19,7 +20,8 @@ internal sealed class PluginServiceRegistry
         }
     }
 
-    internal T? Get<T>() where T : class
+    internal T? Get<T>()
+        where T : class
     {
         lock (_gate)
         {

@@ -5,19 +5,34 @@ namespace Hosihikari.Internal;
 internal sealed class EventBus(ILogger logger) : IEventBus
 {
     private static readonly EventPriority[] Bands =
-        [EventPriority.Lowest, EventPriority.Low, EventPriority.Normal, EventPriority.High, EventPriority.Highest, EventPriority.Monitor];
+    [
+        EventPriority.Lowest,
+        EventPriority.Low,
+        EventPriority.Normal,
+        EventPriority.High,
+        EventPriority.Highest,
+        EventPriority.Monitor,
+    ];
 
     private readonly Lock _gate = new();
+
     // 每个事件类型六个桶，按 Bands 的次序分发（FX-0060）；桶内按订阅顺序。
     private readonly Dictionary<Type, List<Delegate>[]> _handlers = [];
 
-    public IDisposable Subscribe<TEvent>(Action<TEvent> handler, EventPriority priority = EventPriority.Normal)
+    public IDisposable Subscribe<TEvent>(
+        Action<TEvent> handler,
+        EventPriority priority = EventPriority.Normal
+    )
     {
         ArgumentNullException.ThrowIfNull(handler);
         var bucket = Array.IndexOf(Bands, priority);
         if (bucket < 0)
         {
-            throw new ArgumentOutOfRangeException(nameof(priority), priority, "Unknown event priority");
+            throw new ArgumentOutOfRangeException(
+                nameof(priority),
+                priority,
+                "Unknown event priority"
+            );
         }
 
         lock (_gate)
@@ -47,7 +62,8 @@ internal sealed class EventBus(ILogger logger) : IEventBus
         });
     }
 
-    private static List<Delegate>[] CreateBuckets() => [.. Bands.Select(static _ => new List<Delegate>())];
+    private static List<Delegate>[] CreateBuckets() =>
+        [.. Bands.Select(static _ => new List<Delegate>())];
 
     public void Publish<TEvent>(TEvent @event)
     {
@@ -71,7 +87,11 @@ internal sealed class EventBus(ILogger logger) : IEventBus
                 catch (Exception ex)
                 {
                     // 隔离到这一个 handler，继续分发给其余 —— FX-0009 在事件总线上的落地（FX-0014）。
-                    logger.LogError(ex, "{Message}", CoreText.Get("Event_HandlerThrew", typeof(TEvent).Name));
+                    logger.LogError(
+                        ex,
+                        "{Message}",
+                        CoreText.Get("Event_HandlerThrew", typeof(TEvent).Name)
+                    );
                 }
             }
         }
@@ -91,11 +111,16 @@ internal sealed class Scheduler(ILogger logger) : IScheduler
     {
         // 先建成不引发的那种，赋值之后再 Change —— 否则回调可能早于赋值而拿不到自己。
         Timer? timer = null;
-        timer = new Timer(_ =>
-        {
-            timer!.Dispose();
-            Raise(work);
-        }, null, Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+        timer = new Timer(
+            _ =>
+            {
+                timer!.Dispose();
+                Raise(work);
+            },
+            null,
+            Timeout.InfiniteTimeSpan,
+            Timeout.InfiniteTimeSpan
+        );
         timer.Change(delay, Timeout.InfiniteTimeSpan);
         return new Handle(timer);
     }

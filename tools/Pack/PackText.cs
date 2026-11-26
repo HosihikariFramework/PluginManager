@@ -15,13 +15,13 @@ internal static class PackText
 {
     private const string ResourceBaseName = "Hosihikari.Plugin.Pack.Resources.PackStrings";
 
-    private static readonly IStringLocalizer Localizer =
-        new ResourceManagerStringLocalizer(
-            new ResourceManager(ResourceBaseName, typeof(PackStrings).Assembly),
-            typeof(PackStrings).Assembly,
-            ResourceBaseName,
-            new ResourceNamesCache(),
-            NullLogger.Instance);
+    private static readonly IStringLocalizer Localizer = new ResourceManagerStringLocalizer(
+        new ResourceManager(ResourceBaseName, typeof(PackStrings).Assembly),
+        typeof(PackStrings).Assembly,
+        ResourceBaseName,
+        new ResourceNamesCache(),
+        NullLogger.Instance
+    );
 
     internal static string Get(string key, params object[] arguments) => Localizer[key, arguments];
 }

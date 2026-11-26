@@ -18,6 +18,9 @@ public sealed class ThrowingPluginLoader : IPluginLoader
 
     public bool CanLoad(PluginManifest manifest) => manifest.Loader == Id;
 
-    public PluginHandle? Load(PluginManifest manifest, string packageDirectory, IPluginContext context) =>
-        throw new InvalidOperationException(ThrowMessage);
+    public PluginHandle? Load(
+        PluginManifest manifest,
+        string packageDirectory,
+        IPluginContext context
+    ) => throw new InvalidOperationException(ThrowMessage);
 }

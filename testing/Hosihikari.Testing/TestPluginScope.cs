@@ -9,7 +9,8 @@ namespace Hosihikari.Testing;
 internal sealed class TestPluginScope(
     TestEventBus events,
     TestScheduler scheduler,
-    TestServiceRegistry registry) : IEventBus, IScheduler, IPluginServiceRegistry
+    TestServiceRegistry registry
+) : IEventBus, IScheduler, IPluginServiceRegistry
 {
     private readonly object _gate = new();
     private readonly HashSet<Handle> _owned = [];
@@ -17,14 +18,22 @@ internal sealed class TestPluginScope(
     private volatile bool _enabled;
     private bool _released;
 
-    public IDisposable Subscribe<TEvent>(Action<TEvent> handler, EventPriority priority = EventPriority.Normal) =>
-        Track(() => events.Subscribe<TEvent>(@event =>
-        {
-            if (_enabled)
-            {
-                handler(@event);
-            }
-        }, priority));
+    public IDisposable Subscribe<TEvent>(
+        Action<TEvent> handler,
+        EventPriority priority = EventPriority.Normal
+    ) =>
+        Track(() =>
+            events.Subscribe<TEvent>(
+                @event =>
+                {
+                    if (_enabled)
+                    {
+                        handler(@event);
+                    }
+                },
+                priority
+            )
+        );
 
     public void Publish<TEvent>(TEvent @event) => events.Publish(@event);
 
@@ -34,25 +43,30 @@ internal sealed class TestPluginScope(
         var completed = false;
         Handle? handle = null;
 
-        var tracked = Track(() => scheduler.ScheduleOnce(delay, () =>
-        {
-            try
-            {
-                if (_enabled)
+        var tracked = Track(() =>
+            scheduler.ScheduleOnce(
+                delay,
+                () =>
                 {
-                    work();
+                    try
+                    {
+                        if (_enabled)
+                        {
+                            work();
+                        }
+                    }
+                    finally
+                    {
+                        lock (gate)
+                        {
+                            completed = true;
+                            handle?.Dispose();
+                            handle = null;
+                        }
+                    }
                 }
-            }
-            finally
-            {
-                lock (gate)
-                {
-                    completed = true;
-                    handle?.Dispose();
-                    handle = null;
-                }
-            }
-        }));
+            )
+        );
 
         lock (gate)
         {
@@ -68,15 +82,21 @@ internal sealed class TestPluginScope(
     }
 
     public IDisposable SchedulePeriodic(TimeSpan interval, Action work) =>
-        Track(() => scheduler.SchedulePeriodic(interval, () =>
-        {
-            if (_enabled)
-            {
-                work();
-            }
-        }));
+        Track(() =>
+            scheduler.SchedulePeriodic(
+                interval,
+                () =>
+                {
+                    if (_enabled)
+                    {
+                        work();
+                    }
+                }
+            )
+        );
 
-    public bool Register<T>(T service) where T : class
+    public bool Register<T>(T service)
+        where T : class
     {
         lock (_gate)
         {
@@ -91,7 +111,8 @@ internal sealed class TestPluginScope(
         }
     }
 
-    public T? Get<T>() where T : class => registry.Get<T>();
+    public T? Get<T>()
+        where T : class => registry.Get<T>();
 
     internal void Open()
     {
