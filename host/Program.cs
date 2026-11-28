@@ -175,6 +175,16 @@ var heardFile = Path.Combine(dataRoot, "Foo", "heard.txt");
 var heard = File.Exists(heardFile) ? File.ReadAllText(heardFile) : "（没收到）";
 checks.Add(("A9 handler 抛出不影响其余 handler", heard == "ping", heard));
 
+// A70：载入期发出的事件到不了自己 —— 闸门要到启用成功才开（FX-0035）。Foo 在 OnLoad
+// 里发过一条 "during-load"；上面那条 "ping" 是启用之后发的，能覆盖它正说明前者没进来。
+checks.Add(
+    (
+        "A70 载入期的投递被闸门挡住",
+        heard == "ping" && heard != "during-load",
+        $"heard={heard}"
+    )
+);
+
 // A10：调度器的一次性任务真的跑了（FX-0007）。50ms 的定时器在忙机器上会晚到，
 // 所以等一会儿再判，判的是"最终跑了"而不是"到这一行时已跑"。
 var scheduledFile = Path.Combine(dataRoot, "Foo", "scheduled.txt");
