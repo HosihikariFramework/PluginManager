@@ -42,6 +42,10 @@ public sealed class FooPlugin : IPlugin
             File.WriteAllText(Path.Combine(context.DataDirectory, "heard.txt"), payload)
         );
 
+        // 闸门此时还关着（FX-0035）：这一条也写 heard.txt，随后的钩子之前会覆盖它。
+        // 断言只看"载入期发的那条到不了"，与主线无关。
+        context.Events.Publish("during-load");
+
         // 调度器跑在线程池上（FX-0007）。
         context.Scheduler.ScheduleOnce(
             TimeSpan.FromMilliseconds(50),
